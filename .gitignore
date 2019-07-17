@@ -1,3 +1,6 @@
+# Temporary directories
+project/*
+
 # Prerequisites
 *.d
 
