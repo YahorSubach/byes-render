@@ -1,5 +1,9 @@
 #include "vkvf.h"
 
+#include <vector>
+#include <map>
+#include <tuple>
+
 #include "vulkan/vulkan.h"
 
 namespace vkvf
@@ -32,10 +36,11 @@ namespace vkvf
 
 			vk_instance_ = std::make_unique<VkInstance>();
 
-			VkResult result = vkCreateInstance(create_info.get(), nullptr, vk_instance_.get());
-			if (result == VK_SUCCESS)
-				vk_init_success_ = true;
-
+			if (vkCreateInstance(create_info.get(), nullptr, vk_instance_.get()) == VK_SUCCESS)
+			{
+				if (InitPhysicalDevices())
+					vk_init_success_ = true;
+			}
 		}
 
 		bool VKInitSuccess()
@@ -44,9 +49,70 @@ namespace vkvf
 		}
 
 	private:
+
+		bool InitPhysicalDevices()
+		{
+			uint32_t physical_devices_count;
+
+			if (vkEnumeratePhysicalDevices(*vk_instance_, &physical_devices_count, nullptr) != VK_SUCCESS)
+				return false;
+
+			vk_physical_devices_.resize(physical_devices_count);
+
+			if (vkEnumeratePhysicalDevices(*vk_instance_, &physical_devices_count, reinterpret_cast<VkPhysicalDevice*>(vk_physical_devices_.data())) != VK_SUCCESS)
+				return false;
+
+			for (size_t i = 0; i < physical_devices_count; i++)
+			{
+				InitPhysicalDeviceProperties(vk_physical_devices_[i]);
+				InitPhysicalDeviceQueueFamaliesProperties(vk_physical_devices_[i]);
+			}
+
+			return true;
+		}
+
+		void InitPhysicalDeviceProperties(VkPhysicalDevice physical_device)
+		{
+			using PhDevPropMapType = std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties>;
+
+			auto it = vk_physical_devices_propeties_.find(physical_device);
+
+			if (it == vk_physical_devices_propeties_.end())
+			{
+				it = vk_physical_devices_propeties_.emplace_hint(it,
+					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
+				vkGetPhysicalDeviceMemoryProperties(physical_device, &it->second);
+
+			}
+		}
+
+		void InitPhysicalDeviceQueueFamaliesProperties(VkPhysicalDevice physical_device)
+		{
+			using PhDevFamQMapType = std::map<VkPhysicalDevice, std::vector<VkQueueFamilyProperties>>;
+
+			auto it = vk_physical_devices_queue_famalies_propeties_.find(physical_device);
+
+			if (it == vk_physical_devices_queue_famalies_propeties_.end())
+			{
+				uint32_t device_queue_famaly_prop_cnt;
+				vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &device_queue_famaly_prop_cnt, nullptr);
+
+				it = vk_physical_devices_queue_famalies_propeties_.emplace_hint(it,
+					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
+
+				it->second.resize(device_queue_famaly_prop_cnt);
+
+				vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &device_queue_famaly_prop_cnt, it->second.data());
+			}
+		}
+
 		bool vk_init_success_;
 		std::unique_ptr<VkApplicationInfo> application_info_;
 		std::unique_ptr<VkInstance> vk_instance_;
+
+		std::vector<VkPhysicalDevice> vk_physical_devices_;
+		std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties> vk_physical_devices_propeties_;
+		std::map<VkPhysicalDevice, std::vector<VkQueueFamilyProperties>> vk_physical_devices_queue_famalies_propeties_;
 
 	};
 
