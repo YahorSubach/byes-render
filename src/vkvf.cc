@@ -37,10 +37,10 @@ namespace vkvf
 			vk_instance_ = std::make_unique<VkInstance>();
 
 			if (vkCreateInstance(create_info.get(), nullptr, vk_instance_.get()) == VK_SUCCESS)
-			{
-				if (InitPhysicalDevices())
+				if (InitPhysicalDevices() && InitInstanceLayers())
 					vk_init_success_ = true;
-			}
+
+
 		}
 
 		bool VKInitSuccess()
@@ -66,8 +66,9 @@ namespace vkvf
 			{
 				InitPhysicalDeviceProperties(vk_physical_devices_[i]);
 				InitPhysicalDeviceQueueFamaliesProperties(vk_physical_devices_[i]);
-				if (!InitLogicalDevice(vk_physical_devices_[i]))
+				if (!(InitLogicalDevice(vk_physical_devices_[i]) && InitPhysicalDeviceLayers(vk_physical_devices_[i])))
 					return false;
+
 			}
 
 			return true;
@@ -92,14 +93,14 @@ namespace vkvf
 		{
 			using PhDevFamQMapType = std::map<VkPhysicalDevice, std::vector<VkQueueFamilyProperties>>;
 
-			auto it = vk_physical_devices_queue_famalies_propeties_.lower_bound(physical_device);
+			auto it = vk_physical_devices_queues_.lower_bound(physical_device);
 
-			if (it == vk_physical_devices_queue_famalies_propeties_.end() || it->first != physical_device)
+			if (it == vk_physical_devices_queues_.end() || it->first != physical_device)
 			{
 				uint32_t device_queue_famaly_prop_cnt;
 				vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &device_queue_famaly_prop_cnt, nullptr);
 
-				it = vk_physical_devices_queue_famalies_propeties_.emplace_hint(it,
+				it = vk_physical_devices_queues_.emplace_hint(it,
 					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
 
 				it->second.resize(device_queue_famaly_prop_cnt);
@@ -109,7 +110,7 @@ namespace vkvf
 		}
 
 
-		void InitPhysicalDeviceFeatures(VkPhysicalDevice physical_device)
+		void InitPhysicalDeviceFeatures(const VkPhysicalDevice& physical_device)
 		{
 
 			using PhDevPropMapType = std::map<VkPhysicalDevice, VkPhysicalDeviceFeatures>;
@@ -122,6 +123,40 @@ namespace vkvf
 					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
 				vkGetPhysicalDeviceFeatures(physical_device, &it->second);
 
+			}
+		}
+
+		bool InitInstanceLayers()
+		{
+			uint32_t count;
+			if (vkEnumerateInstanceLayerProperties(&count, nullptr) == VK_SUCCESS)
+			{
+				vk_instance_layers.resize(count);
+				if (vkEnumerateInstanceLayerProperties(&count, vk_instance_layers.data()) == VK_SUCCESS)
+					return true;
+			}
+			return false;
+		}
+
+		bool InitPhysicalDeviceLayers(const VkPhysicalDevice& physical_device)
+		{
+			using PhDevFamQMapType = std::map<VkPhysicalDevice, std::vector<VkLayerProperties>>;
+
+			auto it = vk_physical_devices_layers_.lower_bound(physical_device);
+
+			if (it == vk_physical_devices_layers_.end() || it->first != physical_device)
+			{
+				uint32_t device_layers_cnt;
+				if (vkEnumerateDeviceLayerProperties(physical_device, &device_layers_cnt, nullptr) != VK_SUCCESS)
+					return false;
+
+				it = vk_physical_devices_layers_.emplace_hint(it,
+					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
+
+				it->second.resize(device_layers_cnt);
+
+				if (vkEnumerateDeviceLayerProperties(physical_device, &device_layers_cnt, it->second.data()) != VK_SUCCESS)
+					return false;
 			}
 		}
 
@@ -143,7 +178,7 @@ namespace vkvf
 			queueu_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			queueu_create_info.flags = 0;
 			queueu_create_info.queueFamilyIndex = 0;
-			queueu_create_info.queueCount = vk_physical_devices_queue_famalies_propeties_[physical_device][0].queueCount;
+			queueu_create_info.queueCount = vk_physical_devices_queues_[physical_device][0].queueCount;
 			queueu_create_info.pQueuePriorities = nullptr;
 			queueu_create_info.pNext = nullptr;
 
@@ -163,8 +198,11 @@ namespace vkvf
 
 		std::vector<VkPhysicalDevice> vk_physical_devices_;
 		std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties> vk_physical_devices_propeties_;
-		std::map<VkPhysicalDevice, std::vector<VkQueueFamilyProperties>> vk_physical_devices_queue_famalies_propeties_;
+		std::map<VkPhysicalDevice, std::vector<VkQueueFamilyProperties>> vk_physical_devices_queues_;
 		std::map<VkPhysicalDevice, VkPhysicalDeviceFeatures> vk_physical_devices_features_;
+		std::vector<VkLayerProperties > vk_instance_layers;
+		std::map<VkPhysicalDevice, std::vector<VkLayerProperties>> vk_physical_devices_layers_;
+
 
 		std::vector<VkDevice> vk_logical_devices_;
 
