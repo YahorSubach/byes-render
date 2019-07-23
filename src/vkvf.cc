@@ -34,10 +34,11 @@ namespace vkvf
 			create_info->pNext = nullptr;
 			create_info->sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
-			vk_instance_ = std::make_unique<VkInstance>();
 
-			if (vkCreateInstance(create_info.get(), nullptr, vk_instance_.get()) == VK_SUCCESS)
-				if (InitPhysicalDevices() && InitInstanceLayers())
+			if (vkCreateInstance(create_info.get(), nullptr, &vk_instance_) == VK_SUCCESS)
+				if (InitInstanceLayers() &&
+					InitInstanceExtensions() &&
+					InitPhysicalDevices())
 					vk_init_success_ = true;
 
 
@@ -48,29 +49,39 @@ namespace vkvf
 			return vk_init_success_;
 		}
 
+		~VKVisualFacadeImpl()
+		{
+			for (auto it = vk_logical_devices_.begin(); it != vk_logical_devices_.end(); it++)
+			{
+				vkDeviceWaitIdle(*it);
+				vkDestroyDevice(*it, nullptr);
+			}
+			vkDestroyInstance(vk_instance_, nullptr);
+		}
+
 	private:
 
 		bool InitPhysicalDevices()
 		{
 			uint32_t physical_devices_count;
 
-			if (vkEnumeratePhysicalDevices(*vk_instance_, &physical_devices_count, nullptr) != VK_SUCCESS)
+			if (vkEnumeratePhysicalDevices(vk_instance_, &physical_devices_count, nullptr) != VK_SUCCESS)
 				return false;
 
 			vk_physical_devices_.resize(physical_devices_count);
 
-			if (vkEnumeratePhysicalDevices(*vk_instance_, &physical_devices_count, reinterpret_cast<VkPhysicalDevice*>(vk_physical_devices_.data())) != VK_SUCCESS)
+			if (vkEnumeratePhysicalDevices(vk_instance_, &physical_devices_count, reinterpret_cast<VkPhysicalDevice*>(vk_physical_devices_.data())) != VK_SUCCESS)
 				return false;
 
 			for (size_t i = 0; i < physical_devices_count; i++)
 			{
 				InitPhysicalDeviceProperties(vk_physical_devices_[i]);
 				InitPhysicalDeviceQueueFamaliesProperties(vk_physical_devices_[i]);
-				if (!(InitLogicalDevice(vk_physical_devices_[i]) && InitPhysicalDeviceLayers(vk_physical_devices_[i])))
+				if (!(InitLogicalDevice(vk_physical_devices_[i]) &&
+					InitPhysicalDeviceLayers(vk_physical_devices_[i]) &&
+					InitPhysicalDeviceExtensions(vk_physical_devices_[i])))
 					return false;
-
 			}
-
 			return true;
 		}
 
@@ -131,8 +142,8 @@ namespace vkvf
 			uint32_t count;
 			if (vkEnumerateInstanceLayerProperties(&count, nullptr) == VK_SUCCESS)
 			{
-				vk_instance_layers.resize(count);
-				if (vkEnumerateInstanceLayerProperties(&count, vk_instance_layers.data()) == VK_SUCCESS)
+				vk_instance_layers_.resize(count);
+				if (vkEnumerateInstanceLayerProperties(&count, vk_instance_layers_.data()) == VK_SUCCESS)
 					return true;
 			}
 			return false;
@@ -158,6 +169,42 @@ namespace vkvf
 				if (vkEnumerateDeviceLayerProperties(physical_device, &device_layers_cnt, it->second.data()) != VK_SUCCESS)
 					return false;
 			}
+			return true;
+		}
+
+		bool InitInstanceExtensions()
+		{
+			uint32_t count;
+			if (vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr) == VK_SUCCESS)
+			{
+				vk_instance_extensions_.resize(count);
+				if (vkEnumerateInstanceExtensionProperties(nullptr, &count, vk_instance_extensions_.data()) == VK_SUCCESS)
+					return true;
+			}
+			return false;
+		}
+
+		bool InitPhysicalDeviceExtensions(const VkPhysicalDevice& physical_device)
+		{
+			using PhDevFamQMapType = std::map<VkPhysicalDevice, std::vector<VkExtensionProperties>>;
+
+			auto it = vk_physical_devices_extensions_.lower_bound(physical_device);
+
+			if (it == vk_physical_devices_extensions_.end() || it->first != physical_device)
+			{
+				uint32_t device_extensions_cnt;
+				if (vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extensions_cnt, nullptr) != VK_SUCCESS)
+					return false;
+
+				it = vk_physical_devices_extensions_.emplace_hint(it,
+					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
+
+				it->second.resize(device_extensions_cnt);
+
+				if (vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extensions_cnt, it->second.data()) != VK_SUCCESS)
+					return false;
+			}
+			return true;
 		}
 
 		bool InitLogicalDevice(VkPhysicalDevice physical_device)
@@ -193,15 +240,17 @@ namespace vkvf
 		}
 
 		bool vk_init_success_;
-		std::unique_ptr<VkApplicationInfo> application_info_;
-		std::unique_ptr<VkInstance> vk_instance_;
+		VkApplicationInfo application_info_;
+		VkInstance vk_instance_;
 
 		std::vector<VkPhysicalDevice> vk_physical_devices_;
 		std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties> vk_physical_devices_propeties_;
 		std::map<VkPhysicalDevice, std::vector<VkQueueFamilyProperties>> vk_physical_devices_queues_;
 		std::map<VkPhysicalDevice, VkPhysicalDeviceFeatures> vk_physical_devices_features_;
-		std::vector<VkLayerProperties > vk_instance_layers;
+		std::vector<VkLayerProperties > vk_instance_layers_;
 		std::map<VkPhysicalDevice, std::vector<VkLayerProperties>> vk_physical_devices_layers_;
+		std::vector<VkExtensionProperties > vk_instance_extensions_;
+		std::map<VkPhysicalDevice, std::vector<VkExtensionProperties>> vk_physical_devices_extensions_;
 
 
 		std::vector<VkDevice> vk_logical_devices_;
