@@ -1,7 +1,4 @@
 set SCRIPTS_DIR=%cd%
-cd ..
-mkdir project
-cd project
-cmake ..
+cd ../project
 cmake --build .
 cd %SCRIPTS_DIR%
