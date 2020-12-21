@@ -1,5 +1,7 @@
 # Temporary directories
 project/*
+build/*
+.*
 
 # Prerequisites
 *.d

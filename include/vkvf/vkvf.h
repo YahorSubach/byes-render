@@ -2,13 +2,20 @@
 #define VK_VISUAL_FACADE_VKVF_H_
 
 #include <memory>
+#include <windows.h>
+
+
 
 namespace vkvf
 {
+#ifdef WIN32
+	using InitParam = HINSTANCE;
+#endif
+
 	class VKVisualFacade
 	{
 	public:
-		VKVisualFacade();
+		VKVisualFacade(InitParam param);
 		~VKVisualFacade();
 
 		bool VKInitSuccess();

@@ -1,10 +1,12 @@
-#include "vkvf.h"
+#include "platform.h"
 
 #include <vector>
 #include <map>
 #include <tuple>
 
 #include "vulkan/vulkan.h"
+
+#include <tchar.h>
 
 namespace vkvf
 {
@@ -15,22 +17,21 @@ namespace vkvf
 		VKVisualFacadeImpl(const VKVisualFacadeImpl&) = delete;
 		VKVisualFacadeImpl& operator=(const VKVisualFacadeImpl&) = delete;
 
-		VKVisualFacadeImpl()
+		VKVisualFacadeImpl(InitParam param)
 		{
 			vk_init_success_ = false;
 
-			auto application_info = std::make_unique<VkApplicationInfo>();
-			application_info->apiVersion = VK_HEADER_VERSION;
-			application_info->applicationVersion = 1;
-			application_info->engineVersion = 1;
-			application_info->pApplicationName = "vulkan_concepts";
-			application_info->pEngineName = "vulkan_concepts_engine";
-			application_info->sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+			application_info_.apiVersion = VK_HEADER_VERSION;
+			application_info_.applicationVersion = 1;
+			application_info_.engineVersion = 1;
+			application_info_.pApplicationName = "vulkan_concepts";
+			application_info_.pEngineName = "vulkan_concepts_engine";
+			application_info_.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
 			auto create_info = std::make_unique<VkInstanceCreateInfo>();
 			create_info->enabledExtensionCount = 0;
 			create_info->enabledLayerCount = 0;
-			create_info->pApplicationInfo = application_info.get();
+			create_info->pApplicationInfo = &application_info_;
 			create_info->pNext = nullptr;
 			create_info->sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
@@ -39,8 +40,12 @@ namespace vkvf
 				if (InitInstanceLayers() &&
 					InitInstanceExtensions() &&
 					InitPhysicalDevices())
+				{
 					vk_init_success_ = true;
 
+					window_hande_ = vkvf::platform::GetWindow(param);
+					vkvf::platform::ShowWindow(window_hande_);
+				}
 
 		}
 
@@ -242,6 +247,8 @@ namespace vkvf
 		bool vk_init_success_;
 		VkApplicationInfo application_info_;
 		VkInstance vk_instance_;
+		HWND window_hande_;
+
 
 		std::vector<VkPhysicalDevice> vk_physical_devices_;
 		std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties> vk_physical_devices_propeties_;
@@ -258,9 +265,9 @@ namespace vkvf
 	};
 
 
-	VKVisualFacade::VKVisualFacade()
+	VKVisualFacade::VKVisualFacade(InitParam param)
 	{
-		impl_ = std::make_unique<VKVisualFacadeImpl>();
+		impl_ = std::make_unique<VKVisualFacadeImpl>(param);
 	}
 
 	VKVisualFacade::~VKVisualFacade() = default;
