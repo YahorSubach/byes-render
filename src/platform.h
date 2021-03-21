@@ -17,7 +17,7 @@ namespace vkvf::platform
 
 	void ShowWindow(Window window);
 
-	const std::vector<const char*>& GetRequiredExtensionsNames();
+	const std::vector<const char*>& GetRequiredExtensions();
 
 
 }

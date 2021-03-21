@@ -82,7 +82,7 @@ namespace vkvf::platform
 	}
 
 
-	const std::vector<const char*>& GetRequiredExtensionsNames()
+	const std::vector<const char*>& GetRequiredExtensions()
 	{
 		static const std::vector<const char*> extensions{ "VK_KHR_surface", "VK_KHR_win32_surface"};
 		return extensions;

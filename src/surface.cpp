@@ -41,7 +41,7 @@ vkvf::Surface::Surface(InitParam init_param, const VkInstance& instance, const V
 				create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 				create_info.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 				create_info.clipped = VK_FALSE;
-				create_info.oldSwapchain = swapchain_;
+				create_info.oldSwapchain = nullptr;
 
 				if (vkCreateSwapchainKHR(logical_device, &create_info, nullptr, &swapchain_) == VK_SUCCESS)
 				{

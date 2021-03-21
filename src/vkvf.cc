@@ -1,4 +1,6 @@
 #include "platform.h"
+#include "stl_util.h"
+
 
 #include <vector>
 #include <map>
@@ -32,38 +34,24 @@ namespace vkvf
 
 
 
-			auto create_info = std::make_unique<VkInstanceCreateInfo>();
-			create_info->enabledExtensionCount = 0;
-			create_info->enabledLayerCount = 0;
-			create_info->pApplicationInfo = &application_info_;
-			create_info->pNext = nullptr;
-			create_info->sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+			VkInstanceCreateInfo instance_create_info;
+			instance_create_info.enabledExtensionCount = 0;
+			instance_create_info.enabledLayerCount = 0;
+			instance_create_info.pApplicationInfo = &application_info_;
+			instance_create_info.pNext = nullptr;
+			instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
 			if (InitInstanceExtensions())
 			{
 				bool all_extensions_exist = true;
 
-				for (auto&& extension_name : platform::GetRequiredExtensionsNames())
+				if (stl_util::All(platform::GetRequiredExtensions(), vk_instance_extensions_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
 				{
-					auto it = std::find_if(
-						vk_instance_extensions_.begin(), vk_instance_extensions_.end(), 
-						[&extension_name](auto& extension) { return std::strcmp(extension.extensionName, extension_name) == 0; });
-
-					if (it == vk_instance_extensions_.end())
-					{
-						all_extensions_exist = false;
-						break;
-					}
-				}
-				
-				if (all_extensions_exist)
-				{
-					create_info->enabledExtensionCount = static_cast<uint32_t>(platform::GetRequiredExtensionsNames().size());
-					create_info->ppEnabledExtensionNames = platform::GetRequiredExtensionsNames().data();
+					instance_create_info.enabledExtensionCount = static_cast<uint32_t>(platform::GetRequiredExtensions().size());
+					instance_create_info.ppEnabledExtensionNames = platform::GetRequiredExtensions().data();
 				}
 
-
-				if (vkCreateInstance(create_info.get(), nullptr, &vk_instance_) == VK_SUCCESS)
+				if (vkCreateInstance(&instance_create_info, nullptr, &vk_instance_) == VK_SUCCESS)
 					if (InitInstanceLayers() &&
 						InitPhysicalDevices())
 					{
@@ -116,6 +104,12 @@ namespace vkvf
 
 	private:
 
+		const std::vector<const char*>& GetRequiredExtensions()
+		{
+			static const std::vector<const char*> extensions{ "VK_KHR_swapchain" };
+			return extensions;
+		}
+
 		bool InitPhysicalDevices()
 		{
 			uint32_t physical_devices_count;
@@ -127,14 +121,14 @@ namespace vkvf
 
 			if (vkEnumeratePhysicalDevices(vk_instance_, &physical_devices_count, reinterpret_cast<VkPhysicalDevice*>(vk_physical_devices_.data())) != VK_SUCCESS)
 				return false;
-
+			//TODO: add device selection
 			for (size_t i = 0; i < physical_devices_count; i++)
 			{
 				InitPhysicalDeviceProperties(vk_physical_devices_[i]);
 				InitPhysicalDeviceQueueFamaliesProperties(vk_physical_devices_[i]);
-				if (!(InitLogicalDevice(vk_physical_devices_[i]) &&
-					InitPhysicalDeviceLayers(vk_physical_devices_[i]) &&
-					InitPhysicalDeviceExtensions(vk_physical_devices_[i])))
+				if (!(InitPhysicalDeviceLayers(vk_physical_devices_[i]) &&
+					InitPhysicalDeviceExtensions(vk_physical_devices_[i]) &&
+					InitLogicalDevice(vk_physical_devices_[i])))
 					return false;
 			}
 			return true;
@@ -251,10 +245,8 @@ namespace vkvf
 				if (vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extensions_cnt, nullptr) != VK_SUCCESS)
 					return false;
 
-				it = vk_physical_devices_extensions_.emplace_hint(it,
-					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
-
-				it->second.resize(device_extensions_cnt);
+				it = vk_physical_devices_extensions_.emplace_hint(it, 
+					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple(device_extensions_cnt));
 
 				if (vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extensions_cnt, it->second.data()) != VK_SUCCESS)
 					return false;
@@ -262,15 +254,23 @@ namespace vkvf
 			return true;
 		}
 
-		bool InitLogicalDevice(VkPhysicalDevice physical_device)
+		bool InitLogicalDevice(const VkPhysicalDevice& physical_device)
 		{
 			VkDeviceCreateInfo logical_device_create_info;
+
+			if (stl_util::All(GetRequiredExtensions(), vk_physical_devices_extensions_[physical_device], [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
+			{
+				logical_device_create_info.enabledExtensionCount = static_cast<uint32_t>(GetRequiredExtensions().size());
+				logical_device_create_info.ppEnabledExtensionNames = GetRequiredExtensions().data();
+			}
+			else return false;
+
+
+
 			logical_device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 			logical_device_create_info.pNext = nullptr;
 			logical_device_create_info.flags = 0;
-			logical_device_create_info.enabledExtensionCount = 0;
 			logical_device_create_info.enabledLayerCount = 0;
-			logical_device_create_info.ppEnabledExtensionNames = nullptr;
 			logical_device_create_info.ppEnabledLayerNames = nullptr;
 			logical_device_create_info.pEnabledFeatures = &vk_physical_devices_features_[physical_device];
 
@@ -306,7 +306,7 @@ namespace vkvf
 		std::map<VkPhysicalDevice, VkPhysicalDeviceFeatures> vk_physical_devices_features_;
 		std::vector<VkLayerProperties > vk_instance_layers_;
 		std::map<VkPhysicalDevice, std::vector<VkLayerProperties>> vk_physical_devices_layers_;
-		std::vector<VkExtensionProperties > vk_instance_extensions_;
+		std::vector<VkExtensionProperties> vk_instance_extensions_;
 		std::map<VkPhysicalDevice, std::vector<VkExtensionProperties>> vk_physical_devices_extensions_;
 
 		std::vector<VkDevice> vk_logical_devices_;
