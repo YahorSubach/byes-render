@@ -7,13 +7,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 project (vulkan_visual_facade)
 
 find_package(Vulkan REQUIRED)
+
 if(Vulkan_FOUND)
+
+	add_subdirectory(submodules/glm)
 
 	add_library(vk_visual_facade "")
 
 	target_link_libraries(vk_visual_facade PRIVATE Vulkan::Vulkan)
 
 	add_subdirectory(src)
+
+
 
 	target_sources(vk_visual_facade 
 		PRIVATE
@@ -29,6 +34,7 @@ if(Vulkan_FOUND)
 	  
 	add_executable(vkvf_basics "")
 	target_link_libraries(vkvf_basics PRIVATE vk_visual_facade)
+	target_link_libraries(vkvf_basics PRIVATE glm)
 	
 	add_subdirectory(examples)
 
