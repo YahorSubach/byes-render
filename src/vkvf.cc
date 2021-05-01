@@ -11,6 +11,8 @@
 
 #include <tchar.h>
 
+#include "common.h"
+
 namespace vkvf
 {
 	class VKVisualFacade::VKVisualFacadeImpl
@@ -24,6 +26,30 @@ namespace vkvf
 		{
 			vk_init_success_ = false;
 
+			if (!InitInstanceExtensions())
+			{
+				LOG(err, "Could not init InstanceExtensions");
+				return;
+			}
+
+			if (!stl_util::All(platform::GetRequiredExtensions(), vk_instance_extensions_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
+			{
+				LOG(err, "Required platform Extension missing");
+				return;
+			}
+
+			if (!InitInstanceLayers())
+			{
+				LOG(err, "InitInstanceLayers error");
+				return;
+			}
+
+			if (!stl_util::All(GetValidationLayers(), vk_instance_layers_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.layerName) == 0; }))
+			{
+				LOG(err, "Instance Layers missing");
+				return;
+			}
+
 			application_info_.apiVersion = VK_HEADER_VERSION;
 			application_info_.applicationVersion = 1;
 			application_info_.engineVersion = 1;
@@ -31,61 +57,49 @@ namespace vkvf
 			application_info_.pEngineName = "vulkan_concepts_engine";
 			application_info_.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
-
-
-
-			VkInstanceCreateInfo instance_create_info;
-			instance_create_info.enabledExtensionCount = 0;
-			instance_create_info.enabledLayerCount = 0;
+			VkInstanceCreateInfo instance_create_info{};
+			instance_create_info.enabledExtensionCount = static_cast<uint32_t>(platform::GetRequiredExtensions().size());
+			instance_create_info.ppEnabledExtensionNames = platform::GetRequiredExtensions().data();
+			instance_create_info.enabledLayerCount = static_cast<uint32_t>(GetValidationLayers().size());
+			instance_create_info.ppEnabledLayerNames = GetValidationLayers().data();
 			instance_create_info.pApplicationInfo = &application_info_;
 			instance_create_info.pNext = nullptr;
 			instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
-			if (InitInstanceExtensions())
+
+			if (vkCreateInstance(&instance_create_info, nullptr, &vk_instance_) != VK_SUCCESS)
 			{
-				bool all_extensions_exist = true;
-
-				if (stl_util::All(platform::GetRequiredExtensions(), vk_instance_extensions_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
-				{
-					instance_create_info.enabledExtensionCount = static_cast<uint32_t>(platform::GetRequiredExtensions().size());
-					instance_create_info.ppEnabledExtensionNames = platform::GetRequiredExtensions().data();
-				}
-
-				if (vkCreateInstance(&instance_create_info, nullptr, &vk_instance_) == VK_SUCCESS)
-					if (InitInstanceLayers() &&
-						InitPhysicalDevices())
-					{
-						vk_init_success_ = true;
-
-						uint32_t device_with_platform_support_ind = -1;
-
-						uint32_t device_queues_ind = 0;
-						for (auto&& [physical_device, queues_properties] : vk_physical_devices_queues_)
-						{
-							for (uint32_t i = 0; i < queues_properties.size(); i++)
-							{
-								if (vkGetPhysicalDeviceWin32PresentationSupportKHR(physical_device, i))
-								{
-									device_with_platform_support_ind = device_queues_ind;
-									break;
-								}
-							}
-
-							if (device_with_platform_support_ind != -1)
-								break;
-
-							device_queues_ind++;
-						}
-
-						if (device_with_platform_support_ind != -1)
-						{
-							Surface surface(param, vk_instance_, vk_physical_devices_[device_with_platform_support_ind], vk_logical_devices_[device_with_platform_support_ind]);
-							platform::ShowWindow(surface.GetWindow());
-						}
-					}
-
+				LOG(err, "vkCreateInstance error");
+				return;
 			}
+
+
+			if (!InitPhysicalDevices())
+			{
+				LOG(err, "InitPhysicalDevices error");
+				return;
+			}
+
+			if (!InitLogicalDevices())
+			{
+				LOG(err, "InitLogicalDevices error");
+				return;
+			}
+
+			std::pair<uint32_t, uint32_t> device_and_queue_indices = DetermineDeviceAndQueueForUse();
+
+			if (device_and_queue_indices.first < 0 || device_and_queue_indices.second < 0)
+			{
+				LOG(err, "Could not determine valid device or queue");
+				return;
+			}
+
+			surface_ptr_ = std::make_unique<Surface>(param, vk_instance_, vk_physical_devices_[device_and_queue_indices.first], vk_logical_devices_[device_and_queue_indices.first]);
+
+			platform::ShowWindow(surface_ptr_->GetWindow());
+
 		}
+
 
 		bool VKInitSuccess()
 		{
@@ -110,6 +124,17 @@ namespace vkvf
 			return extensions;
 		}
 
+		const std::vector<const char*>& GetValidationLayers()
+		{
+#ifndef NDEBUG
+			static const std::vector<const char*> layers{ "VK_LAYER_KHRONOS_validation" };
+			return layers;
+#else
+			static const std::vector<const char*> layers{};
+			return layers;
+#endif // !NDEBUG
+		}
+
 		bool InitPhysicalDevices()
 		{
 			uint32_t physical_devices_count;
@@ -127,12 +152,54 @@ namespace vkvf
 				InitPhysicalDeviceProperties(vk_physical_devices_[i]);
 				InitPhysicalDeviceQueueFamaliesProperties(vk_physical_devices_[i]);
 				if (!(InitPhysicalDeviceLayers(vk_physical_devices_[i]) &&
-					InitPhysicalDeviceExtensions(vk_physical_devices_[i]) &&
-					InitLogicalDevice(vk_physical_devices_[i])))
+					InitPhysicalDeviceExtensions(vk_physical_devices_[i])))
 					return false;
 			}
 			return true;
 		}
+
+		bool InitLogicalDevices()
+		{
+			//TODO: add device selection
+			for (VkPhysicalDevice& physical_device : vk_physical_devices_)
+			{
+				if (!InitLogicalDevice(physical_device))
+					return false;
+			}
+			return true;
+	}
+
+		std::pair<uint32_t, uint32_t> DetermineDeviceAndQueueForUse()
+		{
+			VkPhysicalDevice physical_device_out = nullptr;
+
+			uint32_t device_queue_famaly_ind = -1;
+
+
+			for (auto&& [physical_device, queues_properties] : vk_physical_devices_queues_)
+			{
+				for (uint32_t i = 0; i < queues_properties.size(); i++)
+				{
+					if (platform::GetPhysicalDevicePresentationSupport(physical_device, i))
+					{
+						physical_device_out = physical_device;
+						device_queue_famaly_ind = i;
+						break;
+					}
+				}
+
+				if (device_queue_famaly_ind != -1)
+					break;
+			}
+
+			auto physical_device_out_it = std::find(vk_physical_devices_.begin(), vk_physical_devices_.end(), physical_device_out);
+
+			if (physical_device_out_it != vk_physical_devices_.end())
+				return { static_cast<uint32_t>(physical_device_out_it - vk_physical_devices_.begin()), device_queue_famaly_ind };
+
+			return { -1, -1 };
+		}
+
 
 		void InitPhysicalDeviceProperties(VkPhysicalDevice physical_device)
 		{
@@ -245,7 +312,7 @@ namespace vkvf
 				if (vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extensions_cnt, nullptr) != VK_SUCCESS)
 					return false;
 
-				it = vk_physical_devices_extensions_.emplace_hint(it, 
+				it = vk_physical_devices_extensions_.emplace_hint(it,
 					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple(device_extensions_cnt));
 
 				if (vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extensions_cnt, it->second.data()) != VK_SUCCESS)
@@ -256,7 +323,7 @@ namespace vkvf
 
 		bool InitLogicalDevice(const VkPhysicalDevice& physical_device)
 		{
-			VkDeviceCreateInfo logical_device_create_info;
+			VkDeviceCreateInfo logical_device_create_info{};
 
 			if (stl_util::All(GetRequiredExtensions(), vk_physical_devices_extensions_[physical_device], [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
 			{
@@ -276,7 +343,7 @@ namespace vkvf
 
 
 
-			VkDeviceQueueCreateInfo queueu_create_info;
+			VkDeviceQueueCreateInfo queueu_create_info{};
 			queueu_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			queueu_create_info.flags = 0;
 			queueu_create_info.queueFamilyIndex = 0;
@@ -310,8 +377,9 @@ namespace vkvf
 		std::map<VkPhysicalDevice, std::vector<VkExtensionProperties>> vk_physical_devices_extensions_;
 
 		std::vector<VkDevice> vk_logical_devices_;
+		std::unique_ptr<Surface> surface_ptr_;
 
-	};
+};
 
 
 	VKVisualFacade::VKVisualFacade(InitParam param)

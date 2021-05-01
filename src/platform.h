@@ -1,9 +1,11 @@
 #ifndef VK_VISUAL_FACADE_PLATFORM_H_
 #define VK_VISUAL_FACADE_PLATFORM_H_
 
-#include "vkvf.h"
-#include <vector>
+#include "vulkan/vulkan.h"
 
+#include "vkvf.h"
+
+#include <vector>
 
 namespace vkvf::platform
 {
@@ -19,7 +21,7 @@ namespace vkvf::platform
 
 	const std::vector<const char*>& GetRequiredExtensions();
 
-
+	bool GetPhysicalDevicePresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex);
 }
 
 

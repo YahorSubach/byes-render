@@ -88,5 +88,10 @@ namespace vkvf::platform
 		return extensions;
 	}
 
+	bool GetPhysicalDevicePresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
+	{
+		return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex);
+	}
+
 #endif
 }

@@ -1,7 +1,7 @@
 #include "surface.h"
 
 vkvf::Surface::Surface(InitParam init_param, const VkInstance& instance, const VkPhysicalDevice& physical_device, const VkDevice& logical_device) :
-	is_valid_(false), logical_device_(logical_device)
+	is_valid_(false), logical_device_(logical_device), surface_(nullptr), swapchain_(nullptr)
 {
 	window_hande_ = vkvf::platform::CreatePlatformWindow(init_param);
 
@@ -22,7 +22,7 @@ vkvf::Surface::Surface(InitParam init_param, const VkInstance& instance, const V
 
 			if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface_, &capabilities) == VK_SUCCESS)
 			{
-				VkSwapchainCreateInfoKHR create_info;
+				VkSwapchainCreateInfoKHR create_info{};
 
 				create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 				create_info.pNext = nullptr;
@@ -67,7 +67,7 @@ const VkImage* vkvf::Surface::AcquireImage()
 {
 	if (is_valid_)
 	{
-		uint32_t image_index;
+		//uint32_t image_index{};
 
 		//if(vkAcquireNextImageKHR(logical_device_, swapchain_, 0, VkSemaphore)
 		return nullptr;
