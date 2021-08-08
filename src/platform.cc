@@ -8,11 +8,11 @@ namespace vkvf::platform
 
 	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		//switch (uMsg)
-		//{
-		//case WM_DESTROY:
-		//	PostQuitMessage(0);
-		//	return 0;
+		switch (uMsg)
+		{
+		case WM_DESTROY:
+			PostQuitMessage(0);
+			return 0;
 		//case WM_PAINT:
 		//{
 		//	//PAINTSTRUCT ps;
@@ -24,8 +24,8 @@ namespace vkvf::platform
 
 		//	//EndPaint(hwnd, &ps);
 		//}
-		//return 0;
-		//}
+		return 0;
+		}
 
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}

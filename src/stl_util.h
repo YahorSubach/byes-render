@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <any>
+#include <functional>
 
 namespace vkvf::stl_util
 {
@@ -39,6 +40,44 @@ namespace vkvf::stl_util
 			}
 		}
 		return ContainerCheckResult{};
+	}
+
+
+	template<typename T>
+	struct function_traits;
+
+	template<typename R, typename ...Args>
+	struct function_traits<std::function<R(Args...)>>
+	{
+		static const size_t nargs = sizeof...(Args);
+
+		typedef R result_type;
+
+		template<size_t i>
+		using arg_t = std::tuple_element<i, std::tuple<Args...>>::type;
+	};
+
+	template <typename Function, typename ... StaticArgs>
+	auto GetSizeThenAlocThenGetDataPtrPtr(Function function, StaticArgs ... static_args)
+	{
+		std::function ffunction = function;
+		
+		using FunctionType = decltype(ffunction);
+
+		const int nargs = function_traits<FunctionType>::nargs;
+
+		using SizeTypePtr = function_traits<FunctionType>::template arg_t<nargs - 2>;
+		using ResultTypePtr = function_traits<FunctionType>::template arg_t<nargs - 1>;
+
+		std::remove_pointer_t<SizeTypePtr> size = 0;
+
+		function(static_args..., &size, nullptr);
+
+		std::vector<std::remove_pointer_t<ResultTypePtr>> result(size);
+
+		function(static_args..., &size, result.data());
+
+		return result;
 	}
 }
 #endif  // VK_VISUAL_FACADE_STL_UTIL_H_

@@ -94,7 +94,7 @@ namespace vkvf
 				return;
 			}
 
-			surface_ptr_ = std::make_unique<Surface>(param, vk_instance_, vk_physical_devices_[device_and_queue_indices.first], vk_logical_devices_[device_and_queue_indices.first]);
+			surface_ptr_ = std::make_unique<Surface>(param, vk_instance_, vk_physical_devices_[device_and_queue_indices.first], device_and_queue_indices.second, vk_logical_devices_[device_and_queue_indices.first]);
 
 			platform::ShowWindow(surface_ptr_->GetWindow());
 
@@ -180,7 +180,7 @@ namespace vkvf
 			{
 				for (uint32_t i = 0; i < queues_properties.size(); i++)
 				{
-					if (platform::GetPhysicalDevicePresentationSupport(physical_device, i))
+					if (platform::GetPhysicalDevicePresentationSupport(physical_device, i) && (queues_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
 					{
 						physical_device_out = physical_device;
 						device_queue_famaly_ind = i;
@@ -342,13 +342,20 @@ namespace vkvf
 			logical_device_create_info.pEnabledFeatures = &vk_physical_devices_features_[physical_device];
 
 
-
+			//TODO: select and create only graphic queue
 			VkDeviceQueueCreateInfo queueu_create_info{};
 			queueu_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			queueu_create_info.flags = 0;
 			queueu_create_info.queueFamilyIndex = 0;
-			queueu_create_info.queueCount = vk_physical_devices_queues_[physical_device][0].queueCount;
-			queueu_create_info.pQueuePriorities = nullptr;
+
+			uint32_t device_queue_count = vk_physical_devices_queues_[physical_device][0].queueCount;
+
+			queueu_create_info.queueCount = device_queue_count;
+
+			std::vector<float> queue_priorities(device_queue_count);
+			for (auto&& priority : queue_priorities) priority = 1.0f;
+
+			queueu_create_info.pQueuePriorities = queue_priorities.data();
 			queueu_create_info.pNext = nullptr;
 
 			logical_device_create_info.queueCreateInfoCount = 1;

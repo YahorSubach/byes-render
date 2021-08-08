@@ -10,7 +10,7 @@ namespace vkvf
 	class Surface
 	{
 	public:
-		Surface(InitParam init_param, const VkInstance& instance, const VkPhysicalDevice& physical_device, const VkDevice& logical_device);
+		Surface(InitParam init_param, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device);
 
 		Surface(const Surface&) = delete;
 		Surface(Surface&&) = delete;
@@ -25,10 +25,16 @@ namespace vkvf
 
 		~Surface();
 	private:
+
+		VkSurfaceFormatKHR GetSurfaceFormat(const VkPhysicalDevice& physical_device);
+		VkPresentModeKHR GetSurfacePresentMode(const VkPhysicalDevice& physical_device);
+
+
 		platform::Window window_hande_;
 		VkSurfaceKHR surface_;
 		VkSwapchainKHR swapchain_;
 		std::vector<VkImage> images_;
+		std::vector<VkImageView> images_views_;
 
 		const VkDevice& logical_device_;
 
