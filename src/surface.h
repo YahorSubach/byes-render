@@ -23,18 +23,24 @@ namespace vkvf
 
 		platform::Window GetWindow();
 
+		VkFormat swapchain_image_format;
+		VkExtent2D swapchain_extent;
+
+		std::vector<VkImageView> images_views_;
+
 		~Surface();
 	private:
 
 		VkSurfaceFormatKHR GetSurfaceFormat(const VkPhysicalDevice& physical_device);
 		VkPresentModeKHR GetSurfacePresentMode(const VkPhysicalDevice& physical_device);
-
+		VkExtent2D GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities);
 
 		platform::Window window_hande_;
 		VkSurfaceKHR surface_;
 		VkSwapchainKHR swapchain_;
 		std::vector<VkImage> images_;
-		std::vector<VkImageView> images_views_;
+
+
 
 		const VkDevice& logical_device_;
 

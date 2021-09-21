@@ -45,7 +45,6 @@ vkvf::Surface::Surface(InitParam init_param, const VkInstance& instance, const V
 		{
 			VkSurfaceCapabilitiesKHR capabilities;
 
-			
 			if (VkBool32 device_surface_support; vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, queue_index, surface_, &device_surface_support) == VK_SUCCESS)
 			{
 				if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface_, &capabilities) == VK_SUCCESS && device_surface_support)
@@ -63,7 +62,7 @@ vkvf::Surface::Surface(InitParam init_param, const VkInstance& instance, const V
 					create_info.minImageCount = capabilities.minImageCount;
 					create_info.imageFormat = surface_format.format;
 					create_info.imageColorSpace = surface_format.colorSpace;
-					create_info.imageExtent = capabilities.currentExtent;
+					create_info.imageExtent = capabilities.currentExtent; // shoud be fixed for retina
 					create_info.imageArrayLayers = 1;
 					create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 					create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -111,6 +110,8 @@ vkvf::Surface::Surface(InitParam init_param, const VkInstance& instance, const V
 
 						}
 
+						swapchain_image_format = surface_format.format;
+						swapchain_extent = capabilities.currentExtent;
 					}
 
 				}
@@ -157,4 +158,25 @@ VkPresentModeKHR vkvf::Surface::GetSurfacePresentMode(const VkPhysicalDevice& ph
 {
 	auto presentat_modes = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfacePresentModesKHR, physical_device, surface_);
 	return presentat_modes[3];
+}
+
+VkExtent2D vkvf::Surface::GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities)
+{
+	if (capabilities.currentExtent.width != UINT32_MAX) {
+		return capabilities.currentExtent;
+	}
+	/*else {
+		int width, height;
+		glfwGetFramebufferSize(window, &width, &height);
+
+		VkExtent2D actualExtent = {
+			static_cast<uint32_t>(width),
+			static_cast<uint32_t>(height)
+		};*/
+
+	VkExtent2D actualExtent;
+	actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+	actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+	return actualExtent;
 }

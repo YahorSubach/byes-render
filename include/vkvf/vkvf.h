@@ -16,6 +16,10 @@ namespace vkvf
 	{
 	public:
 		VKVisualFacade(InitParam param);
+
+		void CreateGraphicsPipeline();
+		void ShowWindow();
+
 		~VKVisualFacade();
 
 		bool VKInitSuccess();

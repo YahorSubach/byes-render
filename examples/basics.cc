@@ -13,6 +13,12 @@ int main()
 	{
 		vkvf::VKVisualFacade facade(nullptr);
 		std::cout << "Vulkan initialization on facade creation success: " << facade.VKInitSuccess() << std::endl;
+
+		if (facade.VKInitSuccess())
+		{
+			facade.CreateGraphicsPipeline();
+			facade.ShowWindow();
+		}
 	}
 	std::cout << "Destroid" << std::endl;
 	return 0;
