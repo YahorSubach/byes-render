@@ -5,3 +5,4 @@ cd project
 cmake ..
 cmake --build .
 cd %SCRIPTS_DIR%
+pause

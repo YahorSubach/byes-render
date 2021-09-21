@@ -25,6 +25,7 @@ namespace vkvf
 
 		VkFormat swapchain_image_format;
 		VkExtent2D swapchain_extent;
+		VkSwapchainKHR swapchain_;
 
 		std::vector<VkImageView> images_views_;
 
@@ -37,7 +38,6 @@ namespace vkvf
 
 		platform::Window window_hande_;
 		VkSurfaceKHR surface_;
-		VkSwapchainKHR swapchain_;
 		std::vector<VkImage> images_;
 
 

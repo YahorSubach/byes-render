@@ -54,7 +54,7 @@ namespace vkvf::stl_util
 		typedef R result_type;
 
 		template<size_t i>
-		using arg_t = std::tuple_element<i, std::tuple<Args...>>::type;
+		using arg_t = typename std::tuple_element<i, std::tuple<Args...>>::type;
 	};
 
 	template <typename Function, typename ... StaticArgs>
@@ -66,8 +66,8 @@ namespace vkvf::stl_util
 
 		const int nargs = function_traits<FunctionType>::nargs;
 
-		using SizeTypePtr = function_traits<FunctionType>::template arg_t<nargs - 2>;
-		using ResultTypePtr = function_traits<FunctionType>::template arg_t<nargs - 1>;
+		using SizeTypePtr = typename function_traits<FunctionType>::template arg_t<nargs - 2>;
+		using ResultTypePtr = typename function_traits<FunctionType>::template arg_t<nargs - 1>;
 
 		std::remove_pointer_t<SizeTypePtr> size = 0;
 

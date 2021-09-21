@@ -70,12 +70,13 @@ namespace vkvf
 				return;
 			}
 
-			application_info_.apiVersion = VK_HEADER_VERSION;
+			application_info_.apiVersion = VK_API_VERSION_1_0; // CHECK WHAT DOES THIS MEAN!
 			application_info_.applicationVersion = 1;
 			application_info_.engineVersion = 1;
 			application_info_.pApplicationName = "vulkan_concepts";
 			application_info_.pEngineName = "vulkan_concepts_engine";
 			application_info_.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+			application_info_.pNext = nullptr;
 
 			VkInstanceCreateInfo instance_create_info{};
 			instance_create_info.enabledExtensionCount = static_cast<uint32_t>(platform::GetRequiredExtensions().size());
@@ -116,6 +117,8 @@ namespace vkvf
 
 			selected_device_index = device_and_queue_indices.first;
 			selected_queue_index = device_and_queue_indices.second;
+
+			vkGetDeviceQueue(vk_logical_devices_[selected_device_index], selected_queue_index, 0, &graphics_queue);
 
 			surface_ptr_ = std::make_unique<Surface>(param, vk_instance_, vk_physical_devices_[device_and_queue_indices.first], selected_queue_index, vk_logical_devices_[selected_device_index]);
 
@@ -166,12 +169,25 @@ namespace vkvf
 			subpass.colorAttachmentCount = 1;
 			subpass.pColorAttachments = &color_attachment_ref;
 
+			VkSubpassDependency dependency{};
+			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependency.dstSubpass = 0;
+
+			dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependency.srcAccessMask = 0;
+
+			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+
 			VkRenderPassCreateInfo render_pass_info{};
 			render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 			render_pass_info.attachmentCount = 1;
 			render_pass_info.pAttachments = &color_attachment;
 			render_pass_info.subpassCount = 1;
 			render_pass_info.pSubpasses = &subpass;
+			render_pass_info.dependencyCount = 1;
+			render_pass_info.pDependencies = &dependency;
 
 			if (vkCreateRenderPass(vk_logical_devices_[selected_device_index], &render_pass_info, nullptr, &render_pass) != VK_SUCCESS) {
 				throw std::runtime_error("failed to create render pass!");
@@ -323,7 +339,7 @@ namespace vkvf
 
 		void createFramebuffers() {
 
-			swapchain_frame_buffers.resize(swapchain_frame_buffers.size());
+			swapchain_frame_buffers.resize(surface_ptr_->images_views_.size());
 
 			for (size_t i = 0; i < surface_ptr_->images_views_.size(); i++)
 			{
@@ -361,6 +377,62 @@ namespace vkvf
 		void createCommandBuffers() 
 		{
 			command_buffers.resize(swapchain_frame_buffers.size());
+
+			VkCommandBufferAllocateInfo alloc_info{};
+			alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			alloc_info.commandPool = command_pool;
+			alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			alloc_info.commandBufferCount = (uint32_t)command_buffers.size();
+
+			if (vkAllocateCommandBuffers(vk_logical_devices_[selected_device_index], &alloc_info, command_buffers.data()) != VK_SUCCESS) {
+				throw std::runtime_error("failed to allocate command buffers!");
+			}
+
+			for (size_t i = 0; i < command_buffers.size(); i++) {
+				VkCommandBufferBeginInfo begin_info{};
+				begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				begin_info.flags = 0; // Optional
+				begin_info.pInheritanceInfo = nullptr; // Optional
+
+				if (vkBeginCommandBuffer(command_buffers[i], &begin_info) != VK_SUCCESS) {
+					throw std::runtime_error("failed to begin recording command buffer!");
+				}
+
+				VkRenderPassBeginInfo render_pass_info{};
+				render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				render_pass_info.renderPass = render_pass;
+				render_pass_info.framebuffer = swapchain_frame_buffers[i];
+
+				render_pass_info.renderArea.offset = { 0, 0 };
+				render_pass_info.renderArea.extent = surface_ptr_->swapchain_extent;
+
+				VkClearValue clear_color = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+				render_pass_info.clearValueCount = 1;
+				render_pass_info.pClearValues = &clear_color;
+
+				vkCmdBeginRenderPass(command_buffers[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+				vkCmdBindPipeline(command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
+				vkCmdDraw(command_buffers[i], 3, 1, 0, 0);
+
+				vkCmdEndRenderPass(command_buffers[i]);
+
+				if (vkEndCommandBuffer(command_buffers[i]) != VK_SUCCESS) {
+					throw std::runtime_error("failed to record command buffer!");
+				}
+
+			}
+		}
+
+		void createSemaphores() {
+			VkSemaphoreCreateInfo semaphoreInfo{};
+			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+			if (vkCreateSemaphore(vk_logical_devices_[selected_device_index], &semaphoreInfo, nullptr, &image_available_semaphore) != VK_SUCCESS ||
+				vkCreateSemaphore(vk_logical_devices_[selected_device_index], &semaphoreInfo, nullptr, &render_finished_semaphore) != VK_SUCCESS) {
+
+				throw std::runtime_error("failed to create semaphores!");
+			}
 		}
 
 		void cleanup() {
@@ -370,6 +442,46 @@ namespace vkvf
 		void ShowWindow()
 		{
 			platform::ShowWindow(surface_ptr_->GetWindow());
+
+			while (true)
+			{
+				uint32_t image_index;
+				vkAcquireNextImageKHR(vk_logical_devices_[selected_device_index], surface_ptr_->swapchain_, UINT64_MAX, 
+					image_available_semaphore, VK_NULL_HANDLE, &image_index);
+
+				VkSubmitInfo submit_info{};
+				submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+				VkSemaphore waitSemaphores[] = { image_available_semaphore };
+				VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+				submit_info.waitSemaphoreCount = 1;
+				submit_info.pWaitSemaphores = waitSemaphores;
+				submit_info.pWaitDstStageMask = waitStages;
+
+				submit_info.commandBufferCount = 1;
+				submit_info.pCommandBuffers = &command_buffers[image_index];
+
+				VkSemaphore signal_semaphores[] = { render_finished_semaphore };
+				submit_info.signalSemaphoreCount = 1;
+				submit_info.pSignalSemaphores = signal_semaphores;
+
+				if (vkQueueSubmit(graphics_queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
+					throw std::runtime_error("failed to submit draw command buffer!");
+				}
+
+				VkPresentInfoKHR present_info{};
+				present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+				present_info.waitSemaphoreCount = 1;
+				present_info.pWaitSemaphores = signal_semaphores;
+
+				VkSwapchainKHR swapChains[] = { surface_ptr_->swapchain_ };
+				present_info.swapchainCount = 1;
+				present_info.pSwapchains = swapChains;
+				present_info.pImageIndices = &image_index;
+
+				present_info.pResults = nullptr; // Optional
+			}
 		}
 
 		~VKVisualFacadeImpl()
@@ -663,6 +775,11 @@ namespace vkvf
 		VkCommandPool command_pool;
 		std::vector<VkCommandBuffer> command_buffers;
 
+		VkSemaphore image_available_semaphore;
+		VkSemaphore render_finished_semaphore;
+
+		VkQueue graphics_queue;
+
 };
 
 	VKVisualFacade::VKVisualFacade(InitParam param)
@@ -682,6 +799,11 @@ namespace vkvf
 	{
 		impl_->createRenderPass();
 		impl_->createGraphicsPipeline();
+		impl_->createFramebuffers();
+		impl_->createCommandPool();
+		impl_->createCommandBuffers();
+		impl_->createCommandBuffers();
+		impl_->createSemaphores();
 	}
 
 	void VKVisualFacade::ShowWindow()

@@ -72,13 +72,17 @@ namespace vkvf::platform
 			ShowWindow(window, 1);
 		}
 
-		MSG msg = { };
+		/*MSG msg = { };
 
 		while (GetMessage(&msg, NULL, 0, 0))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-		}
+		}*/
+	}
+
+	void HandleMessage()
+	{
 	}
 
 
