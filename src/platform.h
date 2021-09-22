@@ -5,6 +5,7 @@
 
 #include "vkvf.h"
 
+#include <thread>
 #include <vector>
 
 namespace vkvf::platform
@@ -18,9 +19,6 @@ namespace vkvf::platform
 	void DestroyPlatformWindow(Window window);
 
 	void ShowWindow(Window window);
-
-	void HandleMessage();
-
 
 	const std::vector<const char*>& GetRequiredExtensions();
 

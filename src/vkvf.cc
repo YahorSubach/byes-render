@@ -481,6 +481,8 @@ namespace vkvf
 				present_info.pImageIndices = &image_index;
 
 				present_info.pResults = nullptr; // Optional
+
+				vkQueuePresentKHR(graphics_queue, &present_info);
 			}
 		}
 

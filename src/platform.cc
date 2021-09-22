@@ -30,34 +30,65 @@ namespace vkvf::platform
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
-
+	std::thread window_thread;
+	std::atomic_bool window_created;
+	Window window;
+	
 	Window CreatePlatformWindow(InitParam param)
 	{
-		const wchar_t CLASS_NAME[] = L"VKVF WINDOW CLASS";
+		window_created = false;
 
-		WNDCLASSW wc = { };
+		window_thread = (std::thread([param]() {
 
-		wc.lpfnWndProc = WindowProc;
-		wc.hInstance = param;
-		wc.lpszClassName = CLASS_NAME;
+			const wchar_t CLASS_NAME[] = L"VKVF WINDOW CLASS";
+
+			WNDCLASSW wc = { };
+
+			wc.lpfnWndProc = WindowProc;
+			wc.hInstance = param;
+			wc.lpszClassName = CLASS_NAME;
 
 
-		RegisterClassW(&wc);
+			RegisterClassW(&wc);
 
-		return CreateWindowExW(
-			0,                              // Optional window styles.
-			CLASS_NAME,                     // Window class
-			L"Vulkan Visual Facade",    // Window text
-			WS_OVERLAPPEDWINDOW,            // Window style
+			window = CreateWindowExW(
+				0,                              // Optional window styles.
+				CLASS_NAME,                     // Window class
+				L"Vulkan Visual Facade",    // Window text
+				WS_OVERLAPPEDWINDOW,            // Window style
 
-			// Size and position
-			CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+				// Size and position
+				CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
 
-			NULL,       // Parent window    
-			NULL,       // Menu
-			param,  // Instance handle
-			NULL        // Additional application data
-		);
+				NULL,       // Parent window    
+				NULL,       // Menu
+				param,  // Instance handle
+				NULL        // Additional application data
+			);
+
+			window_created = true;
+
+			if (window)
+			{
+				ShowWindow(window, 1);
+			}
+
+			MSG msg = {};
+
+			while (GetMessage(&msg, NULL, 0, 0))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+
+			}));
+
+		while (!window_created)
+		{
+			Sleep(100);
+		}
+
+		return window;
 	}
 
 	void DestroyPlatformWindow(Window window)
@@ -65,24 +96,11 @@ namespace vkvf::platform
 		DestroyWindow(window);
 	}
 
+
+
 	void ShowWindow(Window window)
 	{
-		if (window)
-		{
-			ShowWindow(window, 1);
-		}
 
-		/*MSG msg = { };
-
-		while (GetMessage(&msg, NULL, 0, 0))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}*/
-	}
-
-	void HandleMessage()
-	{
 	}
 
 
