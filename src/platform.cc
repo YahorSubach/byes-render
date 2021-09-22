@@ -1,5 +1,7 @@
 #include "platform.h"
 
+#include<atomic>
+
 namespace vkvf::platform
 {
 #ifdef WIN32
@@ -33,6 +35,7 @@ namespace vkvf::platform
 	std::thread window_thread;
 	std::atomic_bool window_created;
 	Window window;
+	bool window_closed = false;
 	
 	Window CreatePlatformWindow(InitParam param)
 	{
@@ -81,6 +84,8 @@ namespace vkvf::platform
 				DispatchMessage(&msg);
 			}
 
+			window_closed = true;
+
 			}));
 
 		while (!window_created)
@@ -101,6 +106,11 @@ namespace vkvf::platform
 	void ShowWindow(Window window)
 	{
 
+	}
+
+	bool IsWindowClosed(Window window)
+	{
+		return window_closed;
 	}
 
 

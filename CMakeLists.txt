@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project (vulkan_visual_facade)
+project (render_engine)
 
 find_package(Vulkan REQUIRED)
 
@@ -12,36 +12,33 @@ if(Vulkan_FOUND)
 
 	add_subdirectory(submodules/glm)
 
-	add_library(vk_visual_facade "")
+	add_library(render_engine "")
 
-	target_link_libraries(vk_visual_facade PRIVATE Vulkan::Vulkan)
+	target_link_libraries(render_engine PRIVATE Vulkan::Vulkan)
 
 	add_subdirectory(src)
 
-
-
-	target_sources(vk_visual_facade 
+	target_sources(render_engine 
 		PRIVATE
 			include/vkvf/vkvf.h)
 
-	target_include_directories(vk_visual_facade PUBLIC include/vkvf)
-	target_include_directories(vk_visual_facade PRIVATE src)
+	target_include_directories(render_engine PUBLIC include/vkvf)
+	target_include_directories(render_engine PRIVATE src)
 
 	if (WIN32)
-		target_compile_definitions(vk_visual_facade PRIVATE VK_USE_PLATFORM_WIN32_KHR)
+		target_compile_definitions(render_engine PRIVATE VK_USE_PLATFORM_WIN32_KHR)
 	endif()	
       
 	  
-	add_executable(vkvf_basics "")
-	target_link_libraries(vkvf_basics PRIVATE vk_visual_facade)
-	target_link_libraries(vkvf_basics PRIVATE glm)
+	add_executable(render_engine_example "")
+	target_link_libraries(render_engine_example PRIVATE render_engine)
+	target_link_libraries(render_engine_example PRIVATE glm)
 	
 	add_subdirectory(examples)
 
-
-	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT vkvf_basics)	
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT render_engine_example)	
 	  
-	install(TARGETS vkvf_basics DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/install)
+	install(TARGETS render_engine_example DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/install)
 
 else()
 	message(STATUS "vulkan not found")

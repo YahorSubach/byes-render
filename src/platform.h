@@ -20,6 +20,8 @@ namespace vkvf::platform
 
 	void ShowWindow(Window window);
 
+	bool IsWindowClosed(Window window);
+
 	const std::vector<const char*>& GetRequiredExtensions();
 
 	bool GetPhysicalDevicePresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex);

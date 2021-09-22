@@ -443,10 +443,13 @@ namespace vkvf
 		{
 			platform::ShowWindow(surface_ptr_->GetWindow());
 
-			while (true)
+			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()))
 			{
 				uint32_t image_index;
 				vkAcquireNextImageKHR(vk_logical_devices_[selected_device_index], surface_ptr_->swapchain_, UINT64_MAX, 
+					image_available_semaphore, VK_NULL_HANDLE, &image_index);
+
+				vkAcquireNextImageKHR(vk_logical_devices_[selected_device_index], surface_ptr_->swapchain_, UINT64_MAX,
 					image_available_semaphore, VK_NULL_HANDLE, &image_index);
 
 				VkSubmitInfo submit_info{};

@@ -1,9 +1,11 @@
-target_sources(vk_visual_facade 
+target_sources(render_engine 
 	PRIVATE
 		${CMAKE_CURRENT_LIST_DIR}/vkvf.cc
 		${CMAKE_CURRENT_LIST_DIR}/stl_util.h
 		${CMAKE_CURRENT_LIST_DIR}/platform.h
 		${CMAKE_CURRENT_LIST_DIR}/platform.cc
 		${CMAKE_CURRENT_LIST_DIR}/surface.h
-		${CMAKE_CURRENT_LIST_DIR}/surface.cc)
+		${CMAKE_CURRENT_LIST_DIR}/surface.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.h
+		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.cc)
                                   
