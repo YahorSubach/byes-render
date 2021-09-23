@@ -2,7 +2,7 @@
 
 #include<atomic>
 
-namespace vkvf::platform
+namespace render::platform
 {
 #ifdef WIN32
 	using Window = HWND;
@@ -43,7 +43,7 @@ namespace vkvf::platform
 
 		window_thread = (std::thread([param]() {
 
-			const wchar_t CLASS_NAME[] = L"VKVF WINDOW CLASS";
+			const wchar_t CLASS_NAME[] = L"render WINDOW CLASS";
 
 			WNDCLASSW wc = { };
 

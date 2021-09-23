@@ -1,11 +1,11 @@
-#ifndef VK_VISUAL_FACADE_STL_UTIL_H_
-#define VK_VISUAL_FACADE_STL_UTIL_H_
+#ifndef RENDER_ENGINE_RENDER_STL_UTIL_H_
+#define RENDER_ENGINE_RENDER_STL_UTIL_H_
 
 #include <algorithm>
 #include <any>
 #include <functional>
 
-namespace vkvf::stl_util
+namespace render::stl_util
 {
 	struct ContainerCheckResult
 	{
@@ -80,4 +80,4 @@ namespace vkvf::stl_util
 		return result;
 	}
 }
-#endif  // VK_VISUAL_FACADE_STL_UTIL_H_
+#endif  // RENDER_ENGINE_RENDER_STL_UTIL_H_

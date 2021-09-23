@@ -23,12 +23,12 @@ struct TT
 template<class C>
 TT(C c)->TT<C>;
 
-vkvf::Surface::Surface(InitParam init_param, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device) :
+render::Surface::Surface(InitParam init_param, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device) :
 	is_valid_(false), logical_device_(logical_device), surface_(nullptr), swapchain_(nullptr)
 {
 	TT t = 1;
 
-	window_hande_ = vkvf::platform::CreatePlatformWindow(init_param);
+	window_hande_ = render::platform::CreatePlatformWindow(init_param);
 
 	if (window_hande_)
 	{
@@ -120,7 +120,7 @@ vkvf::Surface::Surface(InitParam init_param, const VkInstance& instance, const V
 	}
 }
 
-const VkImage* vkvf::Surface::AcquireImage()
+const VkImage* render::Surface::AcquireImage()
 {
 	if (is_valid_)
 	{
@@ -132,35 +132,35 @@ const VkImage* vkvf::Surface::AcquireImage()
 	return nullptr;
 }
 
-bool vkvf::Surface::Valid()
+bool render::Surface::Valid()
 {
 	return is_valid_;
 }
 
-vkvf::platform::Window vkvf::Surface::GetWindow()
+render::platform::Window render::Surface::GetWindow()
 {
 	return window_hande_;
 }
 
-vkvf::Surface::~Surface()
+render::Surface::~Surface()
 {
 	if (window_hande_)
-		vkvf::platform::DestroyPlatformWindow(window_hande_);
+		render::platform::DestroyPlatformWindow(window_hande_);
 }
 
-VkSurfaceFormatKHR vkvf::Surface::GetSurfaceFormat(const VkPhysicalDevice& physical_device)
+VkSurfaceFormatKHR render::Surface::GetSurfaceFormat(const VkPhysicalDevice& physical_device)
 {
 	auto formats = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfaceFormatsKHR, physical_device, surface_);
 	return formats[0];
 }
 
-VkPresentModeKHR vkvf::Surface::GetSurfacePresentMode(const VkPhysicalDevice& physical_device)
+VkPresentModeKHR render::Surface::GetSurfacePresentMode(const VkPhysicalDevice& physical_device)
 {
 	auto presentat_modes = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfacePresentModesKHR, physical_device, surface_);
 	return presentat_modes[3];
 }
 
-VkExtent2D vkvf::Surface::GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities)
+VkExtent2D render::Surface::GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities)
 {
 	if (capabilities.currentExtent.width != UINT32_MAX) {
 		return capabilities.currentExtent;

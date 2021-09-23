@@ -1,11 +1,11 @@
-#ifndef VK_VISUAL_FACADE_SURFACE_H_
-#define VK_VISUAL_FACADE_SURFACE_H_
+#ifndef RENDER_ENGINE_RENDER_SURFACE_H_
+#define RENDER_ENGINE_RENDER_SURFACE_H_
 
 #include "platform.h"
 #include "vulkan/vulkan.h"
 
 
-namespace vkvf
+namespace render
 {
 	class Surface
 	{
@@ -47,4 +47,4 @@ namespace vkvf
 		bool is_valid_;
 	};
 }
-#endif  // VK_VISUAL_FACADE_SURFACE_H_
+#endif  // RENDER_ENGINE_RENDER_SURFACE_H_

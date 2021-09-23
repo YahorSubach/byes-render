@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "vkvf.h"
+#include "render/render_engine.h"
 
 //int CALLBACK WinMain(
 //	_In_ HINSTANCE hInstance,
@@ -11,7 +11,7 @@
 int main()
 {
 	{
-		vkvf::VKVisualFacade facade(nullptr);
+		render::RenderEngine facade(nullptr);
 		std::cout << "Vulkan initialization on facade creation success: " << facade.VKInitSuccess() << std::endl;
 
 		if (facade.VKInitSuccess())

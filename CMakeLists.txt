@@ -20,9 +20,9 @@ if(Vulkan_FOUND)
 
 	target_sources(render_engine 
 		PRIVATE
-			include/vkvf/vkvf.h)
+			include/render/render_engine.h)
 
-	target_include_directories(render_engine PUBLIC include/vkvf)
+	target_include_directories(render_engine PUBLIC include)
 	target_include_directories(render_engine PRIVATE src)
 
 	if (WIN32)

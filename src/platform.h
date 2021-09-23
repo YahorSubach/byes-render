@@ -1,14 +1,14 @@
-#ifndef VK_VISUAL_FACADE_PLATFORM_H_
-#define VK_VISUAL_FACADE_PLATFORM_H_
+#ifndef RENDER_ENGINE_RENDER_PLATFORM_H_
+#define RENDER_ENGINE_RENDER_PLATFORM_H_
 
 #include "vulkan/vulkan.h"
 
-#include "vkvf.h"
+#include "render/render_engine.h"
 
 #include <thread>
 #include <vector>
 
-namespace vkvf::platform
+namespace render::platform
 {
 #ifdef WIN32
 	using Window = HWND;
@@ -28,4 +28,4 @@ namespace vkvf::platform
 }
 
 
-#endif  // VK_VISUAL_FACADE_PLATFORM_H_
+#endif  // RENDER_ENGINE_RENDER_PLATFORM_H_
