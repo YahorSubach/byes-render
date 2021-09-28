@@ -108,6 +108,11 @@ namespace render::platform
 
 	}
 
+	void JoinWindowThread(Window window)
+	{
+		window_thread.join();
+	}
+
 	bool IsWindowClosed(Window window)
 	{
 		return window_closed;
@@ -123,6 +128,34 @@ namespace render::platform
 	bool GetPhysicalDevicePresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
 	{
 		return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex);
+	}
+
+	bool CreateSurface(const VkInstance& instance, const Window& window, VkSurfaceKHR& surface)
+	{
+		VkWin32SurfaceCreateInfoKHR create_info =
+		{
+			VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+			nullptr,
+			0,
+			GetModuleHandle(NULL),
+			window
+		};
+
+		return vkCreateWin32SurfaceKHR(instance, &create_info, nullptr, &surface) == VK_SUCCESS;
+	}
+
+	VkExtent2D GetWindowExtent(const Window& window)
+	{
+		VkExtent2D extent{};
+
+		RECT rect;
+		if (GetWindowRect(window, &rect))
+		{
+			extent.width = rect.right - rect.left;
+			extent.height = rect.bottom - rect.top;
+		}
+
+		return extent;
 	}
 
 #endif

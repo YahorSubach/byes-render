@@ -4,8 +4,8 @@
 
 #include "vk_util.h"
 
-render::FrameHandler::FrameHandler(VkDevice device, VkQueue graphics_queue, VkSwapchainKHR swapchain, uint32_t image_index, VkCommandBuffer& command_buffer, VkSemaphore render_finished_semaphore):
-	device_(device), swapchain_(swapchain), image_index_(image_index), graphics_queue_(graphics_queue), command_buffer_(command_buffer), render_finished_semaphore_(render_finished_semaphore),
+render::FrameHandler::FrameHandler(const VkDevice& device, VkQueue graphics_queue, VkSwapchainKHR swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer, VkSemaphore render_finished_semaphore):
+	RenderObjBase(device), swapchain_(swapchain), image_index_(image_index), graphics_queue_(graphics_queue), command_buffer_(command_buffer), render_finished_semaphore_(render_finished_semaphore),
 	cmd_buffer_fence_(vk_util::CreateFence(device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
 {
 
@@ -35,7 +35,7 @@ render::FrameHandler::FrameHandler(VkDevice device, VkQueue graphics_queue, VkSw
 	present_info_.pResults = nullptr; // Optional
 }
 
-void render::FrameHandler::Process(VkSemaphore& image_acquire_semaphore)
+bool render::FrameHandler::Process(VkSemaphore& image_acquire_semaphore)
 {
 	submit_info_.pWaitSemaphores = &image_acquire_semaphore;
 
@@ -46,5 +46,10 @@ void render::FrameHandler::Process(VkSemaphore& image_acquire_semaphore)
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
-	vkQueuePresentKHR(graphics_queue_, &present_info_);
+	return vkQueuePresentKHR(graphics_queue_, &present_info_) == VK_SUCCESS;
+}
+
+render::FrameHandler::~FrameHandler()
+{
+	vkDestroyFence(device_, cmd_buffer_fence_, nullptr);
 }

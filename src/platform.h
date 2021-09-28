@@ -20,11 +20,17 @@ namespace render::platform
 
 	void ShowWindow(Window window);
 
+	void JoinWindowThread(Window window);
+
 	bool IsWindowClosed(Window window);
 
 	const std::vector<const char*>& GetRequiredExtensions();
 
 	bool GetPhysicalDevicePresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex);
+
+	bool CreateSurface(const VkInstance& instance, const Window& window, VkSurfaceKHR& surface);
+
+	VkExtent2D GetWindowExtent(const Window& window);
 }
 
 

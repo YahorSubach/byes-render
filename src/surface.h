@@ -1,33 +1,36 @@
 #ifndef RENDER_ENGINE_RENDER_SURFACE_H_
 #define RENDER_ENGINE_RENDER_SURFACE_H_
 
-#include "platform.h"
+
 #include "vulkan/vulkan.h"
 
+#include "platform.h"
+#include "render/object_base.h"
 
 namespace render
 {
-	class Surface
+	class Surface: public RenderObjBase
 	{
 	public:
-		Surface(InitParam init_param, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device);
+		Surface(platform::Window window_handle, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device);
 
 		Surface(const Surface&) = delete;
-		Surface(Surface&&) = delete;
+		Surface(Surface&&) = default;
 
 		Surface& operator=(const Surface&) = delete;
-		Surface& operator=(Surface&&) = delete;
+		Surface& operator=(Surface&&) = default;
 
 		const VkImage* AcquireImage();
-		bool Valid();
+
+		const std::vector<VkImageView>& GetImageViews() const;
 
 		platform::Window GetWindow();
 
-		VkFormat swapchain_image_format;
-		VkExtent2D swapchain_extent;
-		VkSwapchainKHR swapchain_;
+		bool RefreshSwapchain();
 
-		std::vector<VkImageView> images_views_;
+		const VkFormat& GetSwapchainFormat();
+		const VkExtent2D& GetSwapchainExtent();
+		const VkSwapchainKHR& GetSwapchain();
 
 		~Surface();
 	private:
@@ -37,14 +40,18 @@ namespace render
 		VkExtent2D GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities);
 
 		platform::Window window_hande_;
+
+		VkFormat swapchain_image_format_;
+		VkExtent2D swapchain_extent_;
+		VkSwapchainKHR swapchain_;
+
 		VkSurfaceKHR surface_;
 		std::vector<VkImage> images_;
+		std::vector<VkImageView> images_views_;
 
+		const VkPhysicalDevice& physical_device_;
 
-
-		const VkDevice& logical_device_;
-
-		bool is_valid_;
+		uint32_t queue_index_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_SURFACE_H_

@@ -16,7 +16,6 @@ int main()
 
 		if (facade.VKInitSuccess())
 		{
-			facade.CreateGraphicsPipeline();
 			facade.ShowWindow();
 		}
 	}

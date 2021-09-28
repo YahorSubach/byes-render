@@ -6,123 +6,23 @@
 
 #include <functional>
 
-template<class T>
-struct TT
+
+
+render::Surface::Surface(platform::Window window_hande, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device) :
+	RenderObjBase(logical_device), window_hande_(window_hande), physical_device_(physical_device), queue_index_(queue_index), surface_(VK_NULL_HANDLE), swapchain_(VK_NULL_HANDLE)
 {
-	void F(T t)
-	{
-
-	}
-
-	template<class C>
-	TT(C c)
-	{
-	}
-};
-
-template<class C>
-TT(C c)->TT<C>;
-
-render::Surface::Surface(InitParam init_param, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device) :
-	is_valid_(false), logical_device_(logical_device), surface_(nullptr), swapchain_(nullptr)
-{
-	TT t = 1;
-
-	window_hande_ = render::platform::CreatePlatformWindow(init_param);
-
 	if (window_hande_)
 	{
-		VkWin32SurfaceCreateInfoKHR create_info =
+		if (platform::CreateSurface(instance, window_hande_, surface_))
 		{
-			VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-			nullptr,
-			0,
-			init_param,
-			window_hande_
-		};
-
-		if (vkCreateWin32SurfaceKHR(instance, &create_info, nullptr, &surface_) == VK_SUCCESS)
-		{
-			VkSurfaceCapabilitiesKHR capabilities;
-
-			if (VkBool32 device_surface_support; vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, queue_index, surface_, &device_surface_support) == VK_SUCCESS)
-			{
-				if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface_, &capabilities) == VK_SUCCESS && device_surface_support)
-				{
-					
-					VkSurfaceFormatKHR surface_format = GetSurfaceFormat(physical_device);
-					VkPresentModeKHR present_mode = GetSurfacePresentMode(physical_device);
-
-					VkSwapchainCreateInfoKHR create_info{};
-
-					create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-					create_info.pNext = nullptr;
-					create_info.flags = 0;
-					create_info.surface = surface_;
-					create_info.minImageCount = capabilities.minImageCount;
-					create_info.imageFormat = surface_format.format;
-					create_info.imageColorSpace = surface_format.colorSpace;
-					create_info.imageExtent = capabilities.currentExtent; // shoud be fixed for retina
-					create_info.imageArrayLayers = 1;
-					create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-					create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-					create_info.queueFamilyIndexCount = 0;
-					create_info.pQueueFamilyIndices = nullptr;
-					create_info.preTransform = capabilities.currentTransform;
-					create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-					create_info.presentMode = present_mode;
-					create_info.clipped = VK_FALSE;
-					create_info.oldSwapchain = nullptr;
-
-					//vkGetPhysicalDeviceSurfaceSupportKHR()
-
-					if (vkCreateSwapchainKHR(logical_device, &create_info, nullptr, &swapchain_) == VK_SUCCESS)
-					{
-						uint32_t images_count;
-
-						images_ = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, logical_device, swapchain_);
-
-						images_views_.resize(images_.size());
-
-						for (size_t i = 0; i < images_.size(); i++)
-						{
-							VkImageViewCreateInfo createInfo{};
-							createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-							createInfo.image = images_[i];
-							createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-							createInfo.format = surface_format.format;
-
-							createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-							createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-							createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-							createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-							createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-							createInfo.subresourceRange.baseMipLevel = 0;
-							createInfo.subresourceRange.levelCount = 1;
-							createInfo.subresourceRange.baseArrayLayer = 0;
-							createInfo.subresourceRange.layerCount = 1;
-
-							if (vkCreateImageView(logical_device, &createInfo, nullptr, &images_views_[i]) != VK_SUCCESS)
-							{
-								LOG(err, "vkCreateImageView error");
-							}
-
-						}
-
-						swapchain_image_format = surface_format.format;
-						swapchain_extent = capabilities.currentExtent;
-					}
-
-				}
-			}
+			valid_ = true;
 		}
 	}
 }
 
 const VkImage* render::Surface::AcquireImage()
 {
-	if (is_valid_)
+	if (valid_)
 	{
 		//uint32_t image_index{};
 
@@ -132,9 +32,9 @@ const VkImage* render::Surface::AcquireImage()
 	return nullptr;
 }
 
-bool render::Surface::Valid()
+const std::vector<VkImageView>& render::Surface::GetImageViews() const
 {
-	return is_valid_;
+	return images_views_;
 }
 
 render::platform::Window render::Surface::GetWindow()
@@ -142,10 +42,123 @@ render::platform::Window render::Surface::GetWindow()
 	return window_hande_;
 }
 
+bool render::Surface::RefreshSwapchain()
+{
+	VkSurfaceCapabilitiesKHR capabilities;
+
+	if (VkBool32 device_surface_support; vkGetPhysicalDeviceSurfaceSupportKHR(physical_device_, queue_index_, surface_, &device_surface_support) == VK_SUCCESS)
+	{
+		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface_, &capabilities) == VK_SUCCESS && device_surface_support)
+		{
+
+			VkSurfaceFormatKHR surface_format = GetSurfaceFormat(physical_device_);
+			VkPresentModeKHR present_mode = GetSurfacePresentMode(physical_device_);
+
+			VkSwapchainCreateInfoKHR create_info{};
+			VkSwapchainKHR old_swapchain = nullptr;
+
+
+			swapchain_extent_ = GetSwapExtend(capabilities);
+
+			create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+			create_info.pNext = nullptr;
+			create_info.flags = 0;
+			create_info.surface = surface_;
+			create_info.minImageCount = capabilities.minImageCount;
+			create_info.imageFormat = surface_format.format;
+			create_info.imageColorSpace = surface_format.colorSpace;
+			create_info.imageExtent = swapchain_extent_; // shoud be fixed for retina
+			create_info.imageArrayLayers = 1;
+			create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			create_info.queueFamilyIndexCount = 0;
+			create_info.pQueueFamilyIndices = nullptr;
+			create_info.preTransform = capabilities.currentTransform;
+			create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+			create_info.presentMode = present_mode;
+			create_info.clipped = VK_FALSE;
+			create_info.oldSwapchain = swapchain_;
+
+			old_swapchain = swapchain_;
+
+			if (vkCreateSwapchainKHR(device_, &create_info, nullptr, &swapchain_) == VK_SUCCESS)
+			{
+				images_.clear();
+				images_ = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_, swapchain_);
+
+				for (auto&& image_view : images_views_)
+				{
+					vkDestroyImageView(device_, image_view, nullptr);
+				}
+
+				images_views_.resize(images_.size());
+
+				for (size_t i = 0; i < images_.size(); i++)
+				{
+					VkImageViewCreateInfo createInfo{};
+					createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					createInfo.image = images_[i];
+					createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					createInfo.format = surface_format.format;
+
+					createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+					createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					createInfo.subresourceRange.baseMipLevel = 0;
+					createInfo.subresourceRange.levelCount = 1;
+					createInfo.subresourceRange.baseArrayLayer = 0;
+					createInfo.subresourceRange.layerCount = 1;
+
+					if (vkCreateImageView(device_, &createInfo, nullptr, &images_views_[i]) != VK_SUCCESS)
+					{
+						LOG(err, "vkCreateImageView error");
+						return VK_NULL_HANDLE;
+					}
+
+				}
+
+				swapchain_image_format_ = surface_format.format;
+				swapchain_extent_ = swapchain_extent_;
+			}
+
+			if (old_swapchain != nullptr)
+			{
+				vkDestroySwapchainKHR(device_, old_swapchain, nullptr);
+			}
+		}
+	}
+	return false;
+}
+
+const VkFormat& render::Surface::GetSwapchainFormat()
+{
+	return swapchain_image_format_;
+}
+
+const VkExtent2D& render::Surface::GetSwapchainExtent()
+{
+	return swapchain_extent_;
+}
+
+const VkSwapchainKHR& render::Surface::GetSwapchain()
+{
+	return swapchain_;
+}
+
 render::Surface::~Surface()
 {
-	if (window_hande_)
-		render::platform::DestroyPlatformWindow(window_hande_);
+	if (swapchain_ != VK_NULL_HANDLE)
+	{
+		for (auto&& image_view : images_views_)
+		{
+			vkDestroyImageView(device_, image_view, nullptr);
+		}
+
+		vkDestroySwapchainKHR(device_, swapchain_, nullptr);
+	}
 }
 
 VkSurfaceFormatKHR render::Surface::GetSurfaceFormat(const VkPhysicalDevice& physical_device)
@@ -165,18 +178,13 @@ VkExtent2D render::Surface::GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabi
 	if (capabilities.currentExtent.width != UINT32_MAX) {
 		return capabilities.currentExtent;
 	}
-	/*else {
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
+	else
+	{
+		VkExtent2D extent = platform::GetWindowExtent(window_hande_);
 
-		VkExtent2D actualExtent = {
-			static_cast<uint32_t>(width),
-			static_cast<uint32_t>(height)
-		};*/
+		extent.width = std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+		extent.height = std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
-	VkExtent2D actualExtent;
-	actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-	actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-	return actualExtent;
+		return extent;
+	}
 }

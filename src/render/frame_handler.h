@@ -3,18 +3,18 @@
 
 #include "vulkan/vulkan.h"
 
-#include "validate_object.h"
+#include "object_base.h"
 
 namespace render
 {
-	class FrameHandler: public ValidateObject
+	class FrameHandler: public RenderObjBase
 	{
 	public:
-		FrameHandler(VkDevice device, VkQueue graphics_queue, VkSwapchainKHR swapchain, uint32_t image_index, VkCommandBuffer& command_buffer,VkSemaphore render_finished_semaphore);
-		void Process(VkSemaphore& image_acquire_semaphore);
+		FrameHandler(const VkDevice& device, VkQueue graphics_queue, VkSwapchainKHR swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer,VkSemaphore render_finished_semaphore);
+		bool Process(VkSemaphore& image_acquire_semaphore);
 
+		~FrameHandler();
 	private:
-		VkDevice device_;
 		VkSwapchainKHR swapchain_;
 		VkCommandBuffer command_buffer_;
 		
