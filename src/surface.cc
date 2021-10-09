@@ -44,6 +44,7 @@ render::platform::Window render::Surface::GetWindow()
 
 bool render::Surface::RefreshSwapchain()
 {
+	images_.clear();
 	VkSurfaceCapabilitiesKHR capabilities;
 
 	if (VkBool32 device_surface_support; vkGetPhysicalDeviceSurfaceSupportKHR(physical_device_, queue_index_, surface_, &device_surface_support) == VK_SUCCESS)
@@ -83,7 +84,6 @@ bool render::Surface::RefreshSwapchain()
 
 			if (vkCreateSwapchainKHR(device_, &create_info, nullptr, &swapchain_) == VK_SUCCESS)
 			{
-				images_.clear();
 				images_ = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_, swapchain_);
 
 				for (auto&& image_view : images_views_)

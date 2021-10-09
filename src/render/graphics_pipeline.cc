@@ -145,13 +145,13 @@ const VkPipeline & render::GraphicsPipeline::GetPipelineHandle() const
 
 render::GraphicsPipeline::~GraphicsPipeline()
 {
-	if (layout_ != VK_NULL_HANDLE)
-	{
-		vkDestroyPipelineLayout(device_, layout_, nullptr);
-	}
-
 	if (pipeline_ != VK_NULL_HANDLE)
 	{
 		vkDestroyPipeline(device_, pipeline_, nullptr);
+	}
+
+	if (layout_ != VK_NULL_HANDLE)
+	{
+		vkDestroyPipelineLayout(device_, layout_, nullptr);
 	}
 }

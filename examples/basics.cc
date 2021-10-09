@@ -16,7 +16,13 @@ int main()
 
 		if (facade.VKInitSuccess())
 		{
+
 			facade.ShowWindow();
+		}
+
+		while (true)
+		{
+			Sleep(100);
 		}
 	}
 	std::cout << "Destroid" << std::endl;

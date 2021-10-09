@@ -28,6 +28,8 @@ namespace render
 		bool CreateCommandBuffers(uint32_t size);
 		bool FillCommandBuffer(size_t index, const GraphicsPipeline& pipeline, const VkExtent2D& extent, const RenderPass& render_pass, const Framebuffer& framebuffer);
 
+		void ClearCommandBuffers();
+
 		const VkCommandPool& GetCommandPool() const;
 		const VkCommandBuffer& GetCommandBuffer(size_t index) const;
 

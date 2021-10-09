@@ -188,6 +188,11 @@ namespace render
 
 		void PrepareSwapChain()
 		{
+			swapchain_frame_buffers_.clear();
+			command_pool_ptr->ClearCommandBuffers();
+			graphics_pipeline_ptr.reset();
+			render_pass_ptr_.reset();
+
 			surface_ptr_->RefreshSwapchain();
 
 			const VkDevice& device = vk_logical_devices_[selected_device_index];
@@ -203,7 +208,7 @@ namespace render
 
 			graphics_pipeline_ptr = std::make_unique<GraphicsPipeline>(device, vert_shader_module, frag_shader_module, extent, *render_pass_ptr_);
 
-			swapchain_frame_buffers_.clear();
+
 			swapchain_frame_buffers_.reserve(surface_ptr_->GetImageViews().size());
 
 			for (size_t i = 0; i < surface_ptr_->GetImageViews().size(); i++)

@@ -72,6 +72,15 @@ bool render::CommandPool::FillCommandBuffer(size_t index, const GraphicsPipeline
 	return false;
 }
 
+void render::CommandPool::ClearCommandBuffers()
+{
+	if (command_buffers_.size() > 0)
+	{
+		vkFreeCommandBuffers(device_, command_pool_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
+		command_buffers_.clear();
+	}
+}
+
 const VkCommandPool & render::CommandPool::GetCommandPool() const
 {
 	return command_pool_;
