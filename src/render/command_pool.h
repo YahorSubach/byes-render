@@ -11,6 +11,7 @@
 #include "render/framebuffer.h"
 #include "render/render_pass.h"
 #include "render/command_buffer.h"
+#include "render/vertex_buffer.h"
 
 namespace render
 {
@@ -26,7 +27,7 @@ namespace render
 		CommandPool& operator=(CommandPool&&) = default;
 
 		bool CreateCommandBuffers(uint32_t size);
-		bool FillCommandBuffer(size_t index, const GraphicsPipeline& pipeline, const VkExtent2D& extent, const RenderPass& render_pass, const Framebuffer& framebuffer);
+		bool FillCommandBuffer(size_t index, const GraphicsPipeline& pipeline, const VkExtent2D& extent, const RenderPass& render_pass, const Framebuffer& framebuffer, const VertexBuffer& vertex_buffer);
 
 		void ClearCommandBuffers();
 

@@ -3,6 +3,8 @@
 #include "platform.h"
 #include "stl_util.h"
 
+#include <tchar.h>
+
 
 #include <vector>
 #include <map>
@@ -10,11 +12,10 @@
 #include <fstream>
 
 #include "vulkan/vulkan.h"
-#include "surface.h"
 
-#include <tchar.h>
 
 #include "common.h"
+#include "surface.h"
 #include "render/vk_util.h"
 #include "render/framebuffer.h"
 #include "render/graphics_pipeline.h"
@@ -23,6 +24,8 @@
 
 namespace render
 {
+
+
 	static std::vector<char> readFile(const std::string& filename) {
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -153,14 +156,16 @@ namespace render
 				return;
 			}
 
-			selected_device_index = device_and_queue_indices.first;
-			selected_queue_index = device_and_queue_indices.second;
+			selected_device_index_ = device_and_queue_indices.first;
+			selected_queue_index_ = device_and_queue_indices.second;
 
-			vkGetDeviceQueue(vk_logical_devices_[selected_device_index], selected_queue_index, 0, &graphics_queue);
+			vkGetDeviceQueue(vk_logical_devices_[selected_device_index_], selected_queue_index_, 0, &graphics_queue);
 
 			platform::Window window = platform::CreatePlatformWindow(param);
 
-			surface_ptr_ = std::make_unique<Surface>(window, vk_instance_, vk_physical_devices_[device_and_queue_indices.first], selected_queue_index, vk_logical_devices_[selected_device_index]);
+			surface_ptr_ = std::make_unique<Surface>(window, vk_instance_, vk_physical_devices_[selected_device_index_], selected_queue_index_, vk_logical_devices_[selected_device_index_]);
+
+			vertex_buffer_ptr_ = std::make_unique<VertexBuffer>(vk_logical_devices_[selected_device_index_], vk_physical_devices_[selected_device_index_], vertices_);
 
 			vk_init_success_ = true;
 		}
@@ -179,7 +184,7 @@ namespace render
 			createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
 			VkShaderModule shader_module;
-			if (vkCreateShaderModule(vk_logical_devices_[selected_device_index], &createInfo, nullptr, &shader_module) != VK_SUCCESS) {
+			if (vkCreateShaderModule(vk_logical_devices_[selected_device_index_], &createInfo, nullptr, &shader_module) != VK_SUCCESS) {
 				throw std::runtime_error("failed to create shader module!");
 			}
 
@@ -189,13 +194,13 @@ namespace render
 		void PrepareSwapChain()
 		{
 			swapchain_frame_buffers_.clear();
-			command_pool_ptr->ClearCommandBuffers();
-			graphics_pipeline_ptr.reset();
+			command_pool_ptr_->ClearCommandBuffers();
+			graphics_pipeline_ptr_.reset();
 			render_pass_ptr_.reset();
 
 			surface_ptr_->RefreshSwapchain();
 
-			const VkDevice& device = vk_logical_devices_[selected_device_index];
+			const VkDevice& device = vk_logical_devices_[selected_device_index_];
 			const VkExtent2D& extent = surface_ptr_->GetSwapchainExtent();
 
 			render_pass_ptr_ = std::make_unique<RenderPass>(device, surface_ptr_->GetSwapchainFormat());
@@ -206,7 +211,7 @@ namespace render
 			VkShaderModule vert_shader_module = createShaderModule(vert_shader_code);
 			VkShaderModule frag_shader_module = createShaderModule(frag_shader_code);
 
-			graphics_pipeline_ptr = std::make_unique<GraphicsPipeline>(device, vert_shader_module, frag_shader_module, extent, *render_pass_ptr_);
+			graphics_pipeline_ptr_ = std::make_unique<GraphicsPipeline>(device, vert_shader_module, frag_shader_module, extent, *render_pass_ptr_);
 
 
 			swapchain_frame_buffers_.reserve(surface_ptr_->GetImageViews().size());
@@ -216,15 +221,15 @@ namespace render
 				swapchain_frame_buffers_.emplace_back(device, extent, surface_ptr_->GetImageViews()[i], *render_pass_ptr_);
 			}
 
-			command_pool_ptr->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
+			command_pool_ptr_->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
 
 			for (size_t ind = 0; ind < swapchain_frame_buffers_.size(); ind++)
 			{
-				command_pool_ptr->FillCommandBuffer(ind, *graphics_pipeline_ptr, extent, *render_pass_ptr_, swapchain_frame_buffers_[ind]);
+				command_pool_ptr_->FillCommandBuffer(ind, *graphics_pipeline_ptr_, extent, *render_pass_ptr_, swapchain_frame_buffers_[ind], *vertex_buffer_ptr_);
 			}
 
-			vkDestroyShaderModule(vk_logical_devices_[selected_device_index], frag_shader_module, nullptr);
-			vkDestroyShaderModule(vk_logical_devices_[selected_device_index], vert_shader_module, nullptr);
+			vkDestroyShaderModule(vk_logical_devices_[selected_device_index_], frag_shader_module, nullptr);
+			vkDestroyShaderModule(vk_logical_devices_[selected_device_index_], vert_shader_module, nullptr);
 		}
 
 
@@ -235,7 +240,7 @@ namespace render
 
 			for (size_t i = 0; i < surface_ptr_->GetImageViews().size(); i++)
 			{
-				swapchain_frame_buffers_.emplace_back(vk_logical_devices_[selected_device_index], surface_ptr_->GetSwapchainExtent(), surface_ptr_->GetImageViews()[i], render_pass);
+				swapchain_frame_buffers_.emplace_back(vk_logical_devices_[selected_device_index_], surface_ptr_->GetSwapchainExtent(), surface_ptr_->GetImageViews()[i], render_pass);
 			}
 
 		}
@@ -244,8 +249,8 @@ namespace render
 			VkSemaphoreCreateInfo semaphoreInfo{};
 			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-			if (vkCreateSemaphore(vk_logical_devices_[selected_device_index], &semaphoreInfo, nullptr, &image_available_semaphore) != VK_SUCCESS ||
-				vkCreateSemaphore(vk_logical_devices_[selected_device_index], &semaphoreInfo, nullptr, &render_finished_semaphore) != VK_SUCCESS) {
+			if (vkCreateSemaphore(vk_logical_devices_[selected_device_index_], &semaphoreInfo, nullptr, &image_available_semaphore_) != VK_SUCCESS ||
+				vkCreateSemaphore(vk_logical_devices_[selected_device_index_], &semaphoreInfo, nullptr, &render_finished_semaphore_) != VK_SUCCESS) {
 
 				throw std::runtime_error("failed to create semaphores!");
 			}
@@ -259,14 +264,14 @@ namespace render
 		{
 			platform::ShowWindow(surface_ptr_->GetWindow());
 
-			command_pool_ptr = std::make_unique<CommandPool>(vk_logical_devices_[selected_device_index], selected_queue_index);
+			command_pool_ptr_ = std::make_unique<CommandPool>(vk_logical_devices_[selected_device_index_], selected_queue_index_);
 
 			createSemaphores();
 			
 			
 			bool should_refresh_swapchain = true;
 
-			const VkDevice& device = vk_logical_devices_[selected_device_index];
+			const VkDevice& device = vk_logical_devices_[selected_device_index_];
 
 			std::vector<FrameHandler> frames;
 
@@ -281,7 +286,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < swapchain_frame_buffers_.size(); frame_ind++)
 				{
-					frames.emplace_back(device, graphics_queue, surface_ptr_->GetSwapchain(), frame_ind, command_pool_ptr->GetCommandBuffer(frame_ind), render_finished_semaphore);
+					frames.emplace_back(device, graphics_queue, surface_ptr_->GetSwapchain(), frame_ind, command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
 				}
 
 
@@ -289,7 +294,7 @@ namespace render
 				{
 					uint32_t image_index;
 					VkResult result = vkAcquireNextImageKHR(device, surface_ptr_->GetSwapchain(), UINT64_MAX,
-						image_available_semaphore, VK_NULL_HANDLE, &image_index);
+						image_available_semaphore_, VK_NULL_HANDLE, &image_index);
 
 					if (result != VK_SUCCESS)
 					{
@@ -300,15 +305,15 @@ namespace render
 						continue;
 					}
 
-					should_refresh_swapchain = !frames[image_index].Process(image_available_semaphore);
+					should_refresh_swapchain = !frames[image_index].Process(image_available_semaphore_);
 
 				}
 
 				vkDeviceWaitIdle(device);
 			}
 
-			vkDestroySemaphore(device, image_available_semaphore, nullptr);
-			vkDestroySemaphore(device, render_finished_semaphore, nullptr);
+			vkDestroySemaphore(device, image_available_semaphore_, nullptr);
+			vkDestroySemaphore(device, render_finished_semaphore_, nullptr);
 
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
@@ -589,20 +594,27 @@ namespace render
 		std::vector<VkDeviceWrapper> vk_logical_devices_;
 
 
-		uint32_t selected_queue_index;
-		uint32_t selected_device_index;
+		uint32_t selected_queue_index_;
+		uint32_t selected_device_index_;
 
 		std::vector<render::Framebuffer> swapchain_frame_buffers_;
 
 		std::unique_ptr<Surface> surface_ptr_;
+		std::unique_ptr<VertexBuffer> vertex_buffer_ptr_;
 		std::unique_ptr<RenderPass> render_pass_ptr_;
-		std::unique_ptr<GraphicsPipeline> graphics_pipeline_ptr;
-		std::unique_ptr<CommandPool> command_pool_ptr;
+		std::unique_ptr<GraphicsPipeline> graphics_pipeline_ptr_;
+		std::unique_ptr<CommandPool> command_pool_ptr_;
 
-		VkSemaphore image_available_semaphore;
-		VkSemaphore render_finished_semaphore;
+		VkSemaphore image_available_semaphore_;
+		VkSemaphore render_finished_semaphore_;
 
 		VkQueue graphics_queue;
+
+		const std::vector<Vertex> vertices_ = {
+	{{0.0f, -0.5f}, {1.0f, 0.0f, 1.0f}},
+	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+		};
 
 };
 

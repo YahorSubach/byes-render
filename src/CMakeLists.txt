@@ -7,16 +7,20 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/platform.cc
 		${CMAKE_CURRENT_LIST_DIR}/surface.h
 		${CMAKE_CURRENT_LIST_DIR}/surface.cc
-		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.h
-		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.cc
-		${CMAKE_CURRENT_LIST_DIR}/render/graphics_pipeline.h
-		${CMAKE_CURRENT_LIST_DIR}/render/graphics_pipeline.cc
-		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.h
-		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/command_buffer.h
 		${CMAKE_CURRENT_LIST_DIR}/render/command_buffer.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/command_pool.h
+		${CMAKE_CURRENT_LIST_DIR}/render/command_pool.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.h
 		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.h
+		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/graphics_pipeline.h
+		${CMAKE_CURRENT_LIST_DIR}/render/graphics_pipeline.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/object_base.h
+		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.h
+		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/vertex_buffer.h
+		${CMAKE_CURRENT_LIST_DIR}/render/vertex_buffer.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/vk_util.h)
                                   

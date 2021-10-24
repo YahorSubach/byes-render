@@ -35,7 +35,7 @@ bool render::CommandPool::CreateCommandBuffers(uint32_t size)
 	return true;
 }
 
-bool render::CommandPool::FillCommandBuffer(size_t index, const GraphicsPipeline& pipeline, const VkExtent2D& extent, const RenderPass& render_pass, const Framebuffer& framebuffer)
+bool render::CommandPool::FillCommandBuffer(size_t index, const GraphicsPipeline& pipeline, const VkExtent2D& extent, const RenderPass& render_pass, const Framebuffer& framebuffer, const VertexBuffer& vertex_buffer)
 {
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -61,7 +61,12 @@ bool render::CommandPool::FillCommandBuffer(size_t index, const GraphicsPipeline
 	vkCmdBeginRenderPass(command_buffers_[index], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline(command_buffers_[index], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipelineHandle());
-	vkCmdDraw(command_buffers_[index], 3, 1, 0, 0);
+
+	VkBuffer vertexBuffers[] = { vertex_buffer.GetVertexBuffer() };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(command_buffers_[index], 0, 1, vertexBuffers, offsets);
+
+	vkCmdDraw(command_buffers_[index], vertex_buffer.GetVertexNum(), 1, 0, 0);
 
 	vkCmdEndRenderPass(command_buffers_[index]);
 

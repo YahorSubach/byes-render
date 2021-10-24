@@ -1,6 +1,12 @@
 #include "graphics_pipeline.h"
 
+#include <array>
+#include <vector>
+
+#include "glm/glm/glm.hpp"
+
 #include "common.h"
+#include "vertex_buffer.h"
 
 
 render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const render::RenderPass& render_pass):
@@ -20,13 +26,15 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 
 	VkPipelineShaderStageCreateInfo shader_stages[] = { vert_shader_stage_info, frag_shader_stage_info };
 
+	auto binding_description = Vertex::GetBindingDescription();
+	auto attribute_descriptions = Vertex::GetAttributeDescriptions();
 
 	VkPipelineVertexInputStateCreateInfo vertex_input_info{};
 	vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertex_input_info.vertexBindingDescriptionCount = 0;
-	vertex_input_info.pVertexBindingDescriptions = nullptr; // Optional
-	vertex_input_info.vertexAttributeDescriptionCount = 0;
-	vertex_input_info.pVertexAttributeDescriptions = nullptr; // Optional
+	vertex_input_info.vertexBindingDescriptionCount = 1;
+	vertex_input_info.pVertexBindingDescriptions = &binding_description; // Optional
+	vertex_input_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
+	vertex_input_info.pVertexAttributeDescriptions = attribute_descriptions.data(); // Optional
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly{};
 	input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

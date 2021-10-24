@@ -24,6 +24,7 @@ if(Vulkan_FOUND)
 
 	target_include_directories(render_engine PUBLIC include)
 	target_include_directories(render_engine PRIVATE src)
+	target_include_directories(render_engine PRIVATE submodules)
 
 	if (WIN32)
 		target_compile_definitions(render_engine PRIVATE VK_USE_PLATFORM_WIN32_KHR)
