@@ -11,14 +11,14 @@
 #include "render/framebuffer.h"
 #include "render/render_pass.h"
 #include "render/command_buffer.h"
-#include "render/vertex_buffer.h"
+
 
 namespace render
 {
 	class CommandPool : public RenderObjBase
 	{
 	public:
-		CommandPool(const VkDevice & device, uint32_t queue_index);
+		CommandPool(const VkDevice & device, uint32_t queue_famaly_index);
 
 		CommandPool(const CommandPool&) = delete;
 		CommandPool(CommandPool&&) = default;
@@ -27,8 +27,6 @@ namespace render
 		CommandPool& operator=(CommandPool&&) = default;
 
 		bool CreateCommandBuffers(uint32_t size);
-		bool FillCommandBuffer(size_t index, const GraphicsPipeline& pipeline, const VkExtent2D& extent, const RenderPass& render_pass, const Framebuffer& framebuffer, const VertexBuffer& vertex_buffer);
-
 		void ClearCommandBuffers();
 
 		const VkCommandPool& GetCommandPool() const;

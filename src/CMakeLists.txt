@@ -7,10 +7,13 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/platform.cc
 		${CMAKE_CURRENT_LIST_DIR}/surface.h
 		${CMAKE_CURRENT_LIST_DIR}/surface.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/buffer.h
+		${CMAKE_CURRENT_LIST_DIR}/render/buffer.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/command_buffer.h
 		${CMAKE_CURRENT_LIST_DIR}/render/command_buffer.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/command_pool.h
 		${CMAKE_CURRENT_LIST_DIR}/render/command_pool.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/data_types.h
 		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.h
 		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.h
