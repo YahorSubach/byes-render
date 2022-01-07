@@ -45,5 +45,17 @@ namespace render
 		}
 	};
 
+	using VertexIndex = uint16_t;
+
+	struct Face
+	{
+		VertexIndex indices[3];
+	};
+
+	struct UniformBufferObject {
+		glm::mat4 model;
+		glm::mat4 view;
+		glm::mat4 proj;
+	};
 }
 #endif  // RENDER_ENGINE_RENDER_DATA_TYPES_H_

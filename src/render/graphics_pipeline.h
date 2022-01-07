@@ -21,9 +21,12 @@ namespace render
 		GraphicsPipeline& operator=(GraphicsPipeline&&) = default;
 
 		const VkPipeline& GetPipelineHandle() const;
+		const VkDescriptorSetLayout& GetDescriptorSetLayout() const;
+		const VkPipelineLayout& GetLayout() const;
 
 		~GraphicsPipeline();
 	private:
+		VkDescriptorSetLayout descriptor_set_layot_;
 		VkPipelineLayout layout_;
 		VkPipeline pipeline_;
 	};

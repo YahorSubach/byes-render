@@ -67,7 +67,7 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
 	rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -106,12 +106,26 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 	color_blending.blendConstants[2] = 0.0f; // Optional
 	color_blending.blendConstants[3] = 0.0f; // Optional
 
+	VkDescriptorSetLayoutBinding ubo_layout_binding{};
+	ubo_layout_binding.binding = 0;
+	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	ubo_layout_binding.descriptorCount = 1;
+	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	ubo_layout_binding.pImmutableSamplers = nullptr;
 
+	VkDescriptorSetLayoutCreateInfo ubo_layout_create_info{};
+	ubo_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	ubo_layout_create_info.bindingCount = 1;
+	ubo_layout_create_info.pBindings = &ubo_layout_binding;
+
+	if (vkCreateDescriptorSetLayout(device, &ubo_layout_create_info, nullptr, &descriptor_set_layot_) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout!");
+	}
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0; // Optional
-	pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
+	pipelineLayoutInfo.setLayoutCount = 1; // Optional
+	pipelineLayoutInfo.pSetLayouts = &descriptor_set_layot_; // Optional
 	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
 	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
@@ -151,6 +165,16 @@ const VkPipeline & render::GraphicsPipeline::GetPipelineHandle() const
 	return pipeline_;
 }
 
+const VkDescriptorSetLayout& render::GraphicsPipeline::GetDescriptorSetLayout() const
+{
+	return descriptor_set_layot_;
+}
+
+const VkPipelineLayout& render::GraphicsPipeline::GetLayout() const
+{
+	return layout_;
+}
+
 render::GraphicsPipeline::~GraphicsPipeline()
 {
 	if (pipeline_ != VK_NULL_HANDLE)
@@ -161,5 +185,10 @@ render::GraphicsPipeline::~GraphicsPipeline()
 	if (layout_ != VK_NULL_HANDLE)
 	{
 		vkDestroyPipelineLayout(device_, layout_, nullptr);
+	}
+
+	if (layout_ != VK_NULL_HANDLE)
+	{
+		vkDestroyDescriptorSetLayout(device_, descriptor_set_layot_, nullptr);
 	}
 }

@@ -17,6 +17,7 @@
 #include "common.h"
 #include "surface.h"
 #include "render/vk_util.h"
+#include "render/descriptor_pool.h"
 #include "render/framebuffer.h"
 #include "render/graphics_pipeline.h"
 #include "render/command_pool.h"
@@ -176,16 +177,14 @@ namespace render
 
 			std::vector<uint32_t> queue_indices = { selected_graphics_queue_index_ , selected_transfer_queue_index_ };
 
-			staging_buffer_ptr_ = std::make_unique<Buffer>(selected_logical_device_, selected_physical_device_, sizeof(vertices_[0]) * vertices_.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_indices);
-
 			vertex_buffer_ptr_ = std::make_unique<Buffer>(selected_logical_device_, selected_physical_device_, sizeof(vertices_[0]) * vertices_.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_indices);
+			index_buffer_ptr_ = std::make_unique<Buffer>(selected_logical_device_, selected_physical_device_, sizeof(faces_[0]) * faces_.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_indices);
 
-			void* data;
-			vkMapMemory(selected_logical_device_, staging_buffer_ptr_->GetBufferMemory(), 0, sizeof(vertices_[0]) * vertices_.size(), 0, &data);
+			graphics_command_pool_ptr_ = std::make_unique<CommandPool>(selected_logical_device_, selected_graphics_queue_index_);
+			transfer_command_pool_ptr_ = std::make_unique<CommandPool>(selected_logical_device_, selected_transfer_queue_index_);
 
-			memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
-
-			vkUnmapMemory(selected_logical_device_, staging_buffer_ptr_->GetBufferMemory());
+			CopyToGPUBuffer(*vertex_buffer_ptr_, static_cast<const void*>(vertices_.data()), sizeof(vertices_[0]) * vertices_.size());
+			CopyToGPUBuffer(*index_buffer_ptr_, static_cast<const void*>(faces_.data()), sizeof(faces_[0]) * faces_.size());
 
 			vk_init_success_ = true;
 		}
@@ -217,6 +216,7 @@ namespace render
 			graphics_command_pool_ptr_->ClearCommandBuffers();
 			graphics_pipeline_ptr_.reset();
 			render_pass_ptr_.reset();
+			descriptor_pool_ptr_.reset();
 
 			surface_ptr_->RefreshSwapchain();
 
@@ -236,18 +236,14 @@ namespace render
 
 			swapchain_frame_buffers_.reserve(surface_ptr_->GetImageViews().size());
 
+			descriptor_pool_ptr_ = std::make_unique<DescriptorPool>(device, surface_ptr_->GetImageViews().size(), graphics_pipeline_ptr_->GetDescriptorSetLayout());
+
 			for (size_t i = 0; i < surface_ptr_->GetImageViews().size(); i++)
 			{
 				swapchain_frame_buffers_.emplace_back(device, extent, surface_ptr_->GetImageViews()[i], *render_pass_ptr_);
 			}
 
 			graphics_command_pool_ptr_->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
-
-			for (size_t ind = 0; ind < swapchain_frame_buffers_.size(); ind++)
-			{
-				FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(ind), swapchain_frame_buffers_[ind], extent, *vertex_buffer_ptr_);
-				//graphics_command_pool_ptr_->FillCommandBuffer(ind, *graphics_pipeline_ptr_, extent, *render_pass_ptr_, swapchain_frame_buffers_[ind], *vertex_buffer_ptr_);
-			}
 
 			vkDestroyShaderModule(vk_logical_devices_[selected_device_index_], frag_shader_module, nullptr);
 			vkDestroyShaderModule(vk_logical_devices_[selected_device_index_], vert_shader_module, nullptr);
@@ -285,28 +281,11 @@ namespace render
 		{
 			platform::ShowWindow(surface_ptr_->GetWindow());
 
-			graphics_command_pool_ptr_ = std::make_unique<CommandPool>(vk_logical_devices_[selected_device_index_], selected_graphics_queue_index_);
-			transfer_command_pool_ptr_ = std::make_unique<CommandPool>(vk_logical_devices_[selected_device_index_], selected_transfer_queue_index_);
-
 			createSemaphores();
 			
 			bool should_refresh_swapchain = true;
 
-			const VkDevice& device = vk_logical_devices_[selected_device_index_];
-
 			std::vector<FrameHandler> frames;
-
-			transfer_command_pool_ptr_->CreateCommandBuffers(1);
-
-			FillTransferBuffer(transfer_command_pool_ptr_->GetCommandBuffer(0));
-
-			VkSubmitInfo submit_info{};
-			submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submit_info.commandBufferCount = 1;
-			submit_info.pCommandBuffers = &transfer_command_pool_ptr_->GetCommandBuffer(0);
-
-			vkQueueSubmit(transfer_queue, 1, &submit_info, VK_NULL_HANDLE);
-			vkQueueWaitIdle(transfer_queue);
 
 			while (should_refresh_swapchain)
 			{
@@ -319,14 +298,36 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < swapchain_frame_buffers_.size(); frame_ind++)
 				{
-					frames.emplace_back(device, graphics_queue, surface_ptr_->GetSwapchain(), frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
+					frames.emplace_back(selected_logical_device_, selected_physical_device_, graphics_queue, surface_ptr_->GetSwapchain(), frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
+
+					VkDescriptorBufferInfo buffer_info{};
+					buffer_info.buffer = frames[frame_ind].GetUniformBuffer().GetBuffer();
+					buffer_info.offset = 0;
+					buffer_info.range = sizeof(UniformBufferObject);
+
+					VkWriteDescriptorSet descriptor_write{};
+					descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descriptor_write.dstSet = descriptor_pool_ptr_->GetDescriptorSet(frame_ind);
+					descriptor_write.dstBinding = 0;
+					descriptor_write.dstArrayElement = 0;
+
+					descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					descriptor_write.descriptorCount = 1;
+
+					descriptor_write.pBufferInfo = &buffer_info;
+					descriptor_write.pImageInfo = nullptr; // Optional
+					descriptor_write.pTexelBufferView = nullptr; // Optional
+
+					vkUpdateDescriptorSets(selected_logical_device_, 1, &descriptor_write, 0, nullptr);
+
+					FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), swapchain_frame_buffers_[frame_ind], surface_ptr_->GetSwapchainExtent(), frame_ind);
 				}
 
 
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
 					uint32_t image_index;
-					VkResult result = vkAcquireNextImageKHR(device, surface_ptr_->GetSwapchain(), UINT64_MAX,
+					VkResult result = vkAcquireNextImageKHR(selected_logical_device_, surface_ptr_->GetSwapchain(), UINT64_MAX,
 						image_available_semaphore_, VK_NULL_HANDLE, &image_index);
 
 					if (result != VK_SUCCESS)
@@ -342,11 +343,11 @@ namespace render
 
 				}
 
-				vkDeviceWaitIdle(device);
+				vkDeviceWaitIdle(selected_logical_device_);
 			}
 
-			vkDestroySemaphore(device, image_available_semaphore_, nullptr);
-			vkDestroySemaphore(device, render_finished_semaphore_, nullptr);
+			vkDestroySemaphore(selected_logical_device_, image_available_semaphore_, nullptr);
+			vkDestroySemaphore(selected_logical_device_, render_finished_semaphore_, nullptr);
 
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
@@ -636,7 +637,7 @@ namespace render
 			return true;
 		}
 
-		bool FillGraphicsBuffer(VkCommandBuffer command_buffer, const Framebuffer& framebuffer, const VkExtent2D& extent, const Buffer& vertex_buffer)
+		bool FillGraphicsBuffer(VkCommandBuffer command_buffer, const Framebuffer& framebuffer, const VkExtent2D& extent, uint32_t image_index)
 		{
 			VkCommandBufferBeginInfo begin_info{};
 			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -663,11 +664,13 @@ namespace render
 
 			vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_ptr_->GetPipelineHandle());
 
-			VkBuffer vertexBuffers[] = { vertex_buffer.GetBuffer() };
+			VkBuffer vertexBuffers[] = { vertex_buffer_ptr_->GetBuffer() };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(command_buffer, index_buffer_ptr_->GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_ptr_->GetLayout(), 0, 1, &descriptor_pool_ptr_->GetDescriptorSet(image_index), 0, nullptr);
 
-			vkCmdDraw(command_buffer, vertices_.size(), 1, 0, 0);
+			vkCmdDrawIndexed(command_buffer, faces_.size() * 3, 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(command_buffer);
 
@@ -678,7 +681,7 @@ namespace render
 			return false;
 		}
 
-		bool FillTransferBuffer(VkCommandBuffer command_buffer)
+		bool FillTransferBuffer(VkCommandBuffer command_buffer, VkBuffer src_buffer, VkBuffer dst_buffer,  uint64_t size)
 		{
 			VkCommandBufferBeginInfo begin_info{};
 			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -691,13 +694,46 @@ namespace render
 			VkBufferCopy copy_region{};
 			copy_region.srcOffset = 0; // Optional
 			copy_region.dstOffset = 0; // Optional
-			copy_region.size = sizeof(vertices_[0]) * vertices_.size();
-			vkCmdCopyBuffer(command_buffer, staging_buffer_ptr_->GetBuffer(), vertex_buffer_ptr_->GetBuffer(), 1, &copy_region);
+			copy_region.size = size;
+			vkCmdCopyBuffer(command_buffer, src_buffer ,dst_buffer, 1, &copy_region);
 
 			vkEndCommandBuffer(command_buffer);
 
+			return true;
+		}
+
+		bool CopyToGPUBuffer(const Buffer& dst_buffer, const void* data, uint64_t size)
+		{
+			if (transfer_command_pool_ptr_->CreateCommandBuffers(1))
+			{
+				std::vector<uint32_t> queue_indices = { selected_graphics_queue_index_ , selected_transfer_queue_index_ };
+
+				Buffer staging_buffer(selected_logical_device_, selected_physical_device_, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_indices);
+
+				void* mapped_data;
+				vkMapMemory(selected_logical_device_, staging_buffer.GetBufferMemory(), 0, size, 0, &mapped_data);
+
+				memcpy(mapped_data, data, size);
+
+				vkUnmapMemory(selected_logical_device_, staging_buffer.GetBufferMemory());
+
+				FillTransferBuffer(transfer_command_pool_ptr_->GetCommandBuffer(0), staging_buffer.GetBuffer(), dst_buffer.GetBuffer(), size);
+
+				VkSubmitInfo submit_info{};
+				submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+				submit_info.commandBufferCount = 1;
+				submit_info.pCommandBuffers = &transfer_command_pool_ptr_->GetCommandBuffer(0);
+
+				if (vkQueueSubmit(transfer_queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS || vkQueueWaitIdle(transfer_queue) != VK_SUCCESS)
+					return false;
+
+				transfer_command_pool_ptr_->ClearCommandBuffers();
+				return true;
+			}
+
 			return false;
 		}
+
 
 		bool vk_init_success_;
 		VkApplicationInfo application_info_;
@@ -722,13 +758,14 @@ namespace render
 		uint32_t selected_graphics_queue_index_;
 		uint32_t selected_transfer_queue_index_;
 
-		std::vector<render::Framebuffer> swapchain_frame_buffers_;
+		std::vector<Framebuffer> swapchain_frame_buffers_;
 
 		std::unique_ptr<Surface> surface_ptr_;
 		std::unique_ptr<Buffer> vertex_buffer_ptr_;
-		std::unique_ptr<Buffer> staging_buffer_ptr_;
+		std::unique_ptr<Buffer> index_buffer_ptr_;
 		std::unique_ptr<RenderPass> render_pass_ptr_;
 		std::unique_ptr<GraphicsPipeline> graphics_pipeline_ptr_;
+		std::unique_ptr<DescriptorPool> descriptor_pool_ptr_;
 		std::unique_ptr<CommandPool> graphics_command_pool_ptr_;
 		std::unique_ptr<CommandPool> transfer_command_pool_ptr_;
 
@@ -739,9 +776,14 @@ namespace render
 		VkQueue transfer_queue;
 
 		const std::vector<Vertex> vertices_ = {
-	{{0.0f, -0.5f}, {1.0f, 0.0f, 1.0f}},
-	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+		};
+
+		const std::vector<Face> faces_ = {
+			{0, 1, 2}, {2, 3, 0}
 		};
 
 };
