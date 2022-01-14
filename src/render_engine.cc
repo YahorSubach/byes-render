@@ -215,15 +215,13 @@ namespace render
 			swapchain_frame_buffers_.clear();
 			graphics_command_pool_ptr_->ClearCommandBuffers();
 			graphics_pipeline_ptr_.reset();
-			render_pass_ptr_.reset();
 			descriptor_pool_ptr_.reset();
 
 			surface_ptr_->RefreshSwapchain();
 
-			const VkDevice& device = vk_logical_devices_[selected_device_index_];
-			const VkExtent2D& extent = surface_ptr_->GetSwapchainExtent();
+			render_pass_ptr_ = std::make_unique<RenderPass>(selected_logical_device_, surface_ptr_->GetSwapchainFormat());
 
-			render_pass_ptr_ = std::make_unique<RenderPass>(device, surface_ptr_->GetSwapchainFormat());
+			const VkExtent2D& extent = surface_ptr_->GetSwapchainExtent();
 
 			auto vert_shader_code = readFile("shaders/vert.spv");
 			auto frag_shader_code = readFile("shaders/frag.spv");
@@ -231,36 +229,24 @@ namespace render
 			VkShaderModule vert_shader_module = createShaderModule(vert_shader_code);
 			VkShaderModule frag_shader_module = createShaderModule(frag_shader_code);
 
-			graphics_pipeline_ptr_ = std::make_unique<GraphicsPipeline>(device, vert_shader_module, frag_shader_module, extent, *render_pass_ptr_);
+			graphics_pipeline_ptr_ = std::make_unique<GraphicsPipeline>(selected_logical_device_, vert_shader_module, frag_shader_module, extent, *render_pass_ptr_);
 
 
 			swapchain_frame_buffers_.reserve(surface_ptr_->GetImageViews().size());
 
-			descriptor_pool_ptr_ = std::make_unique<DescriptorPool>(device, surface_ptr_->GetImageViews().size(), graphics_pipeline_ptr_->GetDescriptorSetLayout());
+			descriptor_pool_ptr_ = std::make_unique<DescriptorPool>(selected_logical_device_, surface_ptr_->GetImageViews().size(), graphics_pipeline_ptr_->GetDescriptorSetLayout());
 
 			for (size_t i = 0; i < surface_ptr_->GetImageViews().size(); i++)
 			{
-				swapchain_frame_buffers_.emplace_back(device, extent, surface_ptr_->GetImageViews()[i], *render_pass_ptr_);
+				swapchain_frame_buffers_.emplace_back(selected_logical_device_, extent, surface_ptr_->GetImageViews()[i], *render_pass_ptr_);
 			}
 
 			graphics_command_pool_ptr_->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
 
-			vkDestroyShaderModule(vk_logical_devices_[selected_device_index_], frag_shader_module, nullptr);
-			vkDestroyShaderModule(vk_logical_devices_[selected_device_index_], vert_shader_module, nullptr);
+			vkDestroyShaderModule(selected_logical_device_, frag_shader_module, nullptr);
+			vkDestroyShaderModule(selected_logical_device_, vert_shader_module, nullptr);
 		}
 
-
-		void createFramebuffers(const RenderPass& render_pass) {
-
-			swapchain_frame_buffers_.clear();
-			swapchain_frame_buffers_.reserve(surface_ptr_->GetImageViews().size());
-
-			for (size_t i = 0; i < surface_ptr_->GetImageViews().size(); i++)
-			{
-				swapchain_frame_buffers_.emplace_back(vk_logical_devices_[selected_device_index_], surface_ptr_->GetSwapchainExtent(), surface_ptr_->GetImageViews()[i], render_pass);
-			}
-
-		}
 
 		void createSemaphores() {
 			VkSemaphoreCreateInfo semaphoreInfo{};
@@ -286,6 +272,8 @@ namespace render
 			bool should_refresh_swapchain = true;
 
 			std::vector<FrameHandler> frames;
+
+
 
 			while (should_refresh_swapchain)
 			{
@@ -330,6 +318,7 @@ namespace render
 					VkResult result = vkAcquireNextImageKHR(selected_logical_device_, surface_ptr_->GetSwapchain(), UINT64_MAX,
 						image_available_semaphore_, VK_NULL_HANDLE, &image_index);
 
+
 					if (result != VK_SUCCESS)
 					{
 						if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -340,6 +329,8 @@ namespace render
 					}
 
 					should_refresh_swapchain = !frames[image_index].Process(image_available_semaphore_);
+
+					int a = 1;
 
 				}
 

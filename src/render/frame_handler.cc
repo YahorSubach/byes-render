@@ -42,7 +42,6 @@ render::FrameHandler::FrameHandler(const VkDevice& device, const VkPhysicalDevic
 
 bool render::FrameHandler::Process(VkSemaphore& image_acquire_semaphore)
 {
-
 	static auto start_time = std::chrono::high_resolution_clock::now();
 
 	auto current_time = std::chrono::high_resolution_clock::now();
