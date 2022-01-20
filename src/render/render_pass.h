@@ -8,7 +8,7 @@
 
 namespace render
 {
-	class RenderPass : public RenderObjBase
+	class RenderPass : public RenderObjBase<VkRenderPass>
 	{
 	public:
 		RenderPass(const VkDevice& device, const VkFormat& format);
@@ -21,9 +21,7 @@ namespace render
 
 		const VkRenderPass& GetRenderPassHandle() const;
 
-		~RenderPass();
-	private:
-		VkRenderPass render_pass_;
+		virtual ~RenderPass() override;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_RENDER_PASS_H_

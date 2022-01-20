@@ -9,10 +9,10 @@
 
 namespace render
 {
-	class GraphicsPipeline : public RenderObjBase
+	class GraphicsPipeline : public RenderObjBase<VkPipeline>
 	{
 	public:
-		GraphicsPipeline(const VkDevice& device, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const render::RenderPass& render_pass);
+		GraphicsPipeline(const VkDevice& device, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const RenderPass& render_pass);
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;
 		GraphicsPipeline(GraphicsPipeline&&) = default;
@@ -20,15 +20,13 @@ namespace render
 		GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
 		GraphicsPipeline& operator=(GraphicsPipeline&&) = default;
 
-		const VkPipeline& GetPipelineHandle() const;
 		const VkDescriptorSetLayout& GetDescriptorSetLayout() const;
 		const VkPipelineLayout& GetLayout() const;
 
-		~GraphicsPipeline();
+		virtual ~GraphicsPipeline() override;
 	private:
 		VkDescriptorSetLayout descriptor_set_layot_;
 		VkPipelineLayout layout_;
-		VkPipeline pipeline_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_GRAPHICS_PIPELINE_H_

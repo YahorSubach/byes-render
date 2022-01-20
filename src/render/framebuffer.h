@@ -9,7 +9,7 @@
 
 namespace render
 {
-	class Framebuffer : public RenderObjBase
+	class Framebuffer : public RenderObjBase<VkFramebuffer>
 	{
 	public:
 		Framebuffer(const VkDevice& device, const VkExtent2D& extent, const VkImageView& image_view, const RenderPass& render_pass);
@@ -22,9 +22,7 @@ namespace render
 
 		const VkFramebuffer& GetFramebufferHandle() const;
 
-		~Framebuffer();
-	private:
-		VkFramebuffer framebuffer_;
+		virtual ~Framebuffer() override;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_FRAMEBUFFER_H_

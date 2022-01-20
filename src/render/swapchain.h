@@ -8,7 +8,7 @@
 
 namespace render
 {
-	class Swapchain : public RenderObjBase
+	class Swapchain : public RenderObjBase<VkSwapchainKHR>
 	{
 	public:
 		Swapchain(const VkDevice& device, const VkFormat& format);
@@ -21,7 +21,7 @@ namespace render
 
 		const VkSwapchainKHR& GetSwapchainHandle() const;
 
-		~Swapchain();
+		virtual ~Swapchain() override;
 	private:
 		VkSwapchainKHR swapchain_;
 	};

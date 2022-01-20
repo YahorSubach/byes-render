@@ -8,10 +8,10 @@
 #include "vk_util.h"
 #include <render/data_types.h>
 
-render::FrameHandler::FrameHandler(const VkDevice& device, const VkPhysicalDevice& physical_device, VkQueue graphics_queue, VkSwapchainKHR swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer, VkSemaphore render_finished_semaphore):
-	RenderObjBase(device), swapchain_(swapchain), image_index_(image_index), graphics_queue_(graphics_queue), command_buffer_(command_buffer), render_finished_semaphore_(render_finished_semaphore),
-	cmd_buffer_fence_(vk_util::CreateFence(device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-	uniform_buffer_(device, physical_device, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {})
+render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg,VkSwapchainKHR swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer, VkSemaphore render_finished_semaphore):
+	RenderObjBase(device_cfg.logical_device), swapchain_(swapchain), image_index_(image_index), graphics_queue_(device_cfg.graphics_queue), command_buffer_(command_buffer), render_finished_semaphore_(render_finished_semaphore),
+	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
+	uniform_buffer_(device_cfg, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {})
 {
 
 	submit_info_.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

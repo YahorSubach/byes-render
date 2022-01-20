@@ -3,7 +3,7 @@
 #include "common.h"
 
 render::Framebuffer::Framebuffer(const VkDevice& device, const VkExtent2D& extent, const VkImageView& image_view, const RenderPass& render_pass): 
-	RenderObjBase(device), framebuffer_(VK_NULL_HANDLE)
+	RenderObjBase(device)
 {
 	VkImageView attachments[] = {
 		image_view
@@ -18,20 +18,20 @@ render::Framebuffer::Framebuffer(const VkDevice& device, const VkExtent2D& exten
 	framebuffer_info.height = extent.height;
 	framebuffer_info.layers = 1;
 
-	if (vkCreateFramebuffer(device_, &framebuffer_info, nullptr, &framebuffer_) != VK_SUCCESS) {
+	if (vkCreateFramebuffer(device_, &framebuffer_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
 }
 
 const VkFramebuffer& render::Framebuffer::GetFramebufferHandle() const
 {
-	return framebuffer_;
+	return handle_;
 }
 
 render::Framebuffer::~Framebuffer()
 {
-	if (framebuffer_ != VK_NULL_HANDLE)
+	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyFramebuffer(device_, framebuffer_, nullptr);
+		vkDestroyFramebuffer(device_, handle_, nullptr);
 	}
 }

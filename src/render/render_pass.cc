@@ -2,7 +2,7 @@
 
 #include "common.h"
 
-render::RenderPass::RenderPass(const VkDevice& device, const VkFormat& format): RenderObjBase(device), render_pass_(VK_NULL_HANDLE)
+render::RenderPass::RenderPass(const VkDevice& device, const VkFormat& format): RenderObjBase(device)
 {
 	VkAttachmentDescription color_attachment{};
 	color_attachment.format = format;
@@ -46,20 +46,20 @@ render::RenderPass::RenderPass(const VkDevice& device, const VkFormat& format): 
 	render_pass_info.dependencyCount = 1;
 	render_pass_info.pDependencies = &dependency;
 
-	if (vkCreateRenderPass(device_, &render_pass_info, nullptr, &render_pass_) != VK_SUCCESS) {
+	if (vkCreateRenderPass(device_, &render_pass_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create render pass!");
 	}
 }
 
 const VkRenderPass& render::RenderPass::GetRenderPassHandle() const
 {
-	return render_pass_;
+	return handle_;
 }
 
 render::RenderPass::~RenderPass()
 {
-	if (render_pass_ != VK_NULL_HANDLE)
+	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyRenderPass(device_, render_pass_, nullptr);
+		vkDestroyRenderPass(device_, handle_, nullptr);
 	}
 }

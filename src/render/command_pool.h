@@ -2,23 +2,29 @@
 #define RENDER_ENGINE_RENDER_COMMAND_POOL_H_
 
 #include <vector>
+#include <functional>
 
 #include "vulkan/vulkan.h"
 
 #include "common.h"
 #include "render/object_base.h"
-#include "render/graphics_pipeline.h"
-#include "render/framebuffer.h"
-#include "render/render_pass.h"
 #include "render/command_buffer.h"
+#include "render/data_types.h"
 
 
 namespace render
 {
-	class CommandPool : public RenderObjBase
+	class CommandPool : public RenderObjBase<VkCommandPool>
 	{
 	public:
-		CommandPool(const VkDevice & device, uint32_t queue_famaly_index);
+
+		enum class PoolType
+		{
+			kTransfer,
+			kGraphics
+		};
+
+		CommandPool(const DeviceConfiguration& device_cfg, PoolType pool_type);
 
 		CommandPool(const CommandPool&) = delete;
 		CommandPool(CommandPool&&) = default;
@@ -29,15 +35,16 @@ namespace render
 		bool CreateCommandBuffers(uint32_t size);
 		void ClearCommandBuffers();
 
-		const VkCommandPool& GetCommandPool() const;
 		const VkCommandBuffer& GetCommandBuffer(size_t index) const;
 
-		~CommandPool();
+		void ExecuteOneTimeCommand(const std::function<void(VkCommandBuffer)>& command) const;
+
+		virtual ~CommandPool() override;
 	private:
 
-		std::vector<VkCommandBuffer> command_buffers_;
+		VkQueue pool_queue_;
 
-		VkCommandPool command_pool_;
+		std::vector<VkCommandBuffer> command_buffers_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_COMMAND_POOL_H_

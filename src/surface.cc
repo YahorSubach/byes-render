@@ -8,8 +8,9 @@
 
 
 
-render::Surface::Surface(platform::Window window_hande, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device) :
-	RenderObjBase(logical_device), window_hande_(window_hande), physical_device_(physical_device), queue_index_(queue_index), surface_(VK_NULL_HANDLE), swapchain_(VK_NULL_HANDLE)
+
+render::Surface::Surface(platform::Window window_hande, const VkInstance& instance, const DeviceConfiguration& device_cfg) :
+	RenderObjBase(device_cfg.logical_device), window_hande_(window_hande), physical_device_(device_cfg.physical_device), queue_index_(device_cfg.graphics_queue_index), surface_(VK_NULL_HANDLE)
 {
 	if (window_hande_)
 	{
@@ -47,9 +48,9 @@ bool render::Surface::RefreshSwapchain()
 	images_.clear();
 	VkSurfaceCapabilitiesKHR capabilities;
 
-	if (VkBool32 device_surface_support; vkGetPhysicalDeviceSurfaceSupportKHR(physical_device_, queue_index_, surface_, &device_surface_support) == VK_SUCCESS)
+	if (VkBool32 device_surface_support; vkGetPhysicalDeviceSurfaceSupportKHR(physical_device_, queue_index_, surface_, &device_surface_support) == VK_SUCCESS) // TODO move this upper
 	{
-		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface_, &capabilities) == VK_SUCCESS && device_surface_support)
+		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface_, &capabilities) == VK_SUCCESS && device_surface_support) // TODO move this to swapchhain class
 		{
 
 			VkSurfaceFormatKHR surface_format = GetSurfaceFormat(physical_device_);
@@ -78,13 +79,13 @@ bool render::Surface::RefreshSwapchain()
 			create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 			create_info.presentMode = present_mode;
 			create_info.clipped = VK_FALSE;
-			create_info.oldSwapchain = swapchain_;
+			create_info.oldSwapchain = handle_;
 
-			old_swapchain = swapchain_;
+			old_swapchain = handle_;
 
-			if (vkCreateSwapchainKHR(device_, &create_info, nullptr, &swapchain_) == VK_SUCCESS)
+			if (vkCreateSwapchainKHR(device_, &create_info, nullptr, &handle_) == VK_SUCCESS)
 			{
-				images_ = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_, swapchain_);
+				images_ = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_, handle_);
 
 				for (auto&& image_view : images_views_)
 				{
@@ -145,19 +146,19 @@ const VkExtent2D& render::Surface::GetSwapchainExtent()
 
 const VkSwapchainKHR& render::Surface::GetSwapchain()
 {
-	return swapchain_;
+	return handle_;
 }
 
 render::Surface::~Surface()
 {
-	if (swapchain_ != VK_NULL_HANDLE)
+	if (handle_ != VK_NULL_HANDLE)
 	{
 		for (auto&& image_view : images_views_)
 		{
 			vkDestroyImageView(device_, image_view, nullptr);
 		}
 
-		vkDestroySwapchainKHR(device_, swapchain_, nullptr);
+		vkDestroySwapchainKHR(device_, handle_, nullptr);
 	}
 }
 

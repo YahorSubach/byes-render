@@ -11,7 +11,7 @@
 
 namespace render
 {
-	class DescriptorPool : public RenderObjBase
+	class DescriptorPool : public RenderObjBase<VkDescriptorPool>
 	{
 	public:
 		DescriptorPool(const VkDevice& device, uint32_t descriptors_count, VkDescriptorSetLayout descriptor_set_layout);
@@ -22,12 +22,10 @@ namespace render
 		DescriptorPool& operator=(const DescriptorPool&) = delete;
 		DescriptorPool& operator=(DescriptorPool&&) = default;
 
-		const VkDescriptorPool& GetDescriptorPool() const;
 		const VkDescriptorSet& GetDescriptorSet(uint32_t index) const;
 
-		~DescriptorPool();
+		virtual ~DescriptorPool() override;
 	private:
-		VkDescriptorPool descriptor_pool_;
 
 		std::vector<VkDescriptorSet> descriptor_sets_;
 	};

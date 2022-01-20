@@ -8,10 +8,10 @@
 
 namespace render
 {
-	class FrameHandler: public RenderObjBase
+	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
-		FrameHandler(const VkDevice& device, const VkPhysicalDevice& physical_device, VkQueue graphics_queue, VkSwapchainKHR swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer,VkSemaphore render_finished_semaphore);
+		FrameHandler(const DeviceConfiguration& device_cfg, VkSwapchainKHR swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer,VkSemaphore render_finished_semaphore);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;
@@ -21,7 +21,7 @@ namespace render
 		
 		bool Process(VkSemaphore& image_acquire_semaphore);
 		const Buffer& GetUniformBuffer();
-		~FrameHandler();
+		virtual ~FrameHandler() override;
 	private:
 		VkSwapchainKHR swapchain_;
 		VkCommandBuffer command_buffer_;

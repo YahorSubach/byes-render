@@ -12,9 +12,30 @@
 
 namespace render
 {
+	class CommandPool;
+
+	struct DeviceConfiguration
+	{
+		VkPhysicalDevice physical_device;
+		VkPhysicalDeviceProperties physical_device_properties;
+		
+		VkDevice  logical_device;
+		
+		VkQueue transfer_queue;
+		uint32_t transfer_queue_index;
+
+		VkQueue graphics_queue;
+		uint32_t graphics_queue_index;
+
+		CommandPool* graphics_cmd_pool;
+		CommandPool* transfer_cmd_pool;
+	};
+
+
 	struct Vertex {
 		glm::vec2 pos;
 		glm::vec3 color;
+		glm::vec2 tex_coord;
 
 		static VkVertexInputBindingDescription GetBindingDescription()
 		{
@@ -27,8 +48,8 @@ namespace render
 			return binding_description;
 		}
 
-		static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions() {
-			std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions{};
+		static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions() {
+			std::array<VkVertexInputAttributeDescription, 3> attribute_descriptions{};
 
 			attribute_descriptions[0].binding = 0;
 			attribute_descriptions[0].location = 0;
@@ -40,6 +61,10 @@ namespace render
 			attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 			attribute_descriptions[1].offset = offsetof(Vertex, color);
 
+			attribute_descriptions[2].binding = 0;
+			attribute_descriptions[2].location = 2;
+			attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+			attribute_descriptions[2].offset = offsetof(Vertex, tex_coord);
 
 			return attribute_descriptions;
 		}

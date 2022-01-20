@@ -6,13 +6,14 @@
 
 #include "platform.h"
 #include "render/object_base.h"
+#include "render/data_types.h"
 
 namespace render
 {
-	class Surface: public RenderObjBase
+	class Surface: public RenderObjBase<VkSwapchainKHR>
 	{
 	public:
-		Surface(platform::Window window_handle, const VkInstance& instance, const VkPhysicalDevice& physical_device, uint32_t queue_index, const VkDevice& logical_device);
+		Surface(platform::Window window_handle, const VkInstance& instance, const DeviceConfiguration& device_cfg);
 
 		Surface(const Surface&) = delete;
 		Surface(Surface&&) = default;
@@ -32,7 +33,7 @@ namespace render
 		const VkExtent2D& GetSwapchainExtent();
 		const VkSwapchainKHR& GetSwapchain();
 
-		~Surface();
+		virtual ~Surface() override;
 	private:
 
 		VkSurfaceFormatKHR GetSurfaceFormat(const VkPhysicalDevice& physical_device);
@@ -43,7 +44,6 @@ namespace render
 
 		VkFormat swapchain_image_format_;
 		VkExtent2D swapchain_extent_;
-		VkSwapchainKHR swapchain_;
 
 		VkSurfaceKHR surface_;
 		std::vector<VkImage> images_;

@@ -1,6 +1,6 @@
 #include "buffer.h"
 
-render::Buffer::Buffer(const VkDevice& device, const VkPhysicalDevice& physical_device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indeces): RenderObjBase(device), physical_device_(physical_device)
+render::Buffer::Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indeces): RenderObjBase(device_cfg.logical_device)
 {
     VkBufferCreateInfo buffer_info{};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -10,58 +10,32 @@ render::Buffer::Buffer(const VkDevice& device, const VkPhysicalDevice& physical_
     buffer_info.queueFamilyIndexCount = queue_famaly_indeces.size();
     buffer_info.pQueueFamilyIndices = queue_famaly_indeces.data();
 
-
-
-    if (vkCreateBuffer(device, &buffer_info, nullptr, &buffer_) != VK_SUCCESS) {
+    if (vkCreateBuffer(device_cfg.logical_device, &buffer_info, nullptr, &handle_) != VK_SUCCESS) {
         throw std::runtime_error("failed to create vertex buffer!");
     }
 
-    VkMemoryRequirements memory_requirements;
-    vkGetBufferMemoryRequirements(device, buffer_, &memory_requirements);
+	VkMemoryRequirements memory_requirements;
+	vkGetBufferMemoryRequirements(device_cfg.logical_device, handle_, &memory_requirements);
 
-    uint32_t memory_type_index = GetMemoryTypeIndex(memory_requirements.memoryTypeBits, memory_flags);
+    memory_ = std::make_unique<Memory>(device_cfg, memory_requirements.size, memory_requirements.memoryTypeBits);
 
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memory_requirements.size;
-    allocInfo.memoryTypeIndex = memory_type_index;
-
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &buffer_memory_) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate vertex buffer memory!");
-    }
-
-    vkBindBufferMemory(device, buffer_, buffer_memory_, 0);
+    vkBindBufferMemory(device_cfg.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 }
 
 VkDeviceMemory render::Buffer::GetBufferMemory()
 {
-    return buffer_memory_;
+    return memory_->GetMemoryHandle();
 }
 
-const VkBuffer& render::Buffer::GetBuffer() const
+void render::Buffer::LoadData(const void* data, size_t size)
 {
-    return buffer_;
+    void* mapped_data;
+    vkMapMemory(device_, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
+    memcpy(mapped_data, data, static_cast<size_t>(size));
+    vkUnmapMemory(device_, memory_->GetMemoryHandle());
 }
 
 render::Buffer::~Buffer()
 {
-    vkDestroyBuffer(device_, buffer_, nullptr);
-    vkFreeMemory(device_, buffer_memory_, nullptr);
-}
-
-uint32_t render::Buffer::GetMemoryTypeIndex(uint32_t acceptable_memory_types_bits, VkMemoryPropertyFlags memory_flags) const
-{
-    VkPhysicalDeviceMemoryProperties memory_properties;
-    vkGetPhysicalDeviceMemoryProperties(physical_device_, &memory_properties);
-
-    uint32_t memory_type_index = 0;
-
-    for (uint32_t i = 0; i < memory_properties.memoryTypeCount; i++) {
-        if ((acceptable_memory_types_bits & (1 << i)) &&
-            (memory_properties.memoryTypes[i].propertyFlags & memory_flags) == memory_flags) {
-            memory_type_index = i;
-        }
-    }
-
-    return memory_type_index;
+    vkDestroyBuffer(device_, handle_, nullptr);
 }

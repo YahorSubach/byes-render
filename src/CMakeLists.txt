@@ -22,11 +22,19 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/graphics_pipeline.h
 		${CMAKE_CURRENT_LIST_DIR}/render/graphics_pipeline.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/image.h
+		${CMAKE_CURRENT_LIST_DIR}/render/image.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/image_view.h
+		${CMAKE_CURRENT_LIST_DIR}/render/image_view.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/memory.h
+		${CMAKE_CURRENT_LIST_DIR}/render/memory.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/mesh.h
 		${CMAKE_CURRENT_LIST_DIR}/render/mesh.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/object_base.h
 		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.h
 		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/sampler.h
+		${CMAKE_CURRENT_LIST_DIR}/render/sampler.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/swapchain.h
 		${CMAKE_CURRENT_LIST_DIR}/render/swapchain.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/vertex_buffer.h

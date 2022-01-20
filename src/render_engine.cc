@@ -16,13 +16,16 @@
 
 #include "common.h"
 #include "surface.h"
+#include "render/buffer.h"
 #include "render/vk_util.h"
 #include "render/descriptor_pool.h"
 #include "render/framebuffer.h"
 #include "render/graphics_pipeline.h"
+#include "render/image.h"
+#include "render/image_view.h"
+#include "render/sampler.h"
 #include "render/command_pool.h"
 #include "render/frame_handler.h"
-#include "render/buffer.h"
 #include "render/data_types.h"
 
 namespace render
@@ -145,43 +148,47 @@ namespace render
 				return;
 			}
 
-			selected_device_index_ = DetermineDeviceForUse();
 
-			selected_physical_device_ = vk_physical_devices_[selected_device_index_];
+			uint32_t selected_device_index = DetermineDeviceForUse();
 
-			selected_graphics_queue_index_ = FindDeviceQueueFamalyWithFlag(selected_physical_device_, VK_QUEUE_GRAPHICS_BIT);
-			selected_transfer_queue_index_ = FindDeviceQueueFamalyWithFlag(selected_physical_device_, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_TRANSFER_BIT | VK_QUEUE_GRAPHICS_BIT);
-
-			if (!InitLogicalDevice(selected_physical_device_, { selected_graphics_queue_index_ , selected_transfer_queue_index_}))
-			{
-				LOG(err, "InitLogicalDevices error");
-				return;
-			}
-
-			selected_logical_device_ = vk_logical_devices_[selected_device_index_];
-
-
-
-			if (selected_device_index_ == -1)
+			if (selected_device_index == -1)
 			{
 				LOG(err, "Could not determine valid device");
 				return;
 			}
 
-			vkGetDeviceQueue(vk_logical_devices_[selected_device_index_], selected_graphics_queue_index_, 0, &graphics_queue);
-			vkGetDeviceQueue(vk_logical_devices_[selected_device_index_], selected_transfer_queue_index_, 0, &transfer_queue);
+			device_cfg_.physical_device = vk_physical_devices_[selected_device_index];
+			vkGetPhysicalDeviceProperties(device_cfg_.physical_device, &device_cfg_.physical_device_properties);
+
+
+			device_cfg_.graphics_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_GRAPHICS_BIT);
+			device_cfg_.transfer_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_TRANSFER_BIT | VK_QUEUE_GRAPHICS_BIT);
+
+			if (!InitLogicalDevice(device_cfg_.physical_device, { device_cfg_.graphics_queue_index , device_cfg_.transfer_queue_index }))
+			{
+				LOG(err, "InitLogicalDevices error");
+				return;
+			}
+
+			device_cfg_.logical_device = vk_logical_devices_[0];
+
+			vkGetDeviceQueue(device_cfg_.logical_device, device_cfg_.graphics_queue_index, 0, &device_cfg_.graphics_queue);
+			vkGetDeviceQueue(device_cfg_.logical_device, device_cfg_.transfer_queue_index, 0, &device_cfg_.transfer_queue);
 
 			platform::Window window = platform::CreatePlatformWindow(param);
 
-			surface_ptr_ = std::make_unique<Surface>(window, vk_instance_, vk_physical_devices_[selected_device_index_], selected_graphics_queue_index_, vk_logical_devices_[selected_device_index_]);
+			surface_ptr_ = std::make_unique<Surface>(window, vk_instance_, device_cfg_);
 
-			std::vector<uint32_t> queue_indices = { selected_graphics_queue_index_ , selected_transfer_queue_index_ };
+			std::vector<uint32_t> queue_indices = { device_cfg_.graphics_queue_index, device_cfg_.transfer_queue_index };
 
-			vertex_buffer_ptr_ = std::make_unique<Buffer>(selected_logical_device_, selected_physical_device_, sizeof(vertices_[0]) * vertices_.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_indices);
-			index_buffer_ptr_ = std::make_unique<Buffer>(selected_logical_device_, selected_physical_device_, sizeof(faces_[0]) * faces_.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_indices);
+			vertex_buffer_ptr_ = std::make_unique<Buffer>(device_cfg_, sizeof(vertices_[0]) * vertices_.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_indices);
+			index_buffer_ptr_ = std::make_unique<Buffer>(device_cfg_, sizeof(faces_[0]) * faces_.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_indices);
 
-			graphics_command_pool_ptr_ = std::make_unique<CommandPool>(selected_logical_device_, selected_graphics_queue_index_);
-			transfer_command_pool_ptr_ = std::make_unique<CommandPool>(selected_logical_device_, selected_transfer_queue_index_);
+			graphics_command_pool_ptr_ = std::make_unique<CommandPool>(device_cfg_, CommandPool::PoolType::kGraphics);
+			transfer_command_pool_ptr_ = std::make_unique<CommandPool>(device_cfg_, CommandPool::PoolType::kTransfer);
+
+			device_cfg_.graphics_cmd_pool = graphics_command_pool_ptr_.get();
+			device_cfg_.transfer_cmd_pool = transfer_command_pool_ptr_.get();
 
 			CopyToGPUBuffer(*vertex_buffer_ptr_, static_cast<const void*>(vertices_.data()), sizeof(vertices_[0]) * vertices_.size());
 			CopyToGPUBuffer(*index_buffer_ptr_, static_cast<const void*>(faces_.data()), sizeof(faces_[0]) * faces_.size());
@@ -203,7 +210,7 @@ namespace render
 			createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
 			VkShaderModule shader_module;
-			if (vkCreateShaderModule(vk_logical_devices_[selected_device_index_], &createInfo, nullptr, &shader_module) != VK_SUCCESS) {
+			if (vkCreateShaderModule(device_cfg_.logical_device, &createInfo, nullptr, &shader_module) != VK_SUCCESS) {
 				throw std::runtime_error("failed to create shader module!");
 			}
 
@@ -219,32 +226,32 @@ namespace render
 
 			surface_ptr_->RefreshSwapchain();
 
-			render_pass_ptr_ = std::make_unique<RenderPass>(selected_logical_device_, surface_ptr_->GetSwapchainFormat());
+			render_pass_ptr_ = std::make_unique<RenderPass>(device_cfg_.logical_device, surface_ptr_->GetSwapchainFormat());
 
 			const VkExtent2D& extent = surface_ptr_->GetSwapchainExtent();
 
-			auto vert_shader_code = readFile("shaders/vert.spv");
-			auto frag_shader_code = readFile("shaders/frag.spv");
+			auto vert_shader_code = readFile("../shaders/vert.spv");
+			auto frag_shader_code = readFile("../shaders/frag.spv");
 
 			VkShaderModule vert_shader_module = createShaderModule(vert_shader_code);
 			VkShaderModule frag_shader_module = createShaderModule(frag_shader_code);
 
-			graphics_pipeline_ptr_ = std::make_unique<GraphicsPipeline>(selected_logical_device_, vert_shader_module, frag_shader_module, extent, *render_pass_ptr_);
+			graphics_pipeline_ptr_ = std::make_unique<GraphicsPipeline>(device_cfg_.logical_device, vert_shader_module, frag_shader_module, extent, *render_pass_ptr_);
 
 
 			swapchain_frame_buffers_.reserve(surface_ptr_->GetImageViews().size());
 
-			descriptor_pool_ptr_ = std::make_unique<DescriptorPool>(selected_logical_device_, surface_ptr_->GetImageViews().size(), graphics_pipeline_ptr_->GetDescriptorSetLayout());
+			descriptor_pool_ptr_ = std::make_unique<DescriptorPool>(device_cfg_.logical_device, surface_ptr_->GetImageViews().size(), graphics_pipeline_ptr_->GetDescriptorSetLayout());
 
 			for (size_t i = 0; i < surface_ptr_->GetImageViews().size(); i++)
 			{
-				swapchain_frame_buffers_.emplace_back(selected_logical_device_, extent, surface_ptr_->GetImageViews()[i], *render_pass_ptr_);
+				swapchain_frame_buffers_.emplace_back(device_cfg_.logical_device, extent, surface_ptr_->GetImageViews()[i], *render_pass_ptr_);
 			}
 
 			graphics_command_pool_ptr_->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
 
-			vkDestroyShaderModule(selected_logical_device_, frag_shader_module, nullptr);
-			vkDestroyShaderModule(selected_logical_device_, vert_shader_module, nullptr);
+			vkDestroyShaderModule(device_cfg_.logical_device, frag_shader_module, nullptr);
+			vkDestroyShaderModule(device_cfg_.logical_device, vert_shader_module, nullptr);
 		}
 
 
@@ -252,8 +259,8 @@ namespace render
 			VkSemaphoreCreateInfo semaphoreInfo{};
 			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-			if (vkCreateSemaphore(vk_logical_devices_[selected_device_index_], &semaphoreInfo, nullptr, &image_available_semaphore_) != VK_SUCCESS ||
-				vkCreateSemaphore(vk_logical_devices_[selected_device_index_], &semaphoreInfo, nullptr, &render_finished_semaphore_) != VK_SUCCESS) {
+			if (vkCreateSemaphore(device_cfg_.logical_device, &semaphoreInfo, nullptr, &image_available_semaphore_) != VK_SUCCESS ||
+				vkCreateSemaphore(device_cfg_.logical_device, &semaphoreInfo, nullptr, &render_finished_semaphore_) != VK_SUCCESS) {
 
 				throw std::runtime_error("failed to create semaphores!");
 			}
@@ -284,29 +291,43 @@ namespace render
 				frames.clear();
 				frames.reserve(swapchain_frame_buffers_.size());
 
+				Image image = Image::FromFile(device_cfg_, "../images/test.jpg");
+				ImageView image_view(device_cfg_, image);
+				Sampler sampler(device_cfg_);
+
 				for (size_t frame_ind = 0; frame_ind < swapchain_frame_buffers_.size(); frame_ind++)
 				{
-					frames.emplace_back(selected_logical_device_, selected_physical_device_, graphics_queue, surface_ptr_->GetSwapchain(), frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
+					frames.emplace_back(device_cfg_, surface_ptr_->GetSwapchain(), frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
 
 					VkDescriptorBufferInfo buffer_info{};
-					buffer_info.buffer = frames[frame_ind].GetUniformBuffer().GetBuffer();
+					buffer_info.buffer = frames[frame_ind].GetUniformBuffer().GetHandle();
 					buffer_info.offset = 0;
 					buffer_info.range = sizeof(UniformBufferObject);
 
-					VkWriteDescriptorSet descriptor_write{};
-					descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					descriptor_write.dstSet = descriptor_pool_ptr_->GetDescriptorSet(frame_ind);
-					descriptor_write.dstBinding = 0;
-					descriptor_write.dstArrayElement = 0;
+					VkDescriptorImageInfo image_info{};
+					image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					image_info.imageView = image_view.GetHandle();
+					image_info.sampler = sampler.GetSamplerHandle();
 
-					descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					descriptor_write.descriptorCount = 1;
+					std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
 
-					descriptor_write.pBufferInfo = &buffer_info;
-					descriptor_write.pImageInfo = nullptr; // Optional
-					descriptor_write.pTexelBufferView = nullptr; // Optional
+					descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descriptor_writes[0].dstSet = descriptor_pool_ptr_->GetDescriptorSet(frame_ind);
+					descriptor_writes[0].dstBinding = 0;
+					descriptor_writes[0].dstArrayElement = 0;
+					descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					descriptor_writes[0].descriptorCount = 1;
+					descriptor_writes[0].pBufferInfo = &buffer_info;
 
-					vkUpdateDescriptorSets(selected_logical_device_, 1, &descriptor_write, 0, nullptr);
+					descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descriptor_writes[1].dstSet = descriptor_pool_ptr_->GetDescriptorSet(frame_ind);
+					descriptor_writes[1].dstBinding = 1;
+					descriptor_writes[1].dstArrayElement = 0;
+					descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					descriptor_writes[1].descriptorCount = 1;
+					descriptor_writes[1].pImageInfo = &image_info;
+
+					vkUpdateDescriptorSets(device_cfg_.logical_device, 2, descriptor_writes.data(), 0, nullptr);
 
 					FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), swapchain_frame_buffers_[frame_ind], surface_ptr_->GetSwapchainExtent(), frame_ind);
 				}
@@ -315,7 +336,7 @@ namespace render
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
 					uint32_t image_index;
-					VkResult result = vkAcquireNextImageKHR(selected_logical_device_, surface_ptr_->GetSwapchain(), UINT64_MAX,
+					VkResult result = vkAcquireNextImageKHR(device_cfg_.logical_device, surface_ptr_->GetSwapchain(), UINT64_MAX,
 						image_available_semaphore_, VK_NULL_HANDLE, &image_index);
 
 
@@ -334,11 +355,11 @@ namespace render
 
 				}
 
-				vkDeviceWaitIdle(selected_logical_device_);
+				vkDeviceWaitIdle(device_cfg_.logical_device);
 			}
 
-			vkDestroySemaphore(selected_logical_device_, image_available_semaphore_, nullptr);
-			vkDestroySemaphore(selected_logical_device_, render_finished_semaphore_, nullptr);
+			vkDestroySemaphore(device_cfg_.logical_device, image_available_semaphore_, nullptr);
+			vkDestroySemaphore(device_cfg_.logical_device, render_finished_semaphore_, nullptr);
 
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
@@ -384,6 +405,7 @@ namespace render
 			{
 				InitPhysicalDeviceProperties(vk_physical_devices_[i]);
 				InitPhysicalDeviceQueueFamaliesProperties(vk_physical_devices_[i]);
+				InitPhysicalDeviceFeatures(vk_physical_devices_[i]);
 				if (!(InitPhysicalDeviceLayers(vk_physical_devices_[i]) &&
 					InitPhysicalDeviceExtensions(vk_physical_devices_[i])))
 					return false;
@@ -618,7 +640,7 @@ namespace render
 
 
 
-			logical_device_create_info.queueCreateInfoCount = queue_create_infos.size();
+			logical_device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
 			logical_device_create_info.pQueueCreateInfos = queue_create_infos.data();
 
 			vk_logical_devices_.emplace_back();
@@ -653,12 +675,12 @@ namespace render
 
 			vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
-			vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_ptr_->GetPipelineHandle());
+			vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_ptr_->GetHandle());
 
-			VkBuffer vertexBuffers[] = { vertex_buffer_ptr_->GetBuffer() };
+			VkBuffer vertexBuffers[] = { vertex_buffer_ptr_->GetHandle() };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(command_buffer, index_buffer_ptr_->GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+			vkCmdBindIndexBuffer(command_buffer, index_buffer_ptr_->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
 			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_ptr_->GetLayout(), 0, 1, &descriptor_pool_ptr_->GetDescriptorSet(image_index), 0, nullptr);
 
 			vkCmdDrawIndexed(command_buffer, faces_.size() * 3, 1, 0, 0, 0);
@@ -672,53 +694,26 @@ namespace render
 			return false;
 		}
 
-		bool FillTransferBuffer(VkCommandBuffer command_buffer, VkBuffer src_buffer, VkBuffer dst_buffer,  uint64_t size)
-		{
-			VkCommandBufferBeginInfo begin_info{};
-			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-			if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
-				throw std::runtime_error("failed to begin recording command buffer!");
-			}
-
-			VkBufferCopy copy_region{};
-			copy_region.srcOffset = 0; // Optional
-			copy_region.dstOffset = 0; // Optional
-			copy_region.size = size;
-			vkCmdCopyBuffer(command_buffer, src_buffer ,dst_buffer, 1, &copy_region);
-
-			vkEndCommandBuffer(command_buffer);
-
-			return true;
-		}
-
 		bool CopyToGPUBuffer(const Buffer& dst_buffer, const void* data, uint64_t size)
 		{
 			if (transfer_command_pool_ptr_->CreateCommandBuffers(1))
 			{
-				std::vector<uint32_t> queue_indices = { selected_graphics_queue_index_ , selected_transfer_queue_index_ };
+				std::vector<uint32_t> queue_indices = { device_cfg_.graphics_queue_index , device_cfg_.transfer_queue_index };
 
-				Buffer staging_buffer(selected_logical_device_, selected_physical_device_, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_indices);
+				Buffer staging_buffer(device_cfg_, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_indices);
 
-				void* mapped_data;
-				vkMapMemory(selected_logical_device_, staging_buffer.GetBufferMemory(), 0, size, 0, &mapped_data);
+				staging_buffer.LoadData(data, size);
 
-				memcpy(mapped_data, data, size);
+				transfer_command_pool_ptr_->ExecuteOneTimeCommand([size, &staging_buffer, &dst_buffer](VkCommandBuffer command_buffer) {
 
-				vkUnmapMemory(selected_logical_device_, staging_buffer.GetBufferMemory());
+					VkBufferCopy copy_region{};
+					copy_region.srcOffset = 0; // Optional
+					copy_region.dstOffset = 0; // Optional
+					copy_region.size = size;
+					vkCmdCopyBuffer(command_buffer, staging_buffer.GetHandle(), dst_buffer.GetHandle(), 1, &copy_region);
 
-				FillTransferBuffer(transfer_command_pool_ptr_->GetCommandBuffer(0), staging_buffer.GetBuffer(), dst_buffer.GetBuffer(), size);
+					});
 
-				VkSubmitInfo submit_info{};
-				submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-				submit_info.commandBufferCount = 1;
-				submit_info.pCommandBuffers = &transfer_command_pool_ptr_->GetCommandBuffer(0);
-
-				if (vkQueueSubmit(transfer_queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS || vkQueueWaitIdle(transfer_queue) != VK_SUCCESS)
-					return false;
-
-				transfer_command_pool_ptr_->ClearCommandBuffers();
 				return true;
 			}
 
@@ -743,11 +738,8 @@ namespace render
 		
 		std::vector<VkDeviceWrapper> vk_logical_devices_;
 
-		uint32_t selected_device_index_;
-		VkPhysicalDevice selected_physical_device_;
-		VkDevice selected_logical_device_;
-		uint32_t selected_graphics_queue_index_;
-		uint32_t selected_transfer_queue_index_;
+		DeviceConfiguration device_cfg_;
+
 
 		std::vector<Framebuffer> swapchain_frame_buffers_;
 
@@ -763,14 +755,11 @@ namespace render
 		VkSemaphore image_available_semaphore_;
 		VkSemaphore render_finished_semaphore_;
 
-		VkQueue graphics_queue;
-		VkQueue transfer_queue;
-
 		const std::vector<Vertex> vertices_ = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+	{{0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
+	{{0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 		};
 
 		const std::vector<Face> faces_ = {

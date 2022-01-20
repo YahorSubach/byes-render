@@ -5,17 +5,18 @@
 #include <array>
 
 #include "vulkan/vulkan.h"
-#include "glm/glm/glm.hpp"
 
 #include "common.h"
 #include "render/object_base.h"
+#include "render/data_types.h"
+#include "render/memory.h"
 
 namespace render
 {
-	class Buffer : public RenderObjBase
+	class Buffer : public RenderObjBase<VkBuffer>
 	{
 	public:
-		Buffer(const VkDevice& device, const VkPhysicalDevice& physical_device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indices);
+		Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indices);
 
 		Buffer(const Buffer&) = delete;
 		Buffer(Buffer&&) = default;
@@ -25,18 +26,11 @@ namespace render
 
 		VkDeviceMemory GetBufferMemory();
 
-		const VkBuffer& GetBuffer() const;
-		uint32_t GetVertexNum() const;
+		void LoadData(const void* data, size_t size);
 
-		~Buffer();
+		virtual ~Buffer() override;
 	private:
-
-		VkPhysicalDevice physical_device_;
-
-		uint32_t GetMemoryTypeIndex(uint32_t acceptable_memory_types_bits, VkMemoryPropertyFlags memory_flags) const;
-
-		VkBuffer buffer_;
-		VkDeviceMemory buffer_memory_;
+		std::unique_ptr<Memory> memory_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_VERTEX_BUFFER_H_
