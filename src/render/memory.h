@@ -15,7 +15,7 @@ namespace render
 	class Memory : public RenderObjBase<VkDeviceMemory>
 	{
 	public:
-		Memory(const DeviceConfiguration& device_cfg, uint64_t size, uint32_t memory_type_bits);
+		Memory(const DeviceConfiguration& device_cfg, uint64_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags);
 	
 		Memory(const Memory&) = delete;
 		Memory(Memory&&) = default;

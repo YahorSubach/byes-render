@@ -4,14 +4,16 @@
 #include "vulkan/vulkan.h"
 
 #include "object_base.h"
-#include "buffer.h"
+
+#include "render/buffer.h"
+#include "render/swapchain.h"
 
 namespace render
 {
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
-		FrameHandler(const DeviceConfiguration& device_cfg, VkSwapchainKHR swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer,VkSemaphore render_finished_semaphore);
+		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer,VkSemaphore render_finished_semaphore);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;

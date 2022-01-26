@@ -33,7 +33,7 @@ namespace render
 
 
 	struct Vertex {
-		glm::vec2 pos;
+		glm::vec3 pos;
 		glm::vec3 color;
 		glm::vec2 tex_coord;
 
@@ -53,7 +53,7 @@ namespace render
 
 			attribute_descriptions[0].binding = 0;
 			attribute_descriptions[0].location = 0;
-			attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // we can use more component but they will be discarted
+			attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT; // we can use more component but they will be discarted
 			attribute_descriptions[0].offset = offsetof(Vertex, pos);
 
 			attribute_descriptions[1].binding = 0;

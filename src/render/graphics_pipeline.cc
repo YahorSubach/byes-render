@@ -106,6 +106,18 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 	color_blending.blendConstants[2] = 0.0f; // Optional
 	color_blending.blendConstants[3] = 0.0f; // Optional
 
+	VkPipelineDepthStencilStateCreateInfo depth_stencil{};
+	depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depth_stencil.depthTestEnable = VK_TRUE;
+	depth_stencil.depthWriteEnable = VK_TRUE;
+	depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+	depth_stencil.depthBoundsTestEnable = VK_FALSE;
+	depth_stencil.minDepthBounds = 0.0f; // Optional
+	depth_stencil.maxDepthBounds = 1.0f; // Optional
+	depth_stencil.stencilTestEnable = VK_FALSE;
+	depth_stencil.front = {}; // Optional
+	depth_stencil.back = {}; // Optional
+
 	VkDescriptorSetLayoutBinding ubo_layout_binding{};
 	ubo_layout_binding.binding = 0;
 	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -154,6 +166,7 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 	pipeline_info.pMultisampleState = &multisampling;
 	pipeline_info.pDepthStencilState = nullptr; // Optional
 	pipeline_info.pColorBlendState = &color_blending;
+	pipeline_info.pDepthStencilState = &depth_stencil;
 	pipeline_info.pDynamicState = nullptr; // Optional
 
 	pipeline_info.layout = layout_;

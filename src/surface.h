@@ -10,7 +10,7 @@
 
 namespace render
 {
-	class Surface: public RenderObjBase<VkSwapchainKHR>
+	class Surface: public RenderObjBase<VkSurfaceKHR>
 	{
 	public:
 		Surface(platform::Window window_handle, const VkInstance& instance, const DeviceConfiguration& device_cfg);
@@ -21,37 +21,16 @@ namespace render
 		Surface& operator=(const Surface&) = delete;
 		Surface& operator=(Surface&&) = default;
 
-		const VkImage* AcquireImage();
-
-		const std::vector<VkImageView>& GetImageViews() const;
-
 		platform::Window GetWindow();
 
-		bool RefreshSwapchain();
-
-		const VkFormat& GetSwapchainFormat();
-		const VkExtent2D& GetSwapchainExtent();
-		const VkSwapchainKHR& GetSwapchain();
+		VkSurfaceFormatKHR GetSurfaceFormat(const VkPhysicalDevice& physical_device) const;
+		VkPresentModeKHR GetSurfacePresentMode(const VkPhysicalDevice& physical_device) const;
+		VkExtent2D GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
 		virtual ~Surface() override;
 	private:
 
-		VkSurfaceFormatKHR GetSurfaceFormat(const VkPhysicalDevice& physical_device);
-		VkPresentModeKHR GetSurfacePresentMode(const VkPhysicalDevice& physical_device);
-		VkExtent2D GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities);
-
 		platform::Window window_hande_;
-
-		VkFormat swapchain_image_format_;
-		VkExtent2D swapchain_extent_;
-
-		VkSurfaceKHR surface_;
-		std::vector<VkImage> images_;
-		std::vector<VkImageView> images_views_;
-
-		const VkPhysicalDevice& physical_device_;
-
-		uint32_t queue_index_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_SURFACE_H_

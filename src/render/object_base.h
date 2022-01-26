@@ -35,6 +35,12 @@ namespace render
 		}
 
 		HandleType GetHandle() const { return handle_; }
+
+		virtual ~RenderObjBase() override
+		{
+			int a = 1;
+
+		}
 	protected:
 		const VkDevice& device_;
 		HandleType handle_;

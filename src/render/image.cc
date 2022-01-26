@@ -5,10 +5,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height) : RenderObjBase(device_cfg.logical_device)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type) : RenderObjBase(device_cfg.logical_device), image_type_(image_type)
 {
 	format_ = format;
-
 	VkImageCreateInfo image_info{};
 	image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	image_info.imageType = VK_IMAGE_TYPE_2D;
@@ -20,7 +19,10 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	image_info.format = format;
 	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	if(image_type == ImageType::kColorImage)		image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	else if (image_type == ImageType::kDepthImage)	image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
 	image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
 	const std::vector<uint32_t> sharing_queues_indices = { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index };
@@ -38,12 +40,18 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	VkMemoryRequirements mem_requirements;
 	vkGetImageMemoryRequirements(device_cfg.logical_device, handle_, &mem_requirements);
 
-	memory_ = std::make_unique<Memory>(device_cfg, mem_requirements.size, mem_requirements.memoryTypeBits);
+	memory_ = std::make_unique<Memory>(device_cfg, mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	vkBindImageMemory(device_cfg.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels): Image(device_cfg, format, width, height)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : RenderObjBase(device_cfg.logical_device), image_type_(ImageType::kSwapchainImage)
+{
+	handle_ = image_handle;
+	format_ = format;
+}
+
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels): Image(device_cfg, format, width, height, ImageType::kColorImage)
 {
 	VkDeviceSize image_size = width * height * 4;
 	Buffer staging_buffer(device_cfg, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {});
@@ -166,13 +174,13 @@ void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& bu
 
 render::Image::~Image()
 {
-	if (handle_ != VK_NULL_HANDLE)
+	if (handle_ != VK_NULL_HANDLE && image_type_ != ImageType::kSwapchainImage)
 	{
 		vkDestroyImage(device_, handle_, nullptr);
 	}
 }
 
-VkImage render::Image::GetImageHandle() const
+render::Image::ImageType render::Image::GetImageType() const
 {
-	return handle_;
+	return image_type_;
 }

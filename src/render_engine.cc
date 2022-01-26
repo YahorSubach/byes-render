@@ -10,23 +10,26 @@
 #include <map>
 #include <tuple>
 #include <fstream>
+#include <chrono>
 
 #include "vulkan/vulkan.h"
 
 
 #include "common.h"
 #include "surface.h"
-#include "render/buffer.h"
 #include "render/vk_util.h"
+#include "render/data_types.h"
+
+#include "render/buffer.h"
+#include "render/command_pool.h"
 #include "render/descriptor_pool.h"
 #include "render/framebuffer.h"
+#include "render/frame_handler.h"
 #include "render/graphics_pipeline.h"
 #include "render/image.h"
 #include "render/image_view.h"
 #include "render/sampler.h"
-#include "render/command_pool.h"
-#include "render/frame_handler.h"
-#include "render/data_types.h"
+#include "render/swapchain.h"
 
 namespace render
 {
@@ -217,18 +220,14 @@ namespace render
 			return shader_module;
 		}
 
-		void PrepareSwapChain()
+		void PrepareSwapChain(const Swapchain& swapchain, const ImageView& depth_view)
 		{
 			swapchain_frame_buffers_.clear();
 			graphics_command_pool_ptr_->ClearCommandBuffers();
 			graphics_pipeline_ptr_.reset();
 			descriptor_pool_ptr_.reset();
 
-			surface_ptr_->RefreshSwapchain();
-
-			render_pass_ptr_ = std::make_unique<RenderPass>(device_cfg_.logical_device, surface_ptr_->GetSwapchainFormat());
-
-			const VkExtent2D& extent = surface_ptr_->GetSwapchainExtent();
+			render_pass_ptr_ = std::make_unique<RenderPass>(device_cfg_.logical_device, swapchain.GetFormat());
 
 			auto vert_shader_code = readFile("../shaders/vert.spv");
 			auto frag_shader_code = readFile("../shaders/frag.spv");
@@ -236,16 +235,16 @@ namespace render
 			VkShaderModule vert_shader_module = createShaderModule(vert_shader_code);
 			VkShaderModule frag_shader_module = createShaderModule(frag_shader_code);
 
-			graphics_pipeline_ptr_ = std::make_unique<GraphicsPipeline>(device_cfg_.logical_device, vert_shader_module, frag_shader_module, extent, *render_pass_ptr_);
+			graphics_pipeline_ptr_ = std::make_unique<GraphicsPipeline>(device_cfg_.logical_device, vert_shader_module, frag_shader_module, swapchain.GetExtent(), *render_pass_ptr_);
 
 
-			swapchain_frame_buffers_.reserve(surface_ptr_->GetImageViews().size());
+			swapchain_frame_buffers_.reserve(swapchain.GetImagesCount());
 
-			descriptor_pool_ptr_ = std::make_unique<DescriptorPool>(device_cfg_.logical_device, surface_ptr_->GetImageViews().size(), graphics_pipeline_ptr_->GetDescriptorSetLayout());
+			descriptor_pool_ptr_ = std::make_unique<DescriptorPool>(device_cfg_.logical_device, swapchain.GetImagesCount(), graphics_pipeline_ptr_->GetDescriptorSetLayout());
 
-			for (size_t i = 0; i < surface_ptr_->GetImageViews().size(); i++)
+			for (size_t i = 0; i < swapchain.GetImagesCount(); i++)
 			{
-				swapchain_frame_buffers_.emplace_back(device_cfg_.logical_device, extent, surface_ptr_->GetImageViews()[i], *render_pass_ptr_);
+				swapchain_frame_buffers_.emplace_back(device_cfg_.logical_device, swapchain.GetExtent(), swapchain.GetImageView(i), depth_view, *render_pass_ptr_);
 			}
 
 			graphics_command_pool_ptr_->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
@@ -280,24 +279,28 @@ namespace render
 
 			std::vector<FrameHandler> frames;
 
-
-
 			while (should_refresh_swapchain)
 			{
 				should_refresh_swapchain = false;
 
-				PrepareSwapChain();
-
-				frames.clear();
-				frames.reserve(swapchain_frame_buffers_.size());
+				Swapchain swapchain(device_cfg_, *surface_ptr_);
 
 				Image image = Image::FromFile(device_cfg_, "../images/test.jpg");
 				ImageView image_view(device_cfg_, image);
 				Sampler sampler(device_cfg_);
 
+				VkFormat depth_format = VK_FORMAT_D32_SFLOAT;
+				Image depth_image(device_cfg_, depth_format, swapchain.GetExtent().width, swapchain.GetExtent().height, Image::ImageType::kDepthImage);
+				ImageView depth_image_view(device_cfg_, depth_image);
+
+				PrepareSwapChain(swapchain, depth_image_view);
+
+				frames.clear();
+				frames.reserve(swapchain_frame_buffers_.size());
+
 				for (size_t frame_ind = 0; frame_ind < swapchain_frame_buffers_.size(); frame_ind++)
 				{
-					frames.emplace_back(device_cfg_, surface_ptr_->GetSwapchain(), frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
+					frames.emplace_back(device_cfg_, swapchain, frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
 
 					VkDescriptorBufferInfo buffer_info{};
 					buffer_info.buffer = frames[frame_ind].GetUniformBuffer().GetHandle();
@@ -329,16 +332,37 @@ namespace render
 
 					vkUpdateDescriptorSets(device_cfg_.logical_device, 2, descriptor_writes.data(), 0, nullptr);
 
-					FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), swapchain_frame_buffers_[frame_ind], surface_ptr_->GetSwapchainExtent(), frame_ind);
+					FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), swapchain_frame_buffers_[frame_ind], swapchain.GetExtent(), frame_ind);
 				}
 
-
+				std::chrono::high_resolution_clock clock;
+				std::vector<std::pair<int, long long>> durations;
+				auto global_start = clock.now();
+				int frames_cnt = 0;
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
 					uint32_t image_index;
-					VkResult result = vkAcquireNextImageKHR(device_cfg_.logical_device, surface_ptr_->GetSwapchain(), UINT64_MAX,
+
+					auto start = clock.now();
+
+					VkResult result = vkAcquireNextImageKHR(device_cfg_.logical_device, swapchain.GetHandle(), UINT64_MAX,
 						image_available_semaphore_, VK_NULL_HANDLE, &image_index);
 
+					auto end = clock.now();
+
+					auto duration = end - start;
+
+					if (durations.size() < 10000)
+					{
+						durations.push_back(std::make_pair(image_index, duration.count()));
+					}
+					frames_cnt++;
+					if (std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - global_start).count() >= 1000)
+					{
+						std::cout<< frames_cnt <<std::endl;
+						frames_cnt = 0;
+						global_start = clock.now();
+					}
 
 					if (result != VK_SUCCESS)
 					{
@@ -669,9 +693,11 @@ namespace render
 			render_pass_info.renderArea.offset = { 0, 0 };
 			render_pass_info.renderArea.extent = extent;
 
-			VkClearValue clear_color = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-			render_pass_info.clearValueCount = 1;
-			render_pass_info.pClearValues = &clear_color;
+			std::array<VkClearValue, 2> clear_color;
+			clear_color[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+			clear_color[1].depthStencil = {1.0f, 0};
+			render_pass_info.clearValueCount = clear_color.size();
+			render_pass_info.pClearValues = clear_color.data();
 
 			vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -756,14 +782,20 @@ namespace render
 		VkSemaphore render_finished_semaphore_;
 
 		const std::vector<Vertex> vertices_ = {
-	{{-0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+	{{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+	{{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
+	{{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+
+	{{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+	{{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
+	{{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 		};
 
 		const std::vector<Face> faces_ = {
-			{0, 1, 2}, {2, 3, 0}
+			{0, 1, 2}, {2, 3, 0},
+			{4, 5, 6}, {6, 7, 4}
 		};
 
 };

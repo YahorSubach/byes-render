@@ -25,8 +25,16 @@ namespace render
 			kTransferToFragment,
 		};
 
+		enum class ImageType
+		{
+			kSwapchainImage,
+			kColorImage,
+			kDepthImage,
+		};
+
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle);
 
 		static Image FromFile(const DeviceConfiguration& device_cfg, const std::string& path);
 
@@ -43,9 +51,11 @@ namespace render
 
 		virtual ~Image() override;
 
-		VkImage GetImageHandle() const;
+		ImageType GetImageType() const;
 
 	private:
+
+		ImageType image_type_;
 
 		std::unique_ptr<Memory> memory_;
 		VkFormat format_;
