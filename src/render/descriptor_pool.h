@@ -14,7 +14,7 @@ namespace render
 	class DescriptorPool : public RenderObjBase<VkDescriptorPool>
 	{
 	public:
-		DescriptorPool(const VkDevice& device, uint32_t descriptors_count, VkDescriptorSetLayout descriptor_set_layout);
+		DescriptorPool(const VkDevice& device, uint32_t uniform_set_cnt, uint32_t sampler_set_cnt);
 
 		DescriptorPool(const DescriptorPool&) = delete;
 		DescriptorPool(DescriptorPool&&) = default;
@@ -22,12 +22,9 @@ namespace render
 		DescriptorPool& operator=(const DescriptorPool&) = delete;
 		DescriptorPool& operator=(DescriptorPool&&) = default;
 
-		const VkDescriptorSet& GetDescriptorSet(uint32_t index) const;
+		void AllocateSet(VkDescriptorSetLayout descriptor_set_layout, uint32_t count,std::vector<VkDescriptorSet>& allocated_sets);
 
 		virtual ~DescriptorPool() override;
-	private:
-
-		std::vector<VkDescriptorSet> descriptor_sets_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_DESCRIPTOR_POOL_H_

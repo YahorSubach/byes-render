@@ -9,17 +9,23 @@
 #include <vector>
 #include <map>
 #include <tuple>
-#include <fstream>
 #include <chrono>
 
 #include "vulkan/vulkan.h"
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
+#include <glm/glm/glm.hpp>
+#include <glm/glm/gtc/matrix_transform.hpp>
 
 #include "common.h"
 #include "surface.h"
 #include "render/vk_util.h"
 #include "render/data_types.h"
 
+#include "render/batch.h"
+#include "render/batches_manager.h"
 #include "render/buffer.h"
 #include "render/command_pool.h"
 #include "render/descriptor_pool.h"
@@ -33,25 +39,6 @@
 
 namespace render
 {
-
-
-	static std::vector<char> readFile(const std::string& filename) {
-		std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-		if (!file.is_open()) {
-			throw std::runtime_error("failed to open file!");
-		}
-
-		size_t fileSize = (size_t)file.tellg();
-		std::vector<char> buffer(fileSize);
-
-		file.seekg(0);
-		file.read(buffer.data(), fileSize);
-
-		file.close();
-
-		return buffer;
-	}
 
 	class VkDeviceWrapper
 	{
@@ -182,19 +169,13 @@ namespace render
 
 			surface_ptr_ = std::make_unique<Surface>(window, vk_instance_, device_cfg_);
 
-			std::vector<uint32_t> queue_indices = { device_cfg_.graphics_queue_index, device_cfg_.transfer_queue_index };
 
-			vertex_buffer_ptr_ = std::make_unique<Buffer>(device_cfg_, sizeof(vertices_[0]) * vertices_.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_indices);
-			index_buffer_ptr_ = std::make_unique<Buffer>(device_cfg_, sizeof(faces_[0]) * faces_.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_indices);
 
 			graphics_command_pool_ptr_ = std::make_unique<CommandPool>(device_cfg_, CommandPool::PoolType::kGraphics);
 			transfer_command_pool_ptr_ = std::make_unique<CommandPool>(device_cfg_, CommandPool::PoolType::kTransfer);
 
 			device_cfg_.graphics_cmd_pool = graphics_command_pool_ptr_.get();
 			device_cfg_.transfer_cmd_pool = transfer_command_pool_ptr_.get();
-
-			CopyToGPUBuffer(*vertex_buffer_ptr_, static_cast<const void*>(vertices_.data()), sizeof(vertices_[0]) * vertices_.size());
-			CopyToGPUBuffer(*index_buffer_ptr_, static_cast<const void*>(faces_.data()), sizeof(faces_[0]) * faces_.size());
 
 			vk_init_success_ = true;
 		}
@@ -205,42 +186,17 @@ namespace render
 			return vk_init_success_;
 		}
 
-		VkShaderModule createShaderModule(const std::vector<char>& code) 
-		{
-			VkShaderModuleCreateInfo createInfo{};
-			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			createInfo.codeSize = code.size();
-			createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-			VkShaderModule shader_module;
-			if (vkCreateShaderModule(device_cfg_.logical_device, &createInfo, nullptr, &shader_module) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create shader module!");
-			}
-
-			return shader_module;
-		}
+		
 
 		void PrepareSwapChain(const Swapchain& swapchain, const ImageView& depth_view)
 		{
 			swapchain_frame_buffers_.clear();
 			graphics_command_pool_ptr_->ClearCommandBuffers();
-			graphics_pipeline_ptr_.reset();
-			descriptor_pool_ptr_.reset();
+
 
 			render_pass_ptr_ = std::make_unique<RenderPass>(device_cfg_.logical_device, swapchain.GetFormat());
 
-			auto vert_shader_code = readFile("../shaders/vert.spv");
-			auto frag_shader_code = readFile("../shaders/frag.spv");
-
-			VkShaderModule vert_shader_module = createShaderModule(vert_shader_code);
-			VkShaderModule frag_shader_module = createShaderModule(frag_shader_code);
-
-			graphics_pipeline_ptr_ = std::make_unique<GraphicsPipeline>(device_cfg_.logical_device, vert_shader_module, frag_shader_module, swapchain.GetExtent(), *render_pass_ptr_);
-
-
 			swapchain_frame_buffers_.reserve(swapchain.GetImagesCount());
-
-			descriptor_pool_ptr_ = std::make_unique<DescriptorPool>(device_cfg_.logical_device, swapchain.GetImagesCount(), graphics_pipeline_ptr_->GetDescriptorSetLayout());
 
 			for (size_t i = 0; i < swapchain.GetImagesCount(); i++)
 			{
@@ -249,8 +205,7 @@ namespace render
 
 			graphics_command_pool_ptr_->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
 
-			vkDestroyShaderModule(device_cfg_.logical_device, frag_shader_module, nullptr);
-			vkDestroyShaderModule(device_cfg_.logical_device, vert_shader_module, nullptr);
+
 		}
 
 
@@ -271,6 +226,8 @@ namespace render
 
 		void ShowWindow()
 		{
+			static auto start_time = std::chrono::high_resolution_clock::now();
+
 			platform::ShowWindow(surface_ptr_->GetWindow());
 
 			createSemaphores();
@@ -285,16 +242,16 @@ namespace render
 
 				Swapchain swapchain(device_cfg_, *surface_ptr_);
 
-				Image image = Image::FromFile(device_cfg_, "../images/test.jpg");
-				ImageView image_view(device_cfg_, image);
-				Sampler sampler(device_cfg_);
-
 				VkFormat depth_format = VK_FORMAT_D32_SFLOAT;
 				Image depth_image(device_cfg_, depth_format, swapchain.GetExtent().width, swapchain.GetExtent().height, Image::ImageType::kDepthImage);
 				ImageView depth_image_view(device_cfg_, depth_image);
 
 				PrepareSwapChain(swapchain, depth_image_view);
 
+				DescriptorPool descriptor_pool(device_cfg_.logical_device, 4, 4);
+
+				BatchesManager batches_manager(device_cfg_, swapchain_frame_buffers_.size(), swapchain, *render_pass_ptr_, descriptor_pool);
+				
 				frames.clear();
 				frames.reserve(swapchain_frame_buffers_.size());
 
@@ -302,37 +259,7 @@ namespace render
 				{
 					frames.emplace_back(device_cfg_, swapchain, frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
 
-					VkDescriptorBufferInfo buffer_info{};
-					buffer_info.buffer = frames[frame_ind].GetUniformBuffer().GetHandle();
-					buffer_info.offset = 0;
-					buffer_info.range = sizeof(UniformBufferObject);
-
-					VkDescriptorImageInfo image_info{};
-					image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					image_info.imageView = image_view.GetHandle();
-					image_info.sampler = sampler.GetSamplerHandle();
-
-					std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
-
-					descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					descriptor_writes[0].dstSet = descriptor_pool_ptr_->GetDescriptorSet(frame_ind);
-					descriptor_writes[0].dstBinding = 0;
-					descriptor_writes[0].dstArrayElement = 0;
-					descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					descriptor_writes[0].descriptorCount = 1;
-					descriptor_writes[0].pBufferInfo = &buffer_info;
-
-					descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					descriptor_writes[1].dstSet = descriptor_pool_ptr_->GetDescriptorSet(frame_ind);
-					descriptor_writes[1].dstBinding = 1;
-					descriptor_writes[1].dstArrayElement = 0;
-					descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					descriptor_writes[1].descriptorCount = 1;
-					descriptor_writes[1].pImageInfo = &image_info;
-
-					vkUpdateDescriptorSets(device_cfg_.logical_device, 2, descriptor_writes.data(), 0, nullptr);
-
-					FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), swapchain_frame_buffers_[frame_ind], swapchain.GetExtent(), frame_ind);
+					FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), swapchain_frame_buffers_[frame_ind], swapchain.GetExtent(), frame_ind, batches_manager);
 				}
 
 				std::chrono::high_resolution_clock clock;
@@ -373,9 +300,33 @@ namespace render
 						continue;
 					}
 
+
+					auto render_batches = batches_manager.GetBatches();
+
+					int i = -1;
+					for (auto&& batch : render_batches)
+					{
+
+						auto current_time = std::chrono::high_resolution_clock::now();
+						float time = std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time).count();
+
+						UniformBufferObject ubo{};
+
+						ubo.model = glm::rotate(glm::mat4(1.0f), (time * (1.0f + i * 1.37f))* glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+						ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+						ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 10.0f);
+						ubo.proj[1][1] *= -1;
+
+						void* data;
+						vkMapMemory(device_cfg_.logical_device, batch.get().GetUniformBuffer(image_index).GetBufferMemory(), 0, sizeof(ubo), 0, &data);
+						memcpy(data, &ubo, sizeof(ubo));
+						vkUnmapMemory(device_cfg_.logical_device, batch.get().GetUniformBuffer(image_index).GetBufferMemory());
+
+						i++;
+					}
+
 					should_refresh_swapchain = !frames[image_index].Process(image_available_semaphore_);
 
-					int a = 1;
 
 				}
 
@@ -674,7 +625,8 @@ namespace render
 			return true;
 		}
 
-		bool FillGraphicsBuffer(VkCommandBuffer command_buffer, const Framebuffer& framebuffer, const VkExtent2D& extent, uint32_t image_index)
+
+		bool FillGraphicsBuffer(VkCommandBuffer command_buffer, const Framebuffer& framebuffer, const VkExtent2D& extent, uint32_t image_index, BatchesManager& batches_manager)
 		{
 			VkCommandBufferBeginInfo begin_info{};
 			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -701,15 +653,22 @@ namespace render
 
 			vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
-			vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_ptr_->GetHandle());
 
-			VkBuffer vertexBuffers[] = { vertex_buffer_ptr_->GetHandle() };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(command_buffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(command_buffer, index_buffer_ptr_->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
-			vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_ptr_->GetLayout(), 0, 1, &descriptor_pool_ptr_->GetDescriptorSet(image_index), 0, nullptr);
+			auto render_batches = batches_manager.GetBatches();
 
-			vkCmdDrawIndexed(command_buffer, faces_.size() * 3, 1, 0, 0, 0);
+			for (auto&& batch : render_batches)
+			{
+				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, batch.get().GetPipeline().GetHandle());
+
+				VkDescriptorSet desc_sets[] = { batch.get().GetDescriptorSet(image_index)};
+
+				VkBuffer vertex_buffer = batch.get().GetVertexBuffer().GetHandle();
+				VkDeviceSize offsets[] = { 0 };
+				vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, offsets);
+				vkCmdBindIndexBuffer(command_buffer, batch.get().GetIndexBuffer().GetHandle(), 0, VK_INDEX_TYPE_UINT16);
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, batch.get().GetPipeline().GetLayout(), 0, 1, desc_sets, 0, nullptr);
+				vkCmdDrawIndexed(command_buffer, batch.get().GetDrawSize(), 1, 0, 0, 0);
+			}
 
 			vkCmdEndRenderPass(command_buffer);
 
@@ -720,31 +679,6 @@ namespace render
 			return false;
 		}
 
-		bool CopyToGPUBuffer(const Buffer& dst_buffer, const void* data, uint64_t size)
-		{
-			if (transfer_command_pool_ptr_->CreateCommandBuffers(1))
-			{
-				std::vector<uint32_t> queue_indices = { device_cfg_.graphics_queue_index , device_cfg_.transfer_queue_index };
-
-				Buffer staging_buffer(device_cfg_, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_indices);
-
-				staging_buffer.LoadData(data, size);
-
-				transfer_command_pool_ptr_->ExecuteOneTimeCommand([size, &staging_buffer, &dst_buffer](VkCommandBuffer command_buffer) {
-
-					VkBufferCopy copy_region{};
-					copy_region.srcOffset = 0; // Optional
-					copy_region.dstOffset = 0; // Optional
-					copy_region.size = size;
-					vkCmdCopyBuffer(command_buffer, staging_buffer.GetHandle(), dst_buffer.GetHandle(), 1, &copy_region);
-
-					});
-
-				return true;
-			}
-
-			return false;
-		}
 
 
 		bool vk_init_success_;
@@ -770,34 +704,14 @@ namespace render
 		std::vector<Framebuffer> swapchain_frame_buffers_;
 
 		std::unique_ptr<Surface> surface_ptr_;
-		std::unique_ptr<Buffer> vertex_buffer_ptr_;
-		std::unique_ptr<Buffer> index_buffer_ptr_;
+
 		std::unique_ptr<RenderPass> render_pass_ptr_;
-		std::unique_ptr<GraphicsPipeline> graphics_pipeline_ptr_;
 		std::unique_ptr<DescriptorPool> descriptor_pool_ptr_;
 		std::unique_ptr<CommandPool> graphics_command_pool_ptr_;
 		std::unique_ptr<CommandPool> transfer_command_pool_ptr_;
 
 		VkSemaphore image_available_semaphore_;
 		VkSemaphore render_finished_semaphore_;
-
-		const std::vector<Vertex> vertices_ = {
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-		};
-
-		const std::vector<Face> faces_ = {
-			{0, 1, 2}, {2, 3, 0},
-			{4, 5, 6}, {6, 7, 4}
-		};
-
 };
 
 	RenderEngine::RenderEngine(InitParam param)

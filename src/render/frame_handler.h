@@ -22,7 +22,6 @@ namespace render
 		FrameHandler& operator=(FrameHandler&&) = default;
 		
 		bool Process(VkSemaphore& image_acquire_semaphore);
-		const Buffer& GetUniformBuffer();
 		virtual ~FrameHandler() override;
 	private:
 		VkSwapchainKHR swapchain_;
@@ -31,8 +30,6 @@ namespace render
 		VkPipelineStageFlags wait_stages_;
 
 		uint32_t image_index_;
-
-		Buffer uniform_buffer_;
 
 		VkSemaphore render_finished_semaphore_;
 		VkFence cmd_buffer_fence_;

@@ -197,15 +197,15 @@ render::GraphicsPipeline::~GraphicsPipeline()
 	if (handle_ != VK_NULL_HANDLE)
 	{
 		vkDestroyPipeline(device_, handle_, nullptr);
-	}
 
-	if (layout_ != VK_NULL_HANDLE)
-	{
-		vkDestroyPipelineLayout(device_, layout_, nullptr);
-	}
+		if (layout_ != VK_NULL_HANDLE)
+		{
+			vkDestroyPipelineLayout(device_, layout_, nullptr);
+		}
 
-	if (layout_ != VK_NULL_HANDLE)
-	{
-		vkDestroyDescriptorSetLayout(device_, descriptor_set_layot_, nullptr);
+		if (layout_ != VK_NULL_HANDLE)
+		{
+			vkDestroyDescriptorSetLayout(device_, descriptor_set_layot_, nullptr);
+		}
 	}
 }

@@ -1,65 +1,48 @@
-#ifndef RENDER_ENGINE_RENDER_IMAGE_H_
-#define RENDER_ENGINE_RENDER_IMAGE_H_
-
-#include <vector>
-#include <array>
-#include <memory>
+#ifndef RENDER_ENGINE_RENDER_BATCH_H_
+#define RENDER_ENGINE_RENDER_BATCH_H_
 
 #include "vulkan/vulkan.h"
 
 #include "common.h"
 #include "render/object_base.h"
-#include "render/command_pool.h"
 #include "render/buffer.h"
-#include "render/memory.h"
+#include "render/graphics_pipeline.h"
+
 
 namespace render
 {
-	class Image : public RenderObjBase<VkImage>
+	class Batch
 	{
 	public:
-		
-		enum class TransitionType
-		{
-			kPrepareToTransfer,
-			kTransferToFragment,
-		};
 
-		enum class ImageType
-		{
-			kSwapchainImage,
-			kColorImage,
-			kDepthImage,
-		};
+		Batch(GraphicsPipeline&& pipeline, Buffer&& vertex_buffer, Buffer&& index_buffer, std::vector<Buffer>&& uniform_buffer, std::vector<VkDescriptorSet> descriptor_sets, uint64_t draw_size);
 
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle);
+		Batch(const Batch&) = delete;
+		Batch(Batch&&) = default;
 
-		static Image FromFile(const DeviceConfiguration& device_cfg, const std::string& path);
+		Batch& operator=(const Batch&) = delete;
+		Batch& operator=(Batch&&) = default;
 
-		Image(const Image&) = delete;
-		Image(Image&&) = default;
+		const GraphicsPipeline& GetPipeline() const;
 
-		Image& operator=(const Image&) = delete;
-		Image& operator=(Image&&) = default;
+		const Buffer& GetVertexBuffer() const;
+		const Buffer& GetIndexBuffer() const;
 
-		VkFormat GetFromat() const;
+		uint64_t GetDrawSize() const;
 
-		void TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type);
-		void CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, uint32_t width, uint32_t height);
-
-		virtual ~Image() override;
-
-		ImageType GetImageType() const;
-
+		Buffer& GetUniformBuffer(uint32_t frame_index) const;
+		VkDescriptorSet GetDescriptorSet(uint32_t frame_index) const;
 	private:
 
-		ImageType image_type_;
+		GraphicsPipeline pipeline_;
+		Buffer vertex_buffer_;
+		Buffer index_buffer_;
 
-		std::unique_ptr<Memory> memory_;
-		VkFormat format_;
+		std::vector<VkDescriptorSet> descriptor_sets_;
+		mutable std::vector<Buffer> uniform_buffers_;
 
+		uint64_t draw_size_;
 	};
 }
-#endif  // RENDER_ENGINE_RENDER_IMAGE_H_
+
+#endif  // RENDER_ENGINE_RENDER_BATCH_H_

@@ -14,7 +14,7 @@ namespace render
 		bool valid_ = true;
 	};
 
-	template<typename HandleType>
+	template<typename HandleType = void*>
 	class RenderObjBase: public ValidationBase
 	{
 	public:

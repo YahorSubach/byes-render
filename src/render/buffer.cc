@@ -29,6 +29,8 @@ VkDeviceMemory render::Buffer::GetBufferMemory()
 
 void render::Buffer::LoadData(const void* data, size_t size)
 {
+	//TODO add checking buffer type
+
     void* mapped_data;
     vkMapMemory(device_, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
     memcpy(mapped_data, data, static_cast<size_t>(size));
