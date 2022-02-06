@@ -6,8 +6,9 @@
 #include "vk_util.h"
 #include <render/data_types.h>
 
-render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer, VkSemaphore render_finished_semaphore):
-	RenderObjBase(device_cfg.logical_device), swapchain_(swapchain.GetHandle()), image_index_(image_index), graphics_queue_(device_cfg.graphics_queue), command_buffer_(command_buffer), render_finished_semaphore_(render_finished_semaphore),
+render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer/*, VkSemaphore render_finished_semaphore*/):
+	RenderObjBase(device_cfg.logical_device), swapchain_(swapchain.GetHandle()), image_index_(image_index), graphics_queue_(device_cfg.graphics_queue), command_buffer_(command_buffer),
+	render_finished_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
 {
 
@@ -44,6 +45,13 @@ bool render::FrameHandler::Process(VkSemaphore& image_acquire_semaphore)
 	vkWaitForFences(device_, 1, &cmd_buffer_fence_, VK_TRUE, UINT64_MAX);
 	vkResetFences(device_, 1, &cmd_buffer_fence_);
 
+	if (acquire_semaphore_prev != VK_NULL_HANDLE)
+	{
+		vkDestroySemaphore(device_, acquire_semaphore_prev, nullptr);
+	}
+
+	acquire_semaphore_prev = image_acquire_semaphore;
+
 	if (vkQueueSubmit(graphics_queue_, 1, &submit_info_, cmd_buffer_fence_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
@@ -55,4 +63,5 @@ bool render::FrameHandler::Process(VkSemaphore& image_acquire_semaphore)
 render::FrameHandler::~FrameHandler()
 {
 	vkDestroyFence(device_, cmd_buffer_fence_, nullptr);
+	vkDestroySemaphore(device_, render_finished_semaphore_, nullptr);
 }

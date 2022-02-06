@@ -213,11 +213,11 @@ namespace render
 			VkSemaphoreCreateInfo semaphoreInfo{};
 			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-			if (vkCreateSemaphore(device_cfg_.logical_device, &semaphoreInfo, nullptr, &image_available_semaphore_) != VK_SUCCESS ||
-				vkCreateSemaphore(device_cfg_.logical_device, &semaphoreInfo, nullptr, &render_finished_semaphore_) != VK_SUCCESS) {
+			//if (vkCreateSemaphore(device_cfg_.logical_device, &semaphoreInfo, nullptr, &image_available_semaphore_) != VK_SUCCESS)
+			//	{
 
-				throw std::runtime_error("failed to create semaphores!");
-			}
+			//	throw std::runtime_error("failed to create semaphores!");
+			//}
 		}
 
 		void cleanup() {
@@ -236,6 +236,9 @@ namespace render
 
 			std::vector<FrameHandler> frames;
 
+			float yaw = glm::pi<float>() * 5 / 4;
+			float pitch = -glm::pi<float>() /4;
+
 			while (should_refresh_swapchain)
 			{
 				should_refresh_swapchain = false;
@@ -248,7 +251,7 @@ namespace render
 
 				PrepareSwapChain(swapchain, depth_image_view);
 
-				DescriptorPool descriptor_pool(device_cfg_.logical_device, 4, 4);
+				DescriptorPool descriptor_pool(device_cfg_.logical_device, 2 * swapchain_frame_buffers_.size(), 2 * swapchain_frame_buffers_.size());
 
 				BatchesManager batches_manager(device_cfg_, swapchain_frame_buffers_.size(), swapchain, *render_pass_ptr_, descriptor_pool);
 				
@@ -257,7 +260,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < swapchain_frame_buffers_.size(); frame_ind++)
 				{
-					frames.emplace_back(device_cfg_, swapchain, frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), render_finished_semaphore_);
+					frames.emplace_back(device_cfg_, swapchain, frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind));
 
 					FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), swapchain_frame_buffers_[frame_ind], swapchain.GetExtent(), frame_ind, batches_manager);
 				}
@@ -265,12 +268,15 @@ namespace render
 				std::chrono::high_resolution_clock clock;
 				std::vector<std::pair<int, long long>> durations;
 				auto global_start = clock.now();
+				float time = 0;
 				int frames_cnt = 0;
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
 					uint32_t image_index;
 
 					auto start = clock.now();
+
+					VkSemaphore image_available_semaphore_ = vk_util::CreateSemaphore(device_cfg_.logical_device);
 
 					VkResult result = vkAcquireNextImageKHR(device_cfg_.logical_device, swapchain.GetHandle(), UINT64_MAX,
 						image_available_semaphore_, VK_NULL_HANDLE, &image_index);
@@ -303,17 +309,29 @@ namespace render
 
 					auto render_batches = batches_manager.GetBatches();
 
+					int mouse_x_delta;
+					int mouse_y_delta;
+
+					platform::GetMouseDelta(mouse_x_delta, mouse_y_delta);
+
+					yaw += (1.0f * mouse_x_delta / 200);
+					pitch += (-1.0f * mouse_y_delta / 200);
+					if (pitch > 1.505f)
+						pitch = 1.505f;
+					if (pitch < -1.505f)
+						pitch = -1.505f;
+
+					glm::vec3 look = glm::normalize(glm::vec3(glm::sin(yaw), glm::cos(yaw), glm::sin(pitch)));
+
 					int i = -1;
 					for (auto&& batch : render_batches)
 					{
-
-						auto current_time = std::chrono::high_resolution_clock::now();
-						float time = std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time).count();
-
 						UniformBufferObject ubo{};
 
+
+
 						ubo.model = glm::rotate(glm::mat4(1.0f), (time * (1.0f + i * 1.37f))* glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-						ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+						ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(2.0f, 2.0f, 2.0f) + look , glm::vec3(0.0f, 0.0f, 1.0f));
 						ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 10.0f);
 						ubo.proj[1][1] *= -1;
 
@@ -327,14 +345,15 @@ namespace render
 
 					should_refresh_swapchain = !frames[image_index].Process(image_available_semaphore_);
 
+					auto current_time = std::chrono::high_resolution_clock::now();
+					time = std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time).count();
 
 				}
 
 				vkDeviceWaitIdle(device_cfg_.logical_device);
 			}
 
-			vkDestroySemaphore(device_cfg_.logical_device, image_available_semaphore_, nullptr);
-			vkDestroySemaphore(device_cfg_.logical_device, render_finished_semaphore_, nullptr);
+			//vkDestroySemaphore(device_cfg_.logical_device, image_available_semaphore_, nullptr);
 
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
@@ -710,8 +729,8 @@ namespace render
 		std::unique_ptr<CommandPool> graphics_command_pool_ptr_;
 		std::unique_ptr<CommandPool> transfer_command_pool_ptr_;
 
-		VkSemaphore image_available_semaphore_;
-		VkSemaphore render_finished_semaphore_;
+		//VkSemaphore image_available_semaphore_;
+		//VkSemaphore render_finished_semaphore_;
 };
 
 	RenderEngine::RenderEngine(InitParam param)

@@ -1,12 +1,17 @@
 #include "platform.h"
 
+#include "windowsx.h"
+
 #include<atomic>
+#include<iostream>
 
 namespace render::platform
 {
 #ifdef WIN32
 	using Window = HWND;
 
+	int mouse_x = 0;
+	int mouse_y = 0;
 
 	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -15,6 +20,91 @@ namespace render::platform
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			return 0;
+
+		case WM_SETFOCUS:
+		{
+			std::cout << "SETFOCUS" << std::endl;
+
+			ShowCursor(false);
+
+			RECT rect;
+			GetWindowRect(hwnd, &rect);
+			ClipCursor(&rect);
+
+
+			break;
+		}
+
+		case WM_KILLFOCUS:
+		{
+			std::cout << "KILLFOCUS" << std::endl;
+
+			break;
+		}
+
+		case WM_KEYDOWN:
+		{
+			switch (wParam)
+			{
+			case VK_ESCAPE:
+				ShowCursor(true);
+				ClipCursor(nullptr);
+				// Process the LEFT ARROW key. 
+
+				break;
+			}
+
+			std::cout << "KEY_DOWN" << std::endl;
+
+			break;
+		}
+
+		case WM_MOUSEMOVE:
+		{
+			std::cout << "MOUSE_MOVE" << std::endl;
+
+			RECT cursor_rect;
+
+			GetClipCursor(&cursor_rect);
+
+			RECT rect;
+			GetWindowRect(hwnd, &rect);
+
+			int mr = memcmp(&cursor_rect, &rect, sizeof(RECT));
+
+			if (mr != 0)
+				break;
+
+			int rect_x_center = rect.left + (rect.right - rect.left) / 2;
+			int rect_y_center = rect.top + (rect.bottom - rect.top) / 2;
+
+			POINT point;
+			GetCursorPos(&point);
+
+			int x = point.x;
+			int y = point.y;
+			
+			std::cout <<"xy "<< x << " " << y << std::endl;
+			std::cout << "center " << rect_x_center << " " << rect_y_center << std::endl;
+			std::cout << "global xy " << rect.left + x << " " << rect.top + y << std::endl;
+
+			if (x == rect_x_center && y == rect_y_center)
+				break;
+
+			mouse_x += (x - rect_x_center);
+			mouse_y += (y - rect_y_center);
+
+			SetCursorPos(rect_x_center, rect_y_center);
+
+			break;
+		}
+ 
+		case WM_KEYUP:
+		{
+			std::cout << "KEY_UP" << std::endl;
+
+			break;
+		}
 		//case WM_PAINT:
 		//{
 		//	//PAINTSTRUCT ps;
@@ -156,6 +246,18 @@ namespace render::platform
 		}
 
 		return extent;
+	}
+
+	int last_mouse_x = 0;
+	int last_mouse_y = 0;
+
+	void GetMouseDelta(int& x_delta, int& y_delta)
+	{
+		x_delta = mouse_x - last_mouse_x;
+		y_delta = mouse_y - last_mouse_y;
+
+		last_mouse_x = mouse_x;
+		last_mouse_y = mouse_y;
 	}
 
 #endif

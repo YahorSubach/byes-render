@@ -13,7 +13,7 @@ namespace render
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
-		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer,VkSemaphore render_finished_semaphore);
+		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, uint32_t image_index, const VkCommandBuffer& command_buffer/*VkSemaphore render_finished_semaphore*/);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;
@@ -38,6 +38,9 @@ namespace render
 		VkPresentInfoKHR present_info_;
 
 		VkQueue graphics_queue_;
+
+		VkSemaphore acquire_semaphore = VK_NULL_HANDLE;
+		VkSemaphore acquire_semaphore_prev = VK_NULL_HANDLE;
 	};
 }
 

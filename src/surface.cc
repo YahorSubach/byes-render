@@ -39,7 +39,7 @@ VkSurfaceFormatKHR render::Surface::GetSurfaceFormat(const VkPhysicalDevice& phy
 VkPresentModeKHR render::Surface::GetSurfacePresentMode(const VkPhysicalDevice& physical_device) const
 {
 	auto presentat_modes = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfacePresentModesKHR, physical_device, handle_);
-	return presentat_modes[3]; //TODO fuck
+	return presentat_modes[2]; //TODO fuck
 }
 
 VkExtent2D render::Surface::GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const

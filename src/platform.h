@@ -31,6 +31,8 @@ namespace render::platform
 	bool CreateSurface(const VkInstance& instance, const Window& window, VkSurfaceKHR& surface);
 
 	VkExtent2D GetWindowExtent(const Window& window);
+
+	void GetMouseDelta(int& x_delta, int& y_delta);
 }
 
 

@@ -31,7 +31,7 @@ render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surfac
 			create_info.pNext = nullptr;
 			create_info.flags = 0;
 			create_info.surface = surface.GetHandle();
-			create_info.minImageCount = capabilities.minImageCount;
+			create_info.minImageCount = 3/*capabilities.minImageCount*/;
 			create_info.imageFormat = surface_format.format;
 			create_info.imageColorSpace = surface_format.colorSpace;
 			create_info.imageExtent = extent_; // shoud be fixed for retina
