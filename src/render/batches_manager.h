@@ -49,6 +49,7 @@ namespace render
 		uint32_t uniform_set_cnt_;
 		uint32_t sampler_set_cnt_;
 
+		std::vector<GPULocalBuffer> buffers_;
 		std::vector<Image> images_;
 		std::vector<ImageView> image_views_;
 		std::vector<Sampler> samplers_;

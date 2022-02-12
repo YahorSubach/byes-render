@@ -1,7 +1,7 @@
 #include "batch.h"
 
-render::Batch::Batch(GraphicsPipeline&& pipeline, Buffer&& vertex_buffer, Buffer&& index_buffer_, std::vector<Buffer>&& uniform_buffer, std::vector<VkDescriptorSet> descriptor_sets, uint64_t draw_size):
-	pipeline_(std::move(pipeline)), vertex_buffer_(std::move(vertex_buffer)), index_buffer_(std::move(index_buffer_)), uniform_buffers_(std::move(uniform_buffer)), descriptor_sets_(descriptor_sets), draw_size_(draw_size)
+render::Batch::Batch(GraphicsPipeline&& pipeline, std::vector<BufferSlice> vertex_buffers, const BufferSlice& index_buffer_, std::vector<Buffer>&& uniform_buffer, std::vector<VkDescriptorSet> descriptor_sets, uint64_t draw_size):
+	pipeline_(std::move(pipeline)), vertex_buffers_(vertex_buffers), index_buffer_(index_buffer_), uniform_buffers_(std::move(uniform_buffer)), descriptor_sets_(descriptor_sets), draw_size_(draw_size)
 {
 }
 
@@ -10,12 +10,12 @@ const render::GraphicsPipeline& render::Batch::GetPipeline() const
 	return pipeline_;
 }
 
-const render::Buffer& render::Batch::GetVertexBuffer() const
+const std::vector<render::BufferSlice>& render::Batch::GetVertexBuffers() const
 {
-	return vertex_buffer_;
+	return vertex_buffers_;
 }
 
-const render::Buffer& render::Batch::GetIndexBuffer() const
+const render::BufferSlice& render::Batch::GetIndexBuffer() const
 {
 	return index_buffer_;
 }

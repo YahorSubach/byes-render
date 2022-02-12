@@ -22,6 +22,11 @@ render::Buffer::Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size,
     vkBindBufferMemory(device_cfg.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 }
 
+uint64_t render::Buffer::GetSize() const
+{
+    return size_;
+}
+
 VkDeviceMemory render::Buffer::GetBufferMemory()
 {
     return memory_->GetMemoryHandle();

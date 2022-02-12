@@ -9,8 +9,8 @@
 #include "render/data_types.h"
 
 
-render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const render::RenderPass& render_pass):
-	RenderObjBase(device), layout_(VK_NULL_HANDLE)
+render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const render::RenderPass& render_pass, const VertexBindings& bindings):
+	RenderObjBase(device), layout_(VK_NULL_HANDLE), bindings_(bindings)
 {
 	VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
 	vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -26,13 +26,13 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 
 	VkPipelineShaderStageCreateInfo shader_stages[] = { vert_shader_stage_info, frag_shader_stage_info };
 
-	auto binding_description = Vertex::GetBindingDescription();
-	auto attribute_descriptions = Vertex::GetAttributeDescriptions();
+	auto binding_description = BuildVertexInputBindingDescriptions();
+	auto attribute_descriptions = BuildVertexAttributeDescription();
 
 	VkPipelineVertexInputStateCreateInfo vertex_input_info{};
 	vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertex_input_info.vertexBindingDescriptionCount = 1;
-	vertex_input_info.pVertexBindingDescriptions = &binding_description; // Optional
+	vertex_input_info.vertexBindingDescriptionCount = binding_description.size();
+	vertex_input_info.pVertexBindingDescriptions = binding_description.data(); // Optional
 	vertex_input_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
 	vertex_input_info.pVertexAttributeDescriptions = attribute_descriptions.data(); // Optional
 
@@ -132,12 +132,12 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 	sampler_layout_binding.pImmutableSamplers = nullptr;
 	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	std::array<VkDescriptorSetLayoutBinding, 2> bindings = { ubo_layout_binding, sampler_layout_binding };
+	std::array<VkDescriptorSetLayoutBinding, 2> desc_bindings = { ubo_layout_binding, sampler_layout_binding };
 
 	VkDescriptorSetLayoutCreateInfo ubo_layout_create_info{};
 	ubo_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	ubo_layout_create_info.bindingCount = bindings.size();
-	ubo_layout_create_info.pBindings = bindings.data();
+	ubo_layout_create_info.bindingCount = desc_bindings.size();
+	ubo_layout_create_info.pBindings = desc_bindings.data();
 
 	if (vkCreateDescriptorSetLayout(device, &ubo_layout_create_info, nullptr, &descriptor_set_layot_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor set layout!");
@@ -208,4 +208,41 @@ render::GraphicsPipeline::~GraphicsPipeline()
 			vkDestroyDescriptorSetLayout(device_, descriptor_set_layot_, nullptr);
 		}
 	}
+}
+
+std::vector<VkVertexInputBindingDescription> render::GraphicsPipeline::BuildVertexInputBindingDescriptions()
+{
+	std::vector<VkVertexInputBindingDescription> result(bindings_.size());
+
+	for (uint32_t i = 0; i < bindings_.size(); i++)
+	{
+		result[i].binding = i;
+		result[i].stride = bindings_[i].stride_;
+		result[i].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	}
+
+	return result;
+}
+
+std::vector<VkVertexInputAttributeDescription> render::GraphicsPipeline::BuildVertexAttributeDescription()
+{
+	std::vector<VkVertexInputAttributeDescription> result;
+
+	uint32_t location_index = 0;
+
+	for (uint32_t binding_index = 0; binding_index < bindings_.size(); binding_index++)
+	{
+		for (uint32_t attr_index = 0; attr_index < bindings_[binding_index].attributes_.size(); attr_index++)
+		{
+			result.push_back({});
+			result.back().binding = binding_index;
+			result.back().format = static_cast<VkFormat>(bindings_[binding_index].attributes_[attr_index].format_);
+			result.back().location = location_index;
+			result.back().offset = bindings_[binding_index].attributes_[attr_index].offset_;
+
+			location_index++;
+		}
+	}
+
+	return result;
 }

@@ -13,6 +13,11 @@ namespace render::platform
 	int mouse_x = 0;
 	int mouse_y = 0;
 
+	std::array<bool, 'z' - 'a' + 1> buttons;
+
+	constexpr int kVkCharStart = 0x41;
+
+
 	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (uMsg)
@@ -23,7 +28,6 @@ namespace render::platform
 
 		case WM_SETFOCUS:
 		{
-			std::cout << "SETFOCUS" << std::endl;
 
 			ShowCursor(false);
 
@@ -37,13 +41,22 @@ namespace render::platform
 
 		case WM_KILLFOCUS:
 		{
-			std::cout << "KILLFOCUS" << std::endl;
+			for (auto&& button : buttons)
+			{
+				button = false;
+			}
 
 			break;
 		}
 
 		case WM_KEYDOWN:
 		{
+			if (wParam >= kVkCharStart && wParam < (kVkCharStart + 'z' - 'a' + 1))
+			{
+				buttons[wParam - kVkCharStart] = true;
+				break;
+			}
+
 			switch (wParam)
 			{
 			case VK_ESCAPE:
@@ -54,15 +67,22 @@ namespace render::platform
 				break;
 			}
 
-			std::cout << "KEY_DOWN" << std::endl;
+			break;
+		}
+		
+		case WM_KEYUP:
+		{
+			if (wParam >= kVkCharStart && wParam < (kVkCharStart + 'z' - 'a' + 1))
+			{
+				buttons[wParam - kVkCharStart] = false;
+				break;
+			}
 
 			break;
 		}
 
 		case WM_MOUSEMOVE:
 		{
-			std::cout << "MOUSE_MOVE" << std::endl;
-
 			RECT cursor_rect;
 
 			GetClipCursor(&cursor_rect);
@@ -84,9 +104,9 @@ namespace render::platform
 			int x = point.x;
 			int y = point.y;
 			
-			std::cout <<"xy "<< x << " " << y << std::endl;
-			std::cout << "center " << rect_x_center << " " << rect_y_center << std::endl;
-			std::cout << "global xy " << rect.left + x << " " << rect.top + y << std::endl;
+			//std::cout <<"xy "<< x << " " << y << std::endl;
+			//std::cout << "center " << rect_x_center << " " << rect_y_center << std::endl;
+			//std::cout << "global xy " << rect.left + x << " " << rect.top + y << std::endl;
 
 			if (x == rect_x_center && y == rect_y_center)
 				break;
@@ -99,12 +119,7 @@ namespace render::platform
 			break;
 		}
  
-		case WM_KEYUP:
-		{
-			std::cout << "KEY_UP" << std::endl;
 
-			break;
-		}
 		//case WM_PAINT:
 		//{
 		//	//PAINTSTRUCT ps;
@@ -259,6 +274,16 @@ namespace render::platform
 		last_mouse_x = mouse_x;
 		last_mouse_y = mouse_y;
 	}
+
+
+
+	std::array<bool, 'z' - 'a' + 1>& GetButtonState()
+	{
+		return buttons;
+	}
+
+
+
 
 #endif
 }

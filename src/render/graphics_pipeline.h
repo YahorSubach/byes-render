@@ -1,6 +1,7 @@
 #ifndef RENDER_ENGINE_RENDER_GRAPHICS_PIPELINE_H_
 #define RENDER_ENGINE_RENDER_GRAPHICS_PIPELINE_H_
 
+#include <vector>
 
 #include "vulkan/vulkan.h"
 
@@ -9,10 +10,24 @@
 
 namespace render
 {
+	struct VertexBindingAttributeDesc
+	{
+		uint32_t format_;
+		uint32_t offset_;
+	};
+
+	struct VertexBindingDesc
+	{
+		uint64_t stride_;
+		std::vector<VertexBindingAttributeDesc> attributes_;
+	};
+
+	using VertexBindings = std::vector<VertexBindingDesc>;
+
 	class GraphicsPipeline : public RenderObjBase<VkPipeline>
 	{
 	public:
-		GraphicsPipeline(const VkDevice& device, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const RenderPass& render_pass);
+		GraphicsPipeline(const VkDevice& device, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const RenderPass& render_pass, const VertexBindings& bindings);
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;
 		GraphicsPipeline(GraphicsPipeline&&) = default;
@@ -25,6 +40,12 @@ namespace render
 
 		virtual ~GraphicsPipeline() override;
 	private:
+
+		std::vector<VkVertexInputBindingDescription> BuildVertexInputBindingDescriptions();
+		std::vector<VkVertexInputAttributeDescription> BuildVertexAttributeDescription();
+
+		VertexBindings bindings_;
+
 		VkDescriptorSetLayout descriptor_set_layot_;
 		VkPipelineLayout layout_;
 	};

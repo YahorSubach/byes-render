@@ -226,6 +226,7 @@ namespace render
 
 		void ShowWindow()
 		{
+
 			static auto start_time = std::chrono::high_resolution_clock::now();
 
 			platform::ShowWindow(surface_ptr_->GetWindow());
@@ -239,7 +240,9 @@ namespace render
 			float yaw = glm::pi<float>() * 5 / 4;
 			float pitch = -glm::pi<float>() /4;
 
-			while (should_refresh_swapchain)
+			glm::vec3 position(2, 2, 2);
+
+			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
 				should_refresh_swapchain = false;
 
@@ -251,7 +254,7 @@ namespace render
 
 				PrepareSwapChain(swapchain, depth_image_view);
 
-				DescriptorPool descriptor_pool(device_cfg_.logical_device, 2 * swapchain_frame_buffers_.size(), 2 * swapchain_frame_buffers_.size());
+				DescriptorPool descriptor_pool(device_cfg_.logical_device, 3 * swapchain_frame_buffers_.size(), 3 * swapchain_frame_buffers_.size());
 
 				BatchesManager batches_manager(device_cfg_, swapchain_frame_buffers_.size(), swapchain, *render_pass_ptr_, descriptor_pool);
 				
@@ -292,7 +295,7 @@ namespace render
 					frames_cnt++;
 					if (std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - global_start).count() >= 1000)
 					{
-						std::cout<< frames_cnt <<std::endl;
+						//std::cout<< frames_cnt <<std::endl;
 						frames_cnt = 0;
 						global_start = clock.now();
 					}
@@ -313,15 +316,37 @@ namespace render
 					int mouse_y_delta;
 
 					platform::GetMouseDelta(mouse_x_delta, mouse_y_delta);
+					auto&& buttons = platform::GetButtonState();
 
-					yaw += (1.0f * mouse_x_delta / 200);
-					pitch += (-1.0f * mouse_y_delta / 200);
+					yaw += (1.0f * mouse_x_delta / 500);
+					pitch += (-1.0f * mouse_y_delta / 500);
 					if (pitch > 1.505f)
 						pitch = 1.505f;
 					if (pitch < -1.505f)
 						pitch = -1.505f;
 
-					glm::vec3 look = glm::normalize(glm::vec3(glm::sin(yaw), glm::cos(yaw), glm::sin(pitch)));
+					glm::vec3 look = glm::normalize(glm::vec3(glm::sin(yaw) * glm::cos(pitch), glm::cos(yaw) * glm::cos(pitch), glm::sin(pitch)));
+
+					if (buttons['w' - 'a'])
+					{
+						position += (0.001f * glm::normalize(glm::vec3(glm::sin(yaw), glm::cos(yaw), 0)));
+					}
+
+					if (buttons['s' - 'a'])
+					{
+						position -= (0.001f * glm::normalize(glm::vec3(glm::sin(yaw), glm::cos(yaw), 0)));
+					}
+
+					if (buttons['d' - 'a'])
+					{
+						position += (0.001f * glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>()/2), glm::cos(yaw + glm::pi<float>() / 2), 0)));
+					}
+
+					if (buttons['a' - 'a'])
+					{
+						position -= (0.001f * glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>() / 2), glm::cos(yaw + glm::pi<float>() / 2), 0)));
+					}
+
 
 					int i = -1;
 					for (auto&& batch : render_batches)
@@ -331,7 +356,7 @@ namespace render
 
 
 						ubo.model = glm::rotate(glm::mat4(1.0f), (time * (1.0f + i * 1.37f))* glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-						ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(2.0f, 2.0f, 2.0f) + look , glm::vec3(0.0f, 0.0f, 1.0f));
+						ubo.view = glm::lookAt(position, position + look , glm::vec3(0.0f, 0.0f, 1.0f));
 						ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 10.0f);
 						ubo.proj[1][1] *= -1;
 
@@ -681,10 +706,17 @@ namespace render
 
 				VkDescriptorSet desc_sets[] = { batch.get().GetDescriptorSet(image_index)};
 
-				VkBuffer vertex_buffer = batch.get().GetVertexBuffer().GetHandle();
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, offsets);
-				vkCmdBindIndexBuffer(command_buffer, batch.get().GetIndexBuffer().GetHandle(), 0, VK_INDEX_TYPE_UINT16);
+				std::vector<VkBuffer> vert_bufs;
+				std::vector<VkDeviceSize> offsetes;
+
+				for (auto&& buf : batch.get().GetVertexBuffers())
+				{
+					vert_bufs.push_back(buf.buffer_.GetHandle());
+					offsetes.push_back(buf.offset_);
+				}
+
+				vkCmdBindVertexBuffers(command_buffer, 0, vert_bufs.size(), vert_bufs.data(), offsetes.data());
+				vkCmdBindIndexBuffer(command_buffer, batch.get().GetIndexBuffer().buffer_.GetHandle(), batch.get().GetIndexBuffer().offset_, VK_INDEX_TYPE_UINT16);
 				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, batch.get().GetPipeline().GetLayout(), 0, 1, desc_sets, 0, nullptr);
 				vkCmdDrawIndexed(command_buffer, batch.get().GetDrawSize(), 1, 0, 0, 0);
 			}
