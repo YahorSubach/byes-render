@@ -29,12 +29,7 @@ namespace render
 		}
 
 		RenderObjBase& operator=(const RenderObjBase&) = delete;
-		RenderObjBase& operator=(RenderObjBase&& rhs)
-		{
-			device_cfg_ = rhs.device_cfg_;
-			handle_ = rhs.handle_;
-			rhs.handle_ = VK_NULL_HANDLE;
-		}
+		RenderObjBase& operator=(RenderObjBase&& rhs) = delete;
 
 		HandleType GetHandle() const { return handle_; }
 

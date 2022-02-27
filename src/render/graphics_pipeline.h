@@ -22,6 +22,16 @@ namespace render
 		std::vector<VertexBindingAttributeDesc> attributes_;
 	};
 
+	struct VertexPushConstants {
+		glm::mat4 project_matrix;
+		glm::mat4 view_model_matrix;
+	};
+
+	struct FragmentPushConstants {
+		float metallic;
+		float roughness;
+	};
+
 	using VertexBindings = std::vector<VertexBindingDesc>;
 
 	class GraphicsPipeline : public RenderObjBase<VkPipeline>

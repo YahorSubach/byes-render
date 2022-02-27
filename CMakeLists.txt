@@ -28,17 +28,25 @@ if(Vulkan_FOUND)
 
 	if (WIN32)
 		target_compile_definitions(render_engine PRIVATE VK_USE_PLATFORM_WIN32_KHR)
+
+		add_custom_target(shaders
+			COMMAND cmd /c "cd ../shaders && compile.bat"
+			COMMENT "testing shaders..."
+		)
+
+		add_subdirectory(shaders)
+
 	endif()	
-      
-	  
+
+
 	add_executable(render_engine_example "")
 	target_link_libraries(render_engine_example PRIVATE render_engine)
 	target_link_libraries(render_engine_example PRIVATE glm)
-	
+
 	add_subdirectory(examples)
 
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT render_engine_example)	
-	  
+	  	  
 	install(TARGETS render_engine_example DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/install)
 
 else()

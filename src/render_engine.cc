@@ -227,7 +227,7 @@ namespace render
 		void ShowWindow()
 		{
 
-			DescriptorPool descriptor_pool(device_cfg_, 10, 10);
+			DescriptorPool descriptor_pool(device_cfg_, 100, 100);
 
 			device_cfg_.descriptor_pool = &descriptor_pool;
 
@@ -355,11 +355,9 @@ namespace render
 					{
 						UniformBufferObject ubo{};
 
-
-
 						ubo.model = batch.get().GetModelMatrix();
 						ubo.view = glm::lookAt(position, position + look , glm::vec3(0.0f, 0.0f, 1.0f));
-						ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 10.0f);
+						ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 100.0f);
 						ubo.proj[1][1] *= -1;
 
 						void* data;

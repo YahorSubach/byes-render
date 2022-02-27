@@ -30,27 +30,26 @@ static std::vector<char> readFile(const std::string& filename) {
 
 render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, const RenderPass& render_pass, DescriptorPool& descriptor_pool) : RenderObjBase(device_cfg), color_sampler_(device_cfg)
 {
-	buffers_.reserve(10);
 
+	images_.push_back(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png"));
+	image_views_.push_back(ImageView(device_cfg, images_.back()));
 
-	const std::vector<Vertex> vertices = {
-{{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-{{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-{{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-{{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-{{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-{{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-	};
-
-	const std::vector<Face> faces = {
-		{0, 1, 2}, {2, 3, 0},
-		{4, 5, 6}, {6, 7, 4}
-	};
-
-
+//	const std::vector<Vertex> vertices = {
+//{{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+//{{0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
+//{{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+//{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+//
+//{{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+//{{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
+//{{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+//{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+//	};
+//
+//	const std::vector<Face> faces = {
+//		{0, 1, 2}, {2, 3, 0},
+//		{4, 5, 6}, {6, 7, 4}
+//	};
 
 	{
 
@@ -337,12 +336,17 @@ render::BatchesManager::DescSetsAndBuffers render::BatchesManager::BuildDescript
 		buffer_info.offset = 0;
 		buffer_info.range = sizeof(UniformBufferObject);
 
-		VkDescriptorImageInfo image_info{};
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = image_view.GetHandle();
-		image_info.sampler = color_sampler_.GetHandle();
+		VkDescriptorImageInfo color_image_info{};
+		color_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		color_image_info.imageView = image_view.GetHandle();
+		color_image_info.sampler = color_sampler_.GetHandle();
 
-		std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
+		VkDescriptorImageInfo env_image_info{};
+		env_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		env_image_info.imageView = image_views_.back().GetHandle();
+		env_image_info.sampler = color_sampler_.GetHandle();
+
+		std::array<VkWriteDescriptorSet, 3> descriptor_writes{};
 
 		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptor_writes[0].dstSet = result.descriptor_sets[i];
@@ -358,9 +362,17 @@ render::BatchesManager::DescSetsAndBuffers render::BatchesManager::BuildDescript
 		descriptor_writes[1].dstArrayElement = 0;
 		descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descriptor_writes[1].descriptorCount = 1;
-		descriptor_writes[1].pImageInfo = &image_info;
+		descriptor_writes[1].pImageInfo = &color_image_info;
 
-		vkUpdateDescriptorSets(device_cfg_.logical_device, 2, descriptor_writes.data(), 0, nullptr);
+		descriptor_writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptor_writes[2].dstSet = result.descriptor_sets[i];
+		descriptor_writes[2].dstBinding = 2;
+		descriptor_writes[2].dstArrayElement = 0;
+		descriptor_writes[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptor_writes[2].descriptorCount = 1;
+		descriptor_writes[2].pImageInfo = &env_image_info;
+
+		vkUpdateDescriptorSets(device_cfg_.logical_device, descriptor_writes.size(), descriptor_writes.data(), 0, nullptr);
 	}
 
 	return result;

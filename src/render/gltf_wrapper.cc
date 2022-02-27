@@ -65,7 +65,11 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 					BuildBufferAccessor(gltf_primitive.attributes["POSITION"]),
 					BuildBufferAccessor(gltf_primitive.attributes["NORMAL"]),
 					BuildBufferAccessor(gltf_primitive.attributes["TEXCOORD_0"]),
-					images_views_[model.materials[gltf_primitive.material].pbrMetallicRoughness.baseColorTexture.index],
+					images_views_[
+						model.textures[
+							model.materials[gltf_primitive.material].pbrMetallicRoughness.baseColorTexture.index
+						].source
+					],
 				};
 
 				nodes.back().mesh.primitives.push_back(primitive);

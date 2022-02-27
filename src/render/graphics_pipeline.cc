@@ -125,14 +125,21 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	ubo_layout_binding.pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutBinding sampler_layout_binding{};
-	sampler_layout_binding.binding = 1;
-	sampler_layout_binding.descriptorCount = 1;
-	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	sampler_layout_binding.pImmutableSamplers = nullptr;
-	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	VkDescriptorSetLayoutBinding color_sampler_layout_binding{};
+	color_sampler_layout_binding.binding = 1;
+	color_sampler_layout_binding.descriptorCount = 1;
+	color_sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	color_sampler_layout_binding.pImmutableSamplers = nullptr;
+	color_sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	std::array<VkDescriptorSetLayoutBinding, 2> desc_bindings = { ubo_layout_binding, sampler_layout_binding };
+	VkDescriptorSetLayoutBinding env_sampler_layout_binding{};
+	env_sampler_layout_binding.binding = 2;
+	env_sampler_layout_binding.descriptorCount = 1;
+	env_sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	env_sampler_layout_binding.pImmutableSamplers = nullptr;
+	env_sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	std::array<VkDescriptorSetLayoutBinding, 3> desc_bindings = { ubo_layout_binding, color_sampler_layout_binding, env_sampler_layout_binding };
 
 	VkDescriptorSetLayoutCreateInfo ubo_layout_create_info{};
 	ubo_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -143,12 +150,25 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 		throw std::runtime_error("failed to create descriptor set layout!");
 	}
 
+
+	VkPushConstantRange vertex_push_constant{};
+	vertex_push_constant.offset = 0;
+	vertex_push_constant.size = sizeof(VertexPushConstants);
+	vertex_push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkPushConstantRange fragment_push_constant{};
+	fragment_push_constant.offset = vertex_push_constant.size;
+	fragment_push_constant.size = sizeof(FragmentPushConstants);
+	fragment_push_constant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	std::vector<VkPushConstantRange> push_constants = { vertex_push_constant, fragment_push_constant };
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1; // Optional
 	pipelineLayoutInfo.pSetLayouts = &descriptor_set_layot_; // Optional
-	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+	pipelineLayoutInfo.pushConstantRangeCount = push_constants.size(); // Optional
+	pipelineLayoutInfo.pPushConstantRanges = push_constants.data(); // Optional
 
 	if (vkCreatePipelineLayout(device_cfg_.logical_device, &pipelineLayoutInfo, nullptr, &layout_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
