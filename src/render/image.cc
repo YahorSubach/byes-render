@@ -5,7 +5,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type) : RenderObjBase(device_cfg.logical_device), image_type_(image_type)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type) : RenderObjBase(device_cfg), image_type_(image_type)
 {
 	format_ = format;
 	VkImageCreateInfo image_info{};
@@ -33,19 +33,19 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
 	image_info.flags = 0; // Optional
 
-	if (vkCreateImage(device_cfg.logical_device, &image_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateImage(device_cfg_.logical_device, &image_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create image!");
 	}
 
 	VkMemoryRequirements mem_requirements;
-	vkGetImageMemoryRequirements(device_cfg.logical_device, handle_, &mem_requirements);
+	vkGetImageMemoryRequirements(device_cfg_.logical_device, handle_, &mem_requirements);
 
-	memory_ = std::make_unique<Memory>(device_cfg, mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	memory_ = std::make_unique<Memory>(device_cfg_, mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	vkBindImageMemory(device_cfg.logical_device, handle_, memory_->GetMemoryHandle(), 0);
+	vkBindImageMemory(device_cfg_.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : RenderObjBase(device_cfg.logical_device), image_type_(ImageType::kSwapchainImage)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : RenderObjBase(device_cfg), image_type_(ImageType::kSwapchainImage)
 {
 	handle_ = image_handle;
 	format_ = format;
@@ -176,7 +176,7 @@ render::Image::~Image()
 {
 	if (handle_ != VK_NULL_HANDLE && image_type_ != ImageType::kSwapchainImage)
 	{
-		vkDestroyImage(device_, handle_, nullptr);
+		vkDestroyImage(device_cfg_.logical_device, handle_, nullptr);
 	}
 }
 

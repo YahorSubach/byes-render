@@ -15,7 +15,7 @@ namespace render
 	{
 	public:
 
-		Batch(GraphicsPipeline&& pipeline, std::vector<BufferSlice> vertex_buffers, const BufferSlice& index_buffer, std::vector<Buffer>&& uniform_buffer, std::vector<VkDescriptorSet> descriptor_sets, uint64_t draw_size);
+		Batch(const GraphicsPipeline& pipeline, std::vector<BufferAccessor> vertex_buffers, const BufferAccessor& index_buffer, std::vector<UniformBuffer>&& uniform_buffer, std::vector<VkDescriptorSet> descriptor_sets, uint64_t draw_size, const glm::mat4& model_matrix);
 
 		Batch(const Batch&) = delete;
 		Batch(Batch&&) = default;
@@ -25,23 +25,27 @@ namespace render
 
 		const GraphicsPipeline& GetPipeline() const;
 
-		const std::vector<BufferSlice>& GetVertexBuffers() const;
-		const BufferSlice& GetIndexBuffer() const;
+		const std::vector<BufferAccessor>& GetVertexBuffers() const;
+		const BufferAccessor& GetIndexBuffer() const;
 
 		uint64_t GetDrawSize() const;
 
-		Buffer& GetUniformBuffer(uint32_t frame_index) const;
+		const glm::mat4& GetModelMatrix();
+
+		UniformBuffer& GetUniformBuffer(uint32_t frame_index) const;
 		VkDescriptorSet GetDescriptorSet(uint32_t frame_index) const;
 	private:
 
-		GraphicsPipeline pipeline_;
-		std::vector<BufferSlice> vertex_buffers_;
-		BufferSlice index_buffer_;
+		const GraphicsPipeline& pipeline_;
+		std::vector<BufferAccessor> vertex_buffers_;
+		BufferAccessor index_buffer_;
 
 		std::vector<VkDescriptorSet> descriptor_sets_;
-		mutable std::vector<Buffer> uniform_buffers_;
+		mutable std::vector<UniformBuffer> uniform_buffers_;
 
 		uint64_t draw_size_;
+
+		glm::mat4 model_matrix_;
 	};
 }
 

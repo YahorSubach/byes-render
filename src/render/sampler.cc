@@ -1,6 +1,6 @@
 #include "sampler.h"
 
-render::Sampler::Sampler(const DeviceConfiguration& device_cfg): RenderObjBase(device_cfg.logical_device)
+render::Sampler::Sampler(const DeviceConfiguration& device_cfg): RenderObjBase(device_cfg)
 {
 	VkSamplerCreateInfo sampler_info{};
 	sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -20,7 +20,7 @@ render::Sampler::Sampler(const DeviceConfiguration& device_cfg): RenderObjBase(d
 	sampler_info.minLod = 0.0f;
 	sampler_info.maxLod = 0.0f;
 
-	if (vkCreateSampler(device_, &sampler_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateSampler(device_cfg_.logical_device, &sampler_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture sampler!");
 	}
 }
@@ -29,11 +29,6 @@ render::Sampler::~Sampler()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroySampler(device_, handle_, nullptr);
+		vkDestroySampler(device_cfg_.logical_device, handle_, nullptr);
 	}
-}
-
-VkSampler render::Sampler::GetSamplerHandle() const
-{
-	return handle_;
 }

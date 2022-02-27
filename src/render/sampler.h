@@ -4,7 +4,7 @@
 #include "vulkan/vulkan.h"
 
 #include "common.h"
-#include "render/data_types.h"
+#include "object_base.h"
 
 namespace render
 {
@@ -21,9 +21,6 @@ namespace render
 		Sampler& operator=(Sampler&&) = default;
 
 		virtual ~Sampler() override;
-
-		VkSampler GetSamplerHandle() const;
-
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_SAMPLER_H_

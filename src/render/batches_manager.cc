@@ -2,12 +2,11 @@
 
 #include <fstream>
 
+#include "gltf_wrapper.h"
+
 #include "command_pool.h"
 
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 
-#include "tinygltf/tiny_gltf.h"
 
 static std::vector<char> readFile(const std::string& filename) {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -27,7 +26,9 @@ static std::vector<char> readFile(const std::string& filename) {
 	return buffer;
 }
 
-render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, const RenderPass& render_pass, DescriptorPool& descriptor_pool):RenderObjBase(device_cfg.logical_device)
+
+
+render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, const RenderPass& render_pass, DescriptorPool& descriptor_pool) : RenderObjBase(device_cfg), color_sampler_(device_cfg)
 {
 	buffers_.reserve(10);
 
@@ -49,41 +50,32 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 		{4, 5, 6}, {6, 7, 4}
 	};
 
-	std::vector<uint32_t> queue_indices = { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index };
+
 
 	{
-		tinygltf::Model model;
-		tinygltf::TinyGLTF loader;
-		std::string err;
-		std::string wrn;
 
-		bool res = loader.LoadBinaryFromFile(&model, &err, &wrn, "../blender/old_chair/old_chair_with_cube.glb");
+		gltf_wrappers_.push_back(GLTFWrapper(device_cfg, "../blender/old_chair/old_chair_with_cube.glb"));
 
-		GPULocalBuffer model_data_buffer(device_cfg, model.buffers[0].data.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices);
-		CopyToGPUBuffer(device_cfg, model_data_buffer, model.buffers[0].data.data(), model.buffers[0].data.size());
-
+		auto&& wrapper = gltf_wrappers_.back();
+		
 		auto vert_shader_code = readFile("../shaders/white_v.spv");
 		auto frag_shader_code = readFile("../shaders/white_f.spv");
 
 		VkShaderModule vert_shader_module = CreateShaderModule(vert_shader_code);
 		VkShaderModule frag_shader_module = CreateShaderModule(frag_shader_code);
 
-		auto model_position_buf_stride = model.bufferViews[model.accessors[model.meshes[0].primitives[0].attributes["POSITION"]].bufferView].byteStride;
-		auto model_position_buf_type_size = model.accessors[model.meshes[0].primitives[0].attributes["POSITION"]].type * tinygltf::GetComponentSizeInBytes(model.accessors[model.meshes[0].primitives[0].attributes["POSITION"]].componentType);
-
-		auto model_tex_buf_stride = model.bufferViews[model.accessors[model.meshes[0].primitives[0].attributes["TEXCOORD_0"]].bufferView].byteStride;
-		auto model_tex_buf_type_size = model.accessors[model.meshes[0].primitives[0].attributes["TEXCOORD_0"]].type * tinygltf::GetComponentSizeInBytes(model.accessors[model.meshes[0].primitives[0].attributes["TEXCOORD_0"]].componentType);
-
-
-		auto vertices_offset = model.bufferViews[model.accessors[model.meshes[0].primitives[0].attributes["POSITION"]].bufferView].byteOffset + model.accessors[model.meshes[0].primitives[0].attributes["POSITION"]].byteOffset;
-		auto tex_offset = model.bufferViews[model.accessors[model.meshes[0].primitives[0].attributes["TEXCOORD_0"]].bufferView].byteOffset + model.accessors[model.meshes[0].primitives[0].attributes["TEXCOORD_0"]].byteOffset;
-		auto indices_offset = model.bufferViews[model.accessors[model.meshes[0].primitives[0].indices].bufferView].byteOffset + model.accessors[model.meshes[0].primitives[0].indices].byteOffset;
-
-		auto draw_size = model.accessors[model.meshes[0].primitives[0].indices].count;
-
 		VertexBindingDesc position_binding =
 		{
-		model_position_buf_stride > 0 ? model_position_buf_stride : model_position_buf_type_size,
+		wrapper.nodes.front().mesh.primitives.front().positions.stride_,
+
+			{
+				{ VK_FORMAT_R32G32B32_SFLOAT, 0}
+			}
+		};
+
+		VertexBindingDesc normal_binding =
+		{
+		wrapper.nodes.front().mesh.primitives.front().normals.stride_,
 
 			{
 				{ VK_FORMAT_R32G32B32_SFLOAT, 0}
@@ -92,267 +84,216 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 
 		VertexBindingDesc tex_binding =
 		{
-		model_tex_buf_stride > 0 ? model_tex_buf_stride : model_tex_buf_type_size,
+		wrapper.nodes.front().mesh.primitives.front().tex_coords.stride_,
 
 			{
 				{ VK_FORMAT_R32G32_SFLOAT, 0}
 			}
 		};
 
-		VertexBindings vertex_bindings = { position_binding, tex_binding };
+		VertexBindings vertex_bindings = { position_binding, normal_binding, tex_binding };
 
-		GraphicsPipeline pipeline(device_cfg.logical_device, vert_shader_module, frag_shader_module, swapchain.GetExtent(), render_pass, vertex_bindings);
+		pipelines_.push_back(GraphicsPipeline(device_cfg, vert_shader_module, frag_shader_module, swapchain.GetExtent(), render_pass, vertex_bindings));
 
 		vkDestroyShaderModule(device_cfg.logical_device, frag_shader_module, nullptr);
 		vkDestroyShaderModule(device_cfg.logical_device, vert_shader_module, nullptr);
 
-		std::vector<VkDescriptorSet> descriptor_sets;
 
-		descriptor_pool.AllocateSet(pipeline.GetDescriptorSetLayout(), frames_cnt, descriptor_sets);
-
-		std::vector<Buffer> uniform_buffers;
-
-		Image image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, model.images[0].width, model.images[0].height, model.images[0].image.data());
-
-		ImageView image_view(device_cfg, image);
-		Sampler sampler(device_cfg);
-
-		for (uint32_t i = 0; i < frames_cnt; i++)
+		for (auto&& node : wrapper.nodes)
 		{
-			uniform_buffers.emplace_back(device_cfg, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, std::vector<uint32_t>());
-
-			VkDescriptorBufferInfo buffer_info{};
-			buffer_info.buffer = uniform_buffers.back().GetHandle();
-			buffer_info.offset = 0;
-			buffer_info.range = sizeof(UniformBufferObject);
-
-			VkDescriptorImageInfo image_info{};
-			image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			image_info.imageView = image_view.GetHandle();
-			image_info.sampler = sampler.GetSamplerHandle();
-
-			std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
-
-			descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptor_writes[0].dstSet = descriptor_sets[i];
-			descriptor_writes[0].dstBinding = 0;
-			descriptor_writes[0].dstArrayElement = 0;
-			descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptor_writes[0].descriptorCount = 1;
-			descriptor_writes[0].pBufferInfo = &buffer_info;
-
-			descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptor_writes[1].dstSet = descriptor_sets[i];
-			descriptor_writes[1].dstBinding = 1;
-			descriptor_writes[1].dstArrayElement = 0;
-			descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptor_writes[1].descriptorCount = 1;
-			descriptor_writes[1].pImageInfo = &image_info;
-
-			vkUpdateDescriptorSets(device_cfg.logical_device, 2, descriptor_writes.data(), 0, nullptr);
-		}
-
-		images_.push_back(std::move(image));
-		image_views_.push_back(std::move(image_view));
-		samplers_.push_back(std::move(sampler));
-
-		buffers_.push_back(std::move(model_data_buffer));
-		const GPULocalBuffer& buffer = buffers_.back();
-
-		BufferSlice ind = { buffer, indices_offset, 0 };
-
-		BufferSlice vert = { buffer, vertices_offset, 0 };
-		BufferSlice tex = { buffer, tex_offset, 0 };
-
-		std::vector<BufferSlice> vert_bufs = { vert , tex };
-
-		Batch batch(std::move(pipeline), vert_bufs, ind, std::move(uniform_buffers), descriptor_sets, draw_size);
-
-		batches_.emplace_back(std::move(batch));
-
-	}
-
-	{
-		GPULocalBuffer vertices_gpu_buffer(device_cfg, sizeof(vertices[0]) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, queue_indices);
-		GPULocalBuffer faces_gpu_buffer(device_cfg, sizeof(faces[0]) * faces.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices);
-		
-		CopyToGPUBuffer(device_cfg, vertices_gpu_buffer, static_cast<const void*>(vertices.data()), sizeof(vertices[0]) * vertices.size());
-		CopyToGPUBuffer(device_cfg, faces_gpu_buffer, static_cast<const void*>(faces.data()), sizeof(faces[0]) * faces.size());
-
-		auto vert_shader_code = readFile("../shaders/vert.spv");
-		auto frag_shader_code = readFile("../shaders/frag.spv");
-
-		VkShaderModule vert_shader_module = CreateShaderModule(vert_shader_code);
-		VkShaderModule frag_shader_module = CreateShaderModule(frag_shader_code);
-
-		VertexBindingDesc binding =
-		{
-			sizeof(Vertex),
+			for (auto&& primitive : node.mesh.primitives)
 			{
-				{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)},
-				{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)},
-				{ VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, tex_coord)},
+				DescSetsAndBuffers desc_sets_and_uni_bufs = BuildDescriptorSets(frames_cnt, primitive.color_tex, pipelines_.back().GetDescriptorSetLayout());
+				
+				std::vector<BufferAccessor> vert_bufs = { primitive.positions, primitive.normals, primitive.tex_coords };
+
+				Batch batch(pipelines_.back(), vert_bufs, primitive.indices, std::move(desc_sets_and_uni_bufs.uniform_buffers), desc_sets_and_uni_bufs.descriptor_sets, primitive.indices.count_, node.node_matrix);
+				batches_.emplace_back(std::move(batch));
 			}
-		};
-
-		VertexBindings vertex_bindings = { binding };
-
-		GraphicsPipeline pipeline(device_cfg.logical_device, vert_shader_module, frag_shader_module, swapchain.GetExtent(), render_pass, vertex_bindings);
-	
-		vkDestroyShaderModule(device_cfg.logical_device, frag_shader_module, nullptr);
-		vkDestroyShaderModule(device_cfg.logical_device, vert_shader_module, nullptr);
-
-
-		std::vector<VkDescriptorSet> descriptor_sets;
-
-		descriptor_pool.AllocateSet(pipeline.GetDescriptorSetLayout(), frames_cnt, descriptor_sets);
-
-		std::vector<Buffer> uniform_buffers;
-
-		Image image = Image::FromFile(device_cfg, "../images/test.jpg");
-		ImageView image_view(device_cfg, image);
-		Sampler sampler(device_cfg);
-
-		for (uint32_t i = 0; i < frames_cnt; i++)
-		{
-			uniform_buffers.emplace_back(device_cfg, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, std::vector<uint32_t>());
-
-			VkDescriptorBufferInfo buffer_info{};
-			buffer_info.buffer = uniform_buffers.back().GetHandle();
-			buffer_info.offset = 0;
-			buffer_info.range = sizeof(UniformBufferObject);
-
-			VkDescriptorImageInfo image_info{};
-			image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			image_info.imageView = image_view.GetHandle();
-			image_info.sampler = sampler.GetSamplerHandle();
-
-			std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
-
-			descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptor_writes[0].dstSet = descriptor_sets[i];
-			descriptor_writes[0].dstBinding = 0;
-			descriptor_writes[0].dstArrayElement = 0;
-			descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptor_writes[0].descriptorCount = 1;
-			descriptor_writes[0].pBufferInfo = &buffer_info;
-
-			descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptor_writes[1].dstSet = descriptor_sets[i];
-			descriptor_writes[1].dstBinding = 1;
-			descriptor_writes[1].dstArrayElement = 0;
-			descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptor_writes[1].descriptorCount = 1;
-			descriptor_writes[1].pImageInfo = &image_info;
-
-			vkUpdateDescriptorSets(device_cfg.logical_device, 2, descriptor_writes.data(), 0, nullptr);
 		}
-
-		images_.push_back(std::move(image));
-		image_views_.push_back(std::move(image_view));
-		samplers_.push_back(std::move(sampler));
-
-		buffers_.push_back(std::move(vertices_gpu_buffer));
-		auto&& vert_buf = buffers_.back();
-
-		buffers_.push_back(std::move(faces_gpu_buffer));
-		auto&& faces_buf = buffers_.back();
-
-		Batch batch(std::move(pipeline), { vert_buf }, faces_buf, std::move(uniform_buffers), descriptor_sets, 3 * faces.size());
-
-		batches_.emplace_back(std::move(batch));
 	}
 
-	{
-		GPULocalBuffer vertices_gpu_buffer(device_cfg, sizeof(vertices[0]) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, queue_indices);
-		GPULocalBuffer faces_gpu_buffer(device_cfg, sizeof(faces[0]) * faces.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices);
+	//{
+	//	GPULocalBuffer vertices_gpu_buffer(device_cfg, sizeof(vertices[0]) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, queue_indices);
+	//	GPULocalBuffer faces_gpu_buffer(device_cfg, sizeof(faces[0]) * faces.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices);
+	//	
+	//	CopyToGPUBuffer(device_cfg, vertices_gpu_buffer, static_cast<const void*>(vertices.data()), sizeof(vertices[0]) * vertices.size());
+	//	CopyToGPUBuffer(device_cfg, faces_gpu_buffer, static_cast<const void*>(faces.data()), sizeof(faces[0]) * faces.size());
 
-		CopyToGPUBuffer(device_cfg, vertices_gpu_buffer, static_cast<const void*>(vertices.data()), sizeof(vertices[0]) * vertices.size());
-		CopyToGPUBuffer(device_cfg, faces_gpu_buffer, static_cast<const void*>(faces.data()), sizeof(faces[0]) * faces.size());
+	//	auto vert_shader_code = readFile("../shaders/vert.spv");
+	//	auto frag_shader_code = readFile("../shaders/frag.spv");
 
-		auto vert_shader_code = readFile("../shaders/vert_2.spv");
-		auto frag_shader_code = readFile("../shaders/frag_2.spv");
+	//	VkShaderModule vert_shader_module = CreateShaderModule(vert_shader_code);
+	//	VkShaderModule frag_shader_module = CreateShaderModule(frag_shader_code);
 
-		VkShaderModule vert_shader_module = CreateShaderModule(vert_shader_code);
-		VkShaderModule frag_shader_module = CreateShaderModule(frag_shader_code);
+	//	VertexBindingDesc binding =
+	//	{
+	//		sizeof(Vertex),
+	//		{
+	//			{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)},
+	//			{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)},
+	//			{ VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, tex_coord)},
+	//		}
+	//	};
 
-		VertexBindingDesc binding =
-		{
-			sizeof(Vertex),
-			{
-				{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)},
-				{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)},
-				{ VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, tex_coord)},
-			}
-		};
+	//	VertexBindings vertex_bindings = { binding };
 
-		VertexBindings vertex_bindings = { binding };
-
-		GraphicsPipeline pipeline(device_cfg.logical_device, vert_shader_module, frag_shader_module, swapchain.GetExtent(), render_pass, vertex_bindings);
-
-		vkDestroyShaderModule(device_cfg.logical_device, frag_shader_module, nullptr);
-		vkDestroyShaderModule(device_cfg.logical_device, vert_shader_module, nullptr);
+	//	GraphicsPipeline pipeline(device_cfg.logical_device, vert_shader_module, frag_shader_module, swapchain.GetExtent(), render_pass, vertex_bindings);
+	//
+	//	vkDestroyShaderModule(device_cfg.logical_device, frag_shader_module, nullptr);
+	//	vkDestroyShaderModule(device_cfg.logical_device, vert_shader_module, nullptr);
 
 
-		std::vector<VkDescriptorSet> descriptor_sets;
+	//	std::vector<VkDescriptorSet> descriptor_sets;
 
-		descriptor_pool.AllocateSet(pipeline.GetDescriptorSetLayout(), frames_cnt, descriptor_sets);
+	//	descriptor_pool.AllocateSet(pipeline.GetDescriptorSetLayout(), frames_cnt, descriptor_sets);
 
-		std::vector<Buffer> uniform_buffers;
+	//	std::vector<Buffer> uniform_buffers;
 
-		Image image = Image::FromFile(device_cfg, "../images/test_2.jpg");
-		ImageView image_view(device_cfg, image);
-		Sampler sampler(device_cfg);
+	//	Image image = Image::FromFile(device_cfg, "../images/test.jpg");
+	//	ImageView image_view(device_cfg, image);
+	//	Sampler sampler(device_cfg);
 
-		for (uint32_t i = 0; i < frames_cnt; i++)
-		{
-			uniform_buffers.emplace_back(device_cfg, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, std::vector<uint32_t>());
+	//	for (uint32_t i = 0; i < frames_cnt; i++)
+	//	{
+	//		uniform_buffers.emplace_back(device_cfg, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, std::vector<uint32_t>());
 
-			VkDescriptorBufferInfo buffer_info{};
-			buffer_info.buffer = uniform_buffers.back().GetHandle();
-			buffer_info.offset = 0;
-			buffer_info.range = sizeof(UniformBufferObject);
+	//		VkDescriptorBufferInfo buffer_info{};
+	//		buffer_info.buffer = uniform_buffers.back().GetHandle();
+	//		buffer_info.offset = 0;
+	//		buffer_info.range = sizeof(UniformBufferObject);
 
-			VkDescriptorImageInfo image_info{};
-			image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			image_info.imageView = image_view.GetHandle();
-			image_info.sampler = sampler.GetSamplerHandle();
+	//		VkDescriptorImageInfo image_info{};
+	//		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	//		image_info.imageView = image_view.GetHandle();
+	//		image_info.sampler = sampler.GetSamplerHandle();
 
-			std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
+	//		std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
 
-			descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptor_writes[0].dstSet = descriptor_sets[i];
-			descriptor_writes[0].dstBinding = 0;
-			descriptor_writes[0].dstArrayElement = 0;
-			descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptor_writes[0].descriptorCount = 1;
-			descriptor_writes[0].pBufferInfo = &buffer_info;
+	//		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//		descriptor_writes[0].dstSet = descriptor_sets[i];
+	//		descriptor_writes[0].dstBinding = 0;
+	//		descriptor_writes[0].dstArrayElement = 0;
+	//		descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	//		descriptor_writes[0].descriptorCount = 1;
+	//		descriptor_writes[0].pBufferInfo = &buffer_info;
 
-			descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptor_writes[1].dstSet = descriptor_sets[i];
-			descriptor_writes[1].dstBinding = 1;
-			descriptor_writes[1].dstArrayElement = 0;
-			descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptor_writes[1].descriptorCount = 1;
-			descriptor_writes[1].pImageInfo = &image_info;
+	//		descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//		descriptor_writes[1].dstSet = descriptor_sets[i];
+	//		descriptor_writes[1].dstBinding = 1;
+	//		descriptor_writes[1].dstArrayElement = 0;
+	//		descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	//		descriptor_writes[1].descriptorCount = 1;
+	//		descriptor_writes[1].pImageInfo = &image_info;
 
-			vkUpdateDescriptorSets(device_cfg.logical_device, 2, descriptor_writes.data(), 0, nullptr);
-		}
+	//		vkUpdateDescriptorSets(device_cfg.logical_device, 2, descriptor_writes.data(), 0, nullptr);
+	//	}
 
-		images_.push_back(std::move(image));
-		image_views_.push_back(std::move(image_view));
-		samplers_.push_back(std::move(sampler));
+	//	images_.push_back(std::move(image));
+	//	image_views_.push_back(std::move(image_view));
+	//	samplers_.push_back(std::move(sampler));
 
-		buffers_.push_back(std::move(vertices_gpu_buffer));
-		auto&& vert_buf = buffers_.back();
+	//	buffers_.push_back(std::move(vertices_gpu_buffer));
+	//	auto&& vert_buf = buffers_.back();
 
-		buffers_.push_back(std::move(faces_gpu_buffer));
-		auto&& faces_buf = buffers_.back();
+	//	buffers_.push_back(std::move(faces_gpu_buffer));
+	//	auto&& faces_buf = buffers_.back();
 
-		Batch batch(std::move(pipeline), { vert_buf }, faces_buf, std::move(uniform_buffers), descriptor_sets, 3 * faces.size());
+	//	Batch batch(std::move(pipeline), { vert_buf }, faces_buf, std::move(uniform_buffers), descriptor_sets, 3 * faces.size());
 
-		batches_.emplace_back(std::move(batch));
-	}
+	//	batches_.emplace_back(std::move(batch));
+	//}
+
+	//{
+	//	GPULocalBuffer vertices_gpu_buffer(device_cfg, sizeof(vertices[0]) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, queue_indices);
+	//	GPULocalBuffer faces_gpu_buffer(device_cfg, sizeof(faces[0]) * faces.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices);
+
+	//	CopyToGPUBuffer(device_cfg, vertices_gpu_buffer, static_cast<const void*>(vertices.data()), sizeof(vertices[0]) * vertices.size());
+	//	CopyToGPUBuffer(device_cfg, faces_gpu_buffer, static_cast<const void*>(faces.data()), sizeof(faces[0]) * faces.size());
+
+	//	auto vert_shader_code = readFile("../shaders/vert_2.spv");
+	//	auto frag_shader_code = readFile("../shaders/frag_2.spv");
+
+	//	VkShaderModule vert_shader_module = CreateShaderModule(vert_shader_code);
+	//	VkShaderModule frag_shader_module = CreateShaderModule(frag_shader_code);
+
+	//	VertexBindingDesc binding =
+	//	{
+	//		sizeof(Vertex),
+	//		{
+	//			{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)},
+	//			{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)},
+	//			{ VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, tex_coord)},
+	//		}
+	//	};
+
+	//	VertexBindings vertex_bindings = { binding };
+
+	//	GraphicsPipeline pipeline(device_cfg.logical_device, vert_shader_module, frag_shader_module, swapchain.GetExtent(), render_pass, vertex_bindings);
+
+	//	vkDestroyShaderModule(device_cfg.logical_device, frag_shader_module, nullptr);
+	//	vkDestroyShaderModule(device_cfg.logical_device, vert_shader_module, nullptr);
+
+
+	//	std::vector<VkDescriptorSet> descriptor_sets;
+
+	//	descriptor_pool.AllocateSet(pipeline.GetDescriptorSetLayout(), frames_cnt, descriptor_sets);
+
+	//	std::vector<Buffer> uniform_buffers;
+
+	//	Image image = Image::FromFile(device_cfg, "../images/test_2.jpg");
+	//	ImageView image_view(device_cfg, image);
+
+
+	//	for (uint32_t i = 0; i < frames_cnt; i++)
+	//	{
+	//		uniform_buffers.emplace_back(device_cfg, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, std::vector<uint32_t>());
+
+	//		VkDescriptorBufferInfo buffer_info{};
+	//		buffer_info.buffer = uniform_buffers.back().GetHandle();
+	//		buffer_info.offset = 0;
+	//		buffer_info.range = sizeof(UniformBufferObject);
+
+	//		VkDescriptorImageInfo image_info{};
+	//		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	//		image_info.imageView = image_view.GetHandle();
+	//		image_info.sampler = sampler.GetSamplerHandle();
+
+	//		std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
+
+	//		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//		descriptor_writes[0].dstSet = descriptor_sets[i];
+	//		descriptor_writes[0].dstBinding = 0;
+	//		descriptor_writes[0].dstArrayElement = 0;
+	//		descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	//		descriptor_writes[0].descriptorCount = 1;
+	//		descriptor_writes[0].pBufferInfo = &buffer_info;
+
+	//		descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//		descriptor_writes[1].dstSet = descriptor_sets[i];
+	//		descriptor_writes[1].dstBinding = 1;
+	//		descriptor_writes[1].dstArrayElement = 0;
+	//		descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	//		descriptor_writes[1].descriptorCount = 1;
+	//		descriptor_writes[1].pImageInfo = &image_info;
+
+	//		vkUpdateDescriptorSets(device_cfg.logical_device, 2, descriptor_writes.data(), 0, nullptr);
+	//	}
+
+	//	images_.push_back(std::move(image));
+	//	image_views_.push_back(std::move(image_view));
+	//	samplers_.push_back(std::move(sampler));
+
+	//	buffers_.push_back(std::move(vertices_gpu_buffer));
+	//	auto&& vert_buf = buffers_.back();
+
+	//	buffers_.push_back(std::move(faces_gpu_buffer));
+	//	auto&& faces_buf = buffers_.back();
+
+	//	Batch batch(std::move(pipeline), { vert_buf }, faces_buf, std::move(uniform_buffers), descriptor_sets, 3 * faces.size());
+
+	//	batches_.emplace_back(std::move(batch));
+	//}
 
 }
 
@@ -378,21 +319,51 @@ uint32_t render::BatchesManager::GetSamplerSetCnt()
 	return 2;
 }
 
-void render::BatchesManager::CopyToGPUBuffer(const DeviceConfiguration& device_cfg, const Buffer & dst_buffer, const void * data, uint64_t size)
+
+render::BatchesManager::DescSetsAndBuffers render::BatchesManager::BuildDescriptorSets(uint32_t frames_cnt, const ImageView& image_view, const VkDescriptorSetLayout& layout)
 {
-	Buffer staging_buffer(device_cfg, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {});
+	DescSetsAndBuffers result;
 
-	staging_buffer.LoadData(data, size);
+	result.descriptor_sets.resize(2);
 
-	device_cfg.transfer_cmd_pool->ExecuteOneTimeCommand([size, &staging_buffer, &dst_buffer](VkCommandBuffer command_buffer) {
+	device_cfg_.descriptor_pool->AllocateSet(layout, frames_cnt, result.descriptor_sets);
 
-		VkBufferCopy copy_region{};
-		copy_region.srcOffset = 0; // Optional
-		copy_region.dstOffset = 0; // Optional
-		copy_region.size = size;
-		vkCmdCopyBuffer(command_buffer, staging_buffer.GetHandle(), dst_buffer.GetHandle(), 1, &copy_region);
+	for (uint32_t i = 0; i < frames_cnt; i++)
+	{
+		result.uniform_buffers.push_back(UniformBuffer(device_cfg_, sizeof(UniformBufferObject)));
 
-		});
+		VkDescriptorBufferInfo buffer_info{};
+		buffer_info.buffer = result.uniform_buffers.back().GetHandle();
+		buffer_info.offset = 0;
+		buffer_info.range = sizeof(UniformBufferObject);
+
+		VkDescriptorImageInfo image_info{};
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageView = image_view.GetHandle();
+		image_info.sampler = color_sampler_.GetHandle();
+
+		std::array<VkWriteDescriptorSet, 2> descriptor_writes{};
+
+		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptor_writes[0].dstSet = result.descriptor_sets[i];
+		descriptor_writes[0].dstBinding = 0;
+		descriptor_writes[0].dstArrayElement = 0;
+		descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptor_writes[0].descriptorCount = 1;
+		descriptor_writes[0].pBufferInfo = &buffer_info;
+
+		descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptor_writes[1].dstSet = result.descriptor_sets[i];
+		descriptor_writes[1].dstBinding = 1;
+		descriptor_writes[1].dstArrayElement = 0;
+		descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptor_writes[1].descriptorCount = 1;
+		descriptor_writes[1].pImageInfo = &image_info;
+
+		vkUpdateDescriptorSets(device_cfg_.logical_device, 2, descriptor_writes.data(), 0, nullptr);
+	}
+
+	return result;
 }
 
 VkShaderModule render::BatchesManager::CreateShaderModule(const std::vector<char>& code)
@@ -403,7 +374,7 @@ VkShaderModule render::BatchesManager::CreateShaderModule(const std::vector<char
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
 	VkShaderModule shader_module;
-	if (vkCreateShaderModule(device_, &createInfo, nullptr, &shader_module) != VK_SUCCESS) {
+	if (vkCreateShaderModule(device_cfg_.logical_device, &createInfo, nullptr, &shader_module) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create shader module!");
 	}
 

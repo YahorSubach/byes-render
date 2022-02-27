@@ -194,13 +194,13 @@ namespace render
 			graphics_command_pool_ptr_->ClearCommandBuffers();
 
 
-			render_pass_ptr_ = std::make_unique<RenderPass>(device_cfg_.logical_device, swapchain.GetFormat());
+			render_pass_ptr_ = std::make_unique<RenderPass>(device_cfg_, swapchain.GetFormat());
 
 			swapchain_frame_buffers_.reserve(swapchain.GetImagesCount());
 
 			for (size_t i = 0; i < swapchain.GetImagesCount(); i++)
 			{
-				swapchain_frame_buffers_.emplace_back(device_cfg_.logical_device, swapchain.GetExtent(), swapchain.GetImageView(i), depth_view, *render_pass_ptr_);
+				swapchain_frame_buffers_.emplace_back(device_cfg_, swapchain.GetExtent(), swapchain.GetImageView(i), depth_view, *render_pass_ptr_);
 			}
 
 			graphics_command_pool_ptr_->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
@@ -226,6 +226,10 @@ namespace render
 
 		void ShowWindow()
 		{
+
+			DescriptorPool descriptor_pool(device_cfg_, 10, 10);
+
+			device_cfg_.descriptor_pool = &descriptor_pool;
 
 			static auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -253,8 +257,6 @@ namespace render
 				ImageView depth_image_view(device_cfg_, depth_image);
 
 				PrepareSwapChain(swapchain, depth_image_view);
-
-				DescriptorPool descriptor_pool(device_cfg_.logical_device, 3 * swapchain_frame_buffers_.size(), 3 * swapchain_frame_buffers_.size());
 
 				BatchesManager batches_manager(device_cfg_, swapchain_frame_buffers_.size(), swapchain, *render_pass_ptr_, descriptor_pool);
 				
@@ -329,12 +331,12 @@ namespace render
 
 					if (buttons['w' - 'a'])
 					{
-						position += (0.001f * glm::normalize(glm::vec3(glm::sin(yaw), glm::cos(yaw), 0)));
+						position += (0.001f * glm::normalize(look));
 					}
 
 					if (buttons['s' - 'a'])
 					{
-						position -= (0.001f * glm::normalize(glm::vec3(glm::sin(yaw), glm::cos(yaw), 0)));
+						position -= (0.001f * glm::normalize(look));
 					}
 
 					if (buttons['d' - 'a'])
@@ -355,7 +357,7 @@ namespace render
 
 
 
-						ubo.model = glm::rotate(glm::mat4(1.0f), (time * (1.0f + i * 1.37f))* glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+						ubo.model = batch.get().GetModelMatrix();
 						ubo.view = glm::lookAt(position, position + look , glm::vec3(0.0f, 0.0f, 1.0f));
 						ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 10.0f);
 						ubo.proj[1][1] *= -1;
@@ -683,8 +685,8 @@ namespace render
 
 			VkRenderPassBeginInfo render_pass_info{};
 			render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			render_pass_info.renderPass = render_pass_ptr_->GetRenderPassHandle();
-			render_pass_info.framebuffer = framebuffer.GetFramebufferHandle();
+			render_pass_info.renderPass = render_pass_ptr_->GetHandle();
+			render_pass_info.framebuffer = framebuffer.GetHandle();
 
 			render_pass_info.renderArea.offset = { 0, 0 };
 			render_pass_info.renderArea.extent = extent;

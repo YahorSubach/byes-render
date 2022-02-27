@@ -1,6 +1,6 @@
 #include "command_pool.h"
 
-render::CommandPool::CommandPool(const DeviceConfiguration& device_cfg, PoolType pool_type): RenderObjBase(device_cfg.logical_device)
+render::CommandPool::CommandPool(const DeviceConfiguration& device_cfg, PoolType pool_type): RenderObjBase(device_cfg)
 {
 	VkCommandPoolCreateInfo pool_info{};
 	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -18,7 +18,7 @@ render::CommandPool::CommandPool(const DeviceConfiguration& device_cfg, PoolType
 
 	pool_info.flags = 0; // Optional
 
-	if (vkCreateCommandPool(device_, &pool_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateCommandPool(device_cfg_.logical_device, &pool_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
 	}
 }
@@ -27,7 +27,7 @@ bool render::CommandPool::CreateCommandBuffers(uint32_t size)
 {
 	if (command_buffers_.size() > 0)
 	{
-		vkFreeCommandBuffers(device_, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
+		vkFreeCommandBuffers(device_cfg_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
 		command_buffers_.clear();
 	}
 
@@ -39,7 +39,7 @@ bool render::CommandPool::CreateCommandBuffers(uint32_t size)
 	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	alloc_info.commandBufferCount = size;
 
-	if (vkAllocateCommandBuffers(device_, &alloc_info, command_buffers_.data()) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(device_cfg_.logical_device, &alloc_info, command_buffers_.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
 
@@ -50,7 +50,7 @@ void render::CommandPool::ClearCommandBuffers()
 {
 	if (command_buffers_.size() > 0)
 	{
-		vkFreeCommandBuffers(device_, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
+		vkFreeCommandBuffers(device_cfg_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
 		command_buffers_.clear();
 	}
 }
@@ -70,7 +70,7 @@ void render::CommandPool::ExecuteOneTimeCommand(const std::function<void(VkComma
 	alloc_info.commandBufferCount = 1;
 
 	VkCommandBuffer command_buffer;
-	vkAllocateCommandBuffers(device_, &alloc_info, &command_buffer);
+	vkAllocateCommandBuffers(device_cfg_.logical_device, &alloc_info, &command_buffer);
 
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -92,7 +92,7 @@ void render::CommandPool::ExecuteOneTimeCommand(const std::function<void(VkComma
 	vkQueueSubmit(pool_queue_, 1, &submit_info, VK_NULL_HANDLE);
 	vkQueueWaitIdle(pool_queue_);
 
-	vkFreeCommandBuffers(device_, handle_, 1, &command_buffer);
+	vkFreeCommandBuffers(device_cfg_.logical_device, handle_, 1, &command_buffer);
 }
 
 render::CommandPool::~CommandPool()
@@ -101,10 +101,10 @@ render::CommandPool::~CommandPool()
 	{
 		if (command_buffers_.size() > 0)
 		{
-			vkFreeCommandBuffers(device_, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
+			vkFreeCommandBuffers(device_cfg_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
 			command_buffers_.clear();
 		}
 
-		vkDestroyCommandPool(device_, handle_, nullptr);
+		vkDestroyCommandPool(device_cfg_.logical_device, handle_, nullptr);
 	}
 }

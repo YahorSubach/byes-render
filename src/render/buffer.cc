@@ -1,6 +1,7 @@
 #include "buffer.h"
+#include "command_pool.h"
 
-render::Buffer::Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indeces): RenderObjBase(device_cfg.logical_device)
+render::Buffer::Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indeces): RenderObjBase(device_cfg)
 {
     VkBufferCreateInfo buffer_info{};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -37,12 +38,32 @@ void render::Buffer::LoadData(const void* data, size_t size)
 	//TODO add checking buffer type
 
     void* mapped_data;
-    vkMapMemory(device_, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
+    vkMapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
     memcpy(mapped_data, data, static_cast<size_t>(size));
-    vkUnmapMemory(device_, memory_->GetMemoryHandle());
+    vkUnmapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle());
 }
 
 render::Buffer::~Buffer()
 {
-    vkDestroyBuffer(device_, handle_, nullptr);
+    if (handle_ != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(device_cfg_.logical_device, handle_, nullptr);
+    }
+}
+
+void render::GPULocalBuffer::LoadData(const void* data, size_t size)
+{
+    Buffer staging_buffer(device_cfg_, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {});
+
+    staging_buffer.LoadData(data, size);
+
+    device_cfg_.transfer_cmd_pool->ExecuteOneTimeCommand([size, &staging_buffer, this](VkCommandBuffer command_buffer) {
+
+        VkBufferCopy copy_region{};
+        copy_region.srcOffset = 0; // Optional
+        copy_region.dstOffset = 0; // Optional
+        copy_region.size = size;
+        vkCmdCopyBuffer(command_buffer, staging_buffer.GetHandle(), GetHandle(), 1, &copy_region);
+
+        });
 }

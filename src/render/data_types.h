@@ -8,11 +8,11 @@
 #include "glm/glm/glm.hpp"
 
 #include "common.h"
-#include "render/object_base.h"
 
 namespace render
 {
 	class CommandPool;
+	class DescriptorPool;
 
 	struct DeviceConfiguration
 	{
@@ -29,6 +29,7 @@ namespace render
 
 		CommandPool* graphics_cmd_pool;
 		CommandPool* transfer_cmd_pool;
+		DescriptorPool* descriptor_pool;
 	};
 
 

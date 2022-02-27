@@ -3,6 +3,8 @@
 
 #include "vulkan/vulkan.h"
 
+#include "render/data_types.h"
+
 namespace render
 {
 	class ValidationBase
@@ -14,14 +16,14 @@ namespace render
 		bool valid_ = true;
 	};
 
-	template<typename HandleType = void*>
+	template<typename HandleType>
 	class RenderObjBase: public ValidationBase
 	{
 	public:
-		RenderObjBase(const VkDevice& device) : device_(device), handle_(VK_NULL_HANDLE) {}
+ 		RenderObjBase(const DeviceConfiguration& device_cfg) : device_cfg_(device_cfg), handle_(VK_NULL_HANDLE) {}
 
 		RenderObjBase(const RenderObjBase&) = delete;
-		RenderObjBase(RenderObjBase&& rhs): device_(rhs.device_), handle_(rhs.handle_)
+		RenderObjBase(RenderObjBase&& rhs): device_cfg_(rhs.device_cfg_), handle_(rhs.handle_)
 		{
 			rhs.handle_ = VK_NULL_HANDLE;
 		}
@@ -29,20 +31,20 @@ namespace render
 		RenderObjBase& operator=(const RenderObjBase&) = delete;
 		RenderObjBase& operator=(RenderObjBase&& rhs)
 		{
-			device_ = rhs.device_;
+			device_cfg_ = rhs.device_cfg_;
 			handle_ = rhs.handle_;
 			rhs.handle_ = VK_NULL_HANDLE;
 		}
 
 		HandleType GetHandle() const { return handle_; }
 
-		virtual ~RenderObjBase() override
-		{
-			int a = 1;
-
-		}
+		//virtual ~RenderObjBase() override
+		//{
+		//	int a = 1;
+		//}
+		
 	protected:
-		const VkDevice& device_;
+		const DeviceConfiguration& device_cfg_;
 		HandleType handle_;
 	};
 }

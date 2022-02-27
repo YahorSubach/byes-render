@@ -13,15 +13,13 @@ namespace render
 	class Framebuffer : public RenderObjBase<VkFramebuffer>
 	{
 	public:
-		Framebuffer(const VkDevice& device, const VkExtent2D& extent, const ImageView& color_image_view, const ImageView& depth_image_view, const RenderPass& render_pass);
+		Framebuffer(const DeviceConfiguration& device_cfg, const VkExtent2D& extent, const ImageView& color_image_view, const ImageView& depth_image_view, const RenderPass& render_pass);
 
 		Framebuffer(const Framebuffer&) = delete;
 		Framebuffer(Framebuffer&&) = default;
 
 		Framebuffer& operator=(const Framebuffer&) = delete;
 		Framebuffer& operator=(Framebuffer&&) = default;
-
-		const VkFramebuffer& GetFramebufferHandle() const;
 
 		virtual ~Framebuffer() override;
 	};

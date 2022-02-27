@@ -1,6 +1,6 @@
 #include "image_view.h"
 
-render::ImageView::ImageView(const DeviceConfiguration& device_cfg, const Image& image): RenderObjBase(device_cfg.logical_device)
+render::ImageView::ImageView(const DeviceConfiguration& device_cfg, const Image& image): RenderObjBase(device_cfg)
 {
 	VkImageViewCreateInfo view_info{};
 
@@ -18,7 +18,7 @@ render::ImageView::ImageView(const DeviceConfiguration& device_cfg, const Image&
 	view_info.subresourceRange.baseArrayLayer = 0;
 	view_info.subresourceRange.layerCount = 1;
 
-	if (vkCreateImageView(device_, &view_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateImageView(device_cfg_.logical_device, &view_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture image view!");
 	}
 }
@@ -28,7 +28,7 @@ render::ImageView::~ImageView()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(device_, handle_, nullptr);
+		vkDestroyImageView(device_cfg_.logical_device, handle_, nullptr);
 	}
 }
 

@@ -6,7 +6,7 @@
 
 #include "surface.h"
 
-render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surface& surface) : RenderObjBase(device_cfg.logical_device)
+render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surface& surface) : RenderObjBase(device_cfg)
 {
 	VkSurfaceCapabilitiesKHR capabilities;
 	VkBool32 device_surface_support;
@@ -46,9 +46,9 @@ render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surfac
 			create_info.clipped = VK_FALSE;
 			create_info.oldSwapchain = old_swapchain;
 
-			if (vkCreateSwapchainKHR(device_, &create_info, nullptr, &handle_) == VK_SUCCESS)
+			if (vkCreateSwapchainKHR(device_cfg_.logical_device, &create_info, nullptr, &handle_) == VK_SUCCESS)
 			{
-				auto image_handles = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_, handle_);
+				auto image_handles = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_cfg_.logical_device, handle_);
 
 				for (auto&& image_handle : image_handles)
 				{
@@ -87,6 +87,6 @@ render::Swapchain::~Swapchain()
 
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroySwapchainKHR(device_, handle_, nullptr);
+		vkDestroySwapchainKHR(device_cfg_.logical_device, handle_, nullptr);
 	}
 }

@@ -9,8 +9,8 @@
 #include "render/data_types.h"
 
 
-render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const render::RenderPass& render_pass, const VertexBindings& bindings):
-	RenderObjBase(device), layout_(VK_NULL_HANDLE), bindings_(bindings)
+render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const render::RenderPass& render_pass, const VertexBindings& bindings):
+	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE), bindings_(bindings)
 {
 	VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
 	vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -139,7 +139,7 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 	ubo_layout_create_info.bindingCount = desc_bindings.size();
 	ubo_layout_create_info.pBindings = desc_bindings.data();
 
-	if (vkCreateDescriptorSetLayout(device, &ubo_layout_create_info, nullptr, &descriptor_set_layot_) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(device_cfg_.logical_device, &ubo_layout_create_info, nullptr, &descriptor_set_layot_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor set layout!");
 	}
 
@@ -150,7 +150,7 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
 	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-	if (vkCreatePipelineLayout(device_, &pipelineLayoutInfo, nullptr, &layout_) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(device_cfg_.logical_device, &pipelineLayoutInfo, nullptr, &layout_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
 
@@ -171,13 +171,13 @@ render::GraphicsPipeline::GraphicsPipeline(const VkDevice& device, const VkShade
 
 	pipeline_info.layout = layout_;
 
-	pipeline_info.renderPass = render_pass.GetRenderPassHandle();
+	pipeline_info.renderPass = render_pass.GetHandle();
 	pipeline_info.subpass = 0;
 
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipeline_info.basePipelineIndex = -1; // Optional
 
-	if (vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateGraphicsPipelines(device_cfg_.logical_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 }
@@ -196,16 +196,16 @@ render::GraphicsPipeline::~GraphicsPipeline()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyPipeline(device_, handle_, nullptr);
+		vkDestroyPipeline(device_cfg_.logical_device, handle_, nullptr);
 
 		if (layout_ != VK_NULL_HANDLE)
 		{
-			vkDestroyPipelineLayout(device_, layout_, nullptr);
+			vkDestroyPipelineLayout(device_cfg_.logical_device, layout_, nullptr);
 		}
 
 		if (layout_ != VK_NULL_HANDLE)
 		{
-			vkDestroyDescriptorSetLayout(device_, descriptor_set_layot_, nullptr);
+			vkDestroyDescriptorSetLayout(device_cfg_.logical_device, descriptor_set_layot_, nullptr);
 		}
 	}
 }

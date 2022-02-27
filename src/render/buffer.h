@@ -28,7 +28,7 @@ namespace render
 
 		VkDeviceMemory GetBufferMemory();
 
-		void LoadData(const void* data, size_t size);
+		virtual void LoadData(const void* data, size_t size);
 
 		virtual ~Buffer() override;
 	private:
@@ -36,14 +36,16 @@ namespace render
 		uint64_t size_;
 	};
 
-	struct BufferSlice
+	struct BufferAccessor
 	{
-		BufferSlice(const Buffer& buffer, uint64_t offset, uint64_t size) :buffer_(buffer), offset_(offset), size_(size) {}
-		BufferSlice(const Buffer& buffer) :BufferSlice(buffer, 0, buffer.GetSize()) {}
+		BufferAccessor(const Buffer& buffer, uint32_t stride, uint64_t offset, uint64_t count) :buffer_(buffer), stride_(stride), offset_(offset), count_(count) {}
+		BufferAccessor(const Buffer& buffer) :BufferAccessor(buffer, 0, 0, buffer.GetSize()) {}
 
 		const Buffer& buffer_;
+		uint32_t stride_;
+
 		uint64_t offset_;
-		uint64_t size_;
+		uint64_t count_;
 	};
 
 	class GPULocalBuffer : public Buffer
@@ -51,6 +53,15 @@ namespace render
 	public:
 		GPULocalBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, const std::vector<uint32_t>& queue_famaly_indices) :
 			Buffer(device_cfg, size, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_famaly_indices) {}
+
+		virtual void LoadData(const void* data, size_t size) override;
+	};
+
+	class UniformBuffer : public Buffer
+	{
+	public:
+		UniformBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size) :
+			Buffer(device_cfg, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {}) {}
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_VERTEX_BUFFER_H_
