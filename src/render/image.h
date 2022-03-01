@@ -44,7 +44,7 @@ namespace render
 		Image& operator=(const Image&) = delete;
 		Image& operator=(Image&&) = default;
 
-		VkFormat GetFromat() const;
+		VkFormat GetFormat() const;
 
 		void TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type);
 		void CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, uint32_t width, uint32_t height);

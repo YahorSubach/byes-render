@@ -33,6 +33,8 @@ namespace render
 		CommandPool& operator=(CommandPool&&) = default;
 
 		bool CreateCommandBuffers(uint32_t size);
+		VkCommandBuffer GetCommandBuffer();
+
 		void ClearCommandBuffers();
 
 		const VkCommandBuffer& GetCommandBuffer(size_t index) const;
@@ -42,6 +44,7 @@ namespace render
 		virtual ~CommandPool() override;
 	private:
 
+		uint32_t next_available_buffer_;
 		VkQueue pool_queue_;
 
 		std::vector<VkCommandBuffer> command_buffers_;

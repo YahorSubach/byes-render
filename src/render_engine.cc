@@ -186,40 +186,6 @@ namespace render
 			return vk_init_success_;
 		}
 
-		
-
-		void PrepareSwapChain(const Swapchain& swapchain, const ImageView& depth_view)
-		{
-			swapchain_frame_buffers_.clear();
-			graphics_command_pool_ptr_->ClearCommandBuffers();
-
-
-			render_pass_ptr_ = std::make_unique<RenderPass>(device_cfg_, swapchain.GetFormat());
-
-			swapchain_frame_buffers_.reserve(swapchain.GetImagesCount());
-
-			for (size_t i = 0; i < swapchain.GetImagesCount(); i++)
-			{
-				swapchain_frame_buffers_.emplace_back(device_cfg_, swapchain.GetExtent(), swapchain.GetImageView(i), depth_view, *render_pass_ptr_);
-			}
-
-			graphics_command_pool_ptr_->CreateCommandBuffers(static_cast<uint32_t>(swapchain_frame_buffers_.size()));
-
-
-		}
-
-
-		void createSemaphores() {
-			VkSemaphoreCreateInfo semaphoreInfo{};
-			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-			//if (vkCreateSemaphore(device_cfg_.logical_device, &semaphoreInfo, nullptr, &image_available_semaphore_) != VK_SUCCESS)
-			//	{
-
-			//	throw std::runtime_error("failed to create semaphores!");
-			//}
-		}
-
 		void cleanup() {
 			//vkDestroyPipelineLayout(vk_logical_devices_[selected_device_index], pipelineLayout, nullptr);
 		}
@@ -235,8 +201,6 @@ namespace render
 
 			platform::ShowWindow(surface_ptr_->GetWindow());
 
-			createSemaphores();
-			
 			bool should_refresh_swapchain = true;
 
 			std::vector<FrameHandler> frames;
@@ -246,61 +210,50 @@ namespace render
 
 			glm::vec3 position(2, 2, 2);
 
+			uint32_t current_frame_index = -1;
+
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
+				graphics_command_pool_ptr_->ClearCommandBuffers();
+				graphics_command_pool_ptr_->CreateCommandBuffers(kFramesCount);
+
 				should_refresh_swapchain = false;
 
 				Swapchain swapchain(device_cfg_, *surface_ptr_);
+
+				PipelineCollection pipeline_collection(device_cfg_, swapchain.GetExtent(), swapchain.GetFormat());
+
+				std::vector<Framebuffer> swapchain_framebuffers;
 
 				VkFormat depth_format = VK_FORMAT_D32_SFLOAT;
 				Image depth_image(device_cfg_, depth_format, swapchain.GetExtent().width, swapchain.GetExtent().height, Image::ImageType::kDepthImage);
 				ImageView depth_image_view(device_cfg_, depth_image);
 
-				PrepareSwapChain(swapchain, depth_image_view);
-
-				BatchesManager batches_manager(device_cfg_, swapchain_frame_buffers_.size(), swapchain, *render_pass_ptr_, descriptor_pool);
-				
-				frames.clear();
-				frames.reserve(swapchain_frame_buffers_.size());
-
-				for (size_t frame_ind = 0; frame_ind < swapchain_frame_buffers_.size(); frame_ind++)
+				for (int i = 0; i < swapchain.GetImagesCount(); i++)
 				{
-					frames.emplace_back(device_cfg_, swapchain, frame_ind, graphics_command_pool_ptr_->GetCommandBuffer(frame_ind));
-
-					FillGraphicsBuffer(graphics_command_pool_ptr_->GetCommandBuffer(frame_ind), swapchain_frame_buffers_[frame_ind], swapchain.GetExtent(), frame_ind, batches_manager);
+					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), swapchain.GetImageView(i), depth_image_view, pipeline_collection.GetRenderPass()));
 				}
 
-				std::chrono::high_resolution_clock clock;
-				std::vector<std::pair<int, long long>> durations;
-				auto global_start = clock.now();
-				float time = 0;
-				int frames_cnt = 0;
+				BatchesManager batches_manager(device_cfg_, kFramesCount, swapchain, descriptor_pool);
+				
+				frames.clear();
+				frames.reserve(kFramesCount);
+
+				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
+				{
+					frames.push_back(FrameHandler(device_cfg_, swapchain));
+				}
+
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
+					current_frame_index = (current_frame_index + 1) % kFramesCount;
+
 					uint32_t image_index;
 
-					auto start = clock.now();
-
-					VkSemaphore image_available_semaphore_ = vk_util::CreateSemaphore(device_cfg_.logical_device);
 
 					VkResult result = vkAcquireNextImageKHR(device_cfg_.logical_device, swapchain.GetHandle(), UINT64_MAX,
-						image_available_semaphore_, VK_NULL_HANDLE, &image_index);
+						frames[current_frame_index].GetImageAvailableSemaphore(), VK_NULL_HANDLE, &image_index);
 
-					auto end = clock.now();
-
-					auto duration = end - start;
-
-					if (durations.size() < 10000)
-					{
-						durations.push_back(std::make_pair(image_index, duration.count()));
-					}
-					frames_cnt++;
-					if (std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - global_start).count() >= 1000)
-					{
-						//std::cout<< frames_cnt <<std::endl;
-						frames_cnt = 0;
-						global_start = clock.now();
-					}
 
 					if (result != VK_SUCCESS)
 					{
@@ -312,7 +265,7 @@ namespace render
 					}
 
 
-					auto render_batches = batches_manager.GetBatches();
+					auto&& render_batches = batches_manager.GetBatches();
 
 					int mouse_x_delta;
 					int mouse_y_delta;
@@ -349,37 +302,14 @@ namespace render
 						position -= (0.001f * glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>() / 2), glm::cos(yaw + glm::pi<float>() / 2), 0)));
 					}
 
-
-					int i = -1;
-					for (auto&& batch : render_batches)
-					{
-						UniformBufferObject ubo{};
-
-						ubo.model = batch.get().GetModelMatrix();
-						ubo.view = glm::lookAt(position, position + look , glm::vec3(0.0f, 0.0f, 1.0f));
-						ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 100.0f);
-						ubo.proj[1][1] *= -1;
-
-						void* data;
-						vkMapMemory(device_cfg_.logical_device, batch.get().GetUniformBuffer(image_index).GetBufferMemory(), 0, sizeof(ubo), 0, &data);
-						memcpy(data, &ubo, sizeof(ubo));
-						vkUnmapMemory(device_cfg_.logical_device, batch.get().GetUniformBuffer(image_index).GetBufferMemory());
-
-						i++;
-					}
-
-					should_refresh_swapchain = !frames[image_index].Process(image_available_semaphore_);
+					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], image_index, pipeline_collection, batches_manager, position, look);
 
 					auto current_time = std::chrono::high_resolution_clock::now();
-					time = std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time).count();
 
 				}
 
 				vkDeviceWaitIdle(device_cfg_.logical_device);
 			}
-
-			//vkDestroySemaphore(device_cfg_.logical_device, image_available_semaphore_, nullptr);
-
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
 		}
@@ -670,66 +600,6 @@ namespace render
 		}
 
 
-		bool FillGraphicsBuffer(VkCommandBuffer command_buffer, const Framebuffer& framebuffer, const VkExtent2D& extent, uint32_t image_index, BatchesManager& batches_manager)
-		{
-			VkCommandBufferBeginInfo begin_info{};
-			begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT; // Optional
-			begin_info.pInheritanceInfo = nullptr; // Optional
-
-			if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
-				throw std::runtime_error("failed to begin recording command buffer!");
-			}
-
-			VkRenderPassBeginInfo render_pass_info{};
-			render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			render_pass_info.renderPass = render_pass_ptr_->GetHandle();
-			render_pass_info.framebuffer = framebuffer.GetHandle();
-
-			render_pass_info.renderArea.offset = { 0, 0 };
-			render_pass_info.renderArea.extent = extent;
-
-			std::array<VkClearValue, 2> clear_color;
-			clear_color[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-			clear_color[1].depthStencil = {1.0f, 0};
-			render_pass_info.clearValueCount = clear_color.size();
-			render_pass_info.pClearValues = clear_color.data();
-
-			vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-
-
-			auto render_batches = batches_manager.GetBatches();
-
-			for (auto&& batch : render_batches)
-			{
-				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, batch.get().GetPipeline().GetHandle());
-
-				VkDescriptorSet desc_sets[] = { batch.get().GetDescriptorSet(image_index)};
-
-				std::vector<VkBuffer> vert_bufs;
-				std::vector<VkDeviceSize> offsetes;
-
-				for (auto&& buf : batch.get().GetVertexBuffers())
-				{
-					vert_bufs.push_back(buf.buffer_.GetHandle());
-					offsetes.push_back(buf.offset_);
-				}
-
-				vkCmdBindVertexBuffers(command_buffer, 0, vert_bufs.size(), vert_bufs.data(), offsetes.data());
-				vkCmdBindIndexBuffer(command_buffer, batch.get().GetIndexBuffer().buffer_.GetHandle(), batch.get().GetIndexBuffer().offset_, VK_INDEX_TYPE_UINT16);
-				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, batch.get().GetPipeline().GetLayout(), 0, 1, desc_sets, 0, nullptr);
-				vkCmdDrawIndexed(command_buffer, batch.get().GetDrawSize(), 1, 0, 0, 0);
-			}
-
-			vkCmdEndRenderPass(command_buffer);
-
-			if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-				throw std::runtime_error("failed to record command buffer!");
-			}
-
-			return false;
-		}
-
 
 
 		bool vk_init_success_;
@@ -751,16 +621,13 @@ namespace render
 
 		DeviceConfiguration device_cfg_;
 
-
-		std::vector<Framebuffer> swapchain_frame_buffers_;
-
 		std::unique_ptr<Surface> surface_ptr_;
 
-		std::unique_ptr<RenderPass> render_pass_ptr_;
 		std::unique_ptr<DescriptorPool> descriptor_pool_ptr_;
 		std::unique_ptr<CommandPool> graphics_command_pool_ptr_;
 		std::unique_ptr<CommandPool> transfer_command_pool_ptr_;
 
+		const uint32_t kFramesCount = 4;
 		//VkSemaphore image_available_semaphore_;
 		//VkSemaphore render_finished_semaphore_;
 };

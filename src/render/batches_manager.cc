@@ -8,27 +8,8 @@
 
 
 
-static std::vector<char> readFile(const std::string& filename) {
-	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
-	if (!file.is_open()) {
-		throw std::runtime_error("failed to open file!");
-	}
-
-	size_t fileSize = (size_t)file.tellg();
-	std::vector<char> buffer(fileSize);
-
-	file.seekg(0);
-	file.read(buffer.data(), fileSize);
-
-	file.close();
-
-	return buffer;
-}
-
-
-
-render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, const RenderPass& render_pass, DescriptorPool& descriptor_pool) : RenderObjBase(device_cfg), color_sampler_(device_cfg)
+render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, DescriptorPool& descriptor_pool) : RenderObjBase(device_cfg)
 {
 
 	images_.push_back(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png"));
@@ -56,58 +37,17 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 		gltf_wrappers_.push_back(GLTFWrapper(device_cfg, "../blender/old_chair/old_chair_with_cube.glb"));
 
 		auto&& wrapper = gltf_wrappers_.back();
-		
-		auto vert_shader_code = readFile("../shaders/white_v.spv");
-		auto frag_shader_code = readFile("../shaders/white_f.spv");
-
-		VkShaderModule vert_shader_module = CreateShaderModule(vert_shader_code);
-		VkShaderModule frag_shader_module = CreateShaderModule(frag_shader_code);
-
-		VertexBindingDesc position_binding =
-		{
-		wrapper.nodes.front().mesh.primitives.front().positions.stride_,
-
-			{
-				{ VK_FORMAT_R32G32B32_SFLOAT, 0}
-			}
-		};
-
-		VertexBindingDesc normal_binding =
-		{
-		wrapper.nodes.front().mesh.primitives.front().normals.stride_,
-
-			{
-				{ VK_FORMAT_R32G32B32_SFLOAT, 0}
-			}
-		};
-
-		VertexBindingDesc tex_binding =
-		{
-		wrapper.nodes.front().mesh.primitives.front().tex_coords.stride_,
-
-			{
-				{ VK_FORMAT_R32G32_SFLOAT, 0}
-			}
-		};
-
-		VertexBindings vertex_bindings = { position_binding, normal_binding, tex_binding };
-
-		pipelines_.push_back(GraphicsPipeline(device_cfg, vert_shader_module, frag_shader_module, swapchain.GetExtent(), render_pass, vertex_bindings));
-
-		vkDestroyShaderModule(device_cfg.logical_device, frag_shader_module, nullptr);
-		vkDestroyShaderModule(device_cfg.logical_device, vert_shader_module, nullptr);
 
 
 		for (auto&& node : wrapper.nodes)
 		{
 			for (auto&& primitive : node.mesh.primitives)
-			{
-				DescSetsAndBuffers desc_sets_and_uni_bufs = BuildDescriptorSets(frames_cnt, primitive.color_tex, pipelines_.back().GetDescriptorSetLayout());
-				
+			{	
 				std::vector<BufferAccessor> vert_bufs = { primitive.positions, primitive.normals, primitive.tex_coords };
 
-				Batch batch(pipelines_.back(), vert_bufs, primitive.indices, std::move(desc_sets_and_uni_bufs.uniform_buffers), desc_sets_and_uni_bufs.descriptor_sets, primitive.indices.count_, node.node_matrix);
+				Batch batch(vert_bufs, primitive.indices, primitive.color_tex, primitive.indices.count_, node.node_matrix);
 				batches_.emplace_back(std::move(batch));
+				int a = 1;
 			}
 		}
 	}
@@ -296,99 +236,19 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 
 }
 
-std::vector<std::reference_wrapper<render::Batch>> render::BatchesManager::GetBatches()
+const std::vector<render::Batch>& render::BatchesManager::GetBatches() const
 {
-	std::vector<std::reference_wrapper<render::Batch>> result;
+	//std::vector<Batch> result;
 
-	for (auto&& batch : batches_)
-	{
-		result.push_back(batch);
-	}
+	//for (auto&& batch : batches_)
+	//{
+	//	result.push_back(batch);
+	//}
 
-	return result;
+	return batches_;
 }
 
-uint32_t render::BatchesManager::GetUniformSetCnt()
+const render::ImageView& render::BatchesManager::GetEnvImageView() const
 {
-	return 2;
-}
-
-uint32_t render::BatchesManager::GetSamplerSetCnt()
-{
-	return 2;
-}
-
-
-render::BatchesManager::DescSetsAndBuffers render::BatchesManager::BuildDescriptorSets(uint32_t frames_cnt, const ImageView& image_view, const VkDescriptorSetLayout& layout)
-{
-	DescSetsAndBuffers result;
-
-	result.descriptor_sets.resize(2);
-
-	device_cfg_.descriptor_pool->AllocateSet(layout, frames_cnt, result.descriptor_sets);
-
-	for (uint32_t i = 0; i < frames_cnt; i++)
-	{
-		result.uniform_buffers.push_back(UniformBuffer(device_cfg_, sizeof(UniformBufferObject)));
-
-		VkDescriptorBufferInfo buffer_info{};
-		buffer_info.buffer = result.uniform_buffers.back().GetHandle();
-		buffer_info.offset = 0;
-		buffer_info.range = sizeof(UniformBufferObject);
-
-		VkDescriptorImageInfo color_image_info{};
-		color_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		color_image_info.imageView = image_view.GetHandle();
-		color_image_info.sampler = color_sampler_.GetHandle();
-
-		VkDescriptorImageInfo env_image_info{};
-		env_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		env_image_info.imageView = image_views_.back().GetHandle();
-		env_image_info.sampler = color_sampler_.GetHandle();
-
-		std::array<VkWriteDescriptorSet, 3> descriptor_writes{};
-
-		descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptor_writes[0].dstSet = result.descriptor_sets[i];
-		descriptor_writes[0].dstBinding = 0;
-		descriptor_writes[0].dstArrayElement = 0;
-		descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptor_writes[0].descriptorCount = 1;
-		descriptor_writes[0].pBufferInfo = &buffer_info;
-
-		descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptor_writes[1].dstSet = result.descriptor_sets[i];
-		descriptor_writes[1].dstBinding = 1;
-		descriptor_writes[1].dstArrayElement = 0;
-		descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptor_writes[1].descriptorCount = 1;
-		descriptor_writes[1].pImageInfo = &color_image_info;
-
-		descriptor_writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptor_writes[2].dstSet = result.descriptor_sets[i];
-		descriptor_writes[2].dstBinding = 2;
-		descriptor_writes[2].dstArrayElement = 0;
-		descriptor_writes[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptor_writes[2].descriptorCount = 1;
-		descriptor_writes[2].pImageInfo = &env_image_info;
-
-		vkUpdateDescriptorSets(device_cfg_.logical_device, descriptor_writes.size(), descriptor_writes.data(), 0, nullptr);
-	}
-
-	return result;
-}
-
-VkShaderModule render::BatchesManager::CreateShaderModule(const std::vector<char>& code)
-{
-	VkShaderModuleCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-	VkShaderModule shader_module;
-	if (vkCreateShaderModule(device_cfg_.logical_device, &createInfo, nullptr, &shader_module) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create shader module!");
-	}
-
-	return shader_module;
+	return image_views_.front();
 }

@@ -4,8 +4,8 @@
 
 #include "common.h"
 
-render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const VkExtent2D& extent, const ImageView& color_image_view, const ImageView& depth_image_view, const RenderPass& render_pass):
-	RenderObjBase(device_cfg)
+render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const ImageView& color_image_view, const ImageView& depth_image_view, const RenderPass& render_pass):
+	RenderObjBase(device_cfg), extent_(extent)
 {
 	std::array<VkImageView, 2> attachments = {
 		color_image_view.GetHandle(),
@@ -33,4 +33,9 @@ render::Framebuffer::~Framebuffer()
 	{
 		vkDestroyFramebuffer(device_cfg_.logical_device, handle_, nullptr);
 	}
+}
+
+render::Extent render::Framebuffer::GetExtent() const
+{
+	return extent_;
 }

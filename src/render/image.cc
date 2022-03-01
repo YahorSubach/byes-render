@@ -78,7 +78,7 @@ render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, con
 	return res;
 }
 
-VkFormat render::Image::GetFromat() const
+VkFormat render::Image::GetFormat() const
 {
 	return format_;
 }

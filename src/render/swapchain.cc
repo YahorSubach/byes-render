@@ -60,8 +60,7 @@ render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surfac
 	}
 }
 
-
-VkExtent2D render::Swapchain::GetExtent() const
+render::Extent render::Swapchain::GetExtent() const
 {
 	return extent_;
 }

@@ -25,7 +25,7 @@ namespace render
 
 		VkSurfaceFormatKHR GetSurfaceFormat(const VkPhysicalDevice& physical_device) const;
 		VkPresentModeKHR GetSurfacePresentMode(const VkPhysicalDevice& physical_device) const;
-		VkExtent2D GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
+		Extent GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
 		virtual ~Surface() override;
 	private:

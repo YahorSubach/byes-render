@@ -24,7 +24,7 @@ namespace render
 		Swapchain& operator=(const Swapchain&) = delete;
 		Swapchain& operator=(Swapchain&&) = default;
 
-		VkExtent2D GetExtent() const;
+		Extent GetExtent() const;
 		VkFormat GetFormat() const;
 
 		size_t GetImagesCount() const;
@@ -33,7 +33,7 @@ namespace render
 		virtual ~Swapchain() override;
 	private:
 
-		VkExtent2D extent_;
+		Extent extent_;
 		VkFormat format_;
 		
 		std::vector<Image> images_;

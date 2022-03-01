@@ -25,7 +25,7 @@ namespace render
 	{
 	public:
 
-		BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, const RenderPass& render_pass, DescriptorPool& descriptor_pool);
+		BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, DescriptorPool& descriptor_pool);
 
 		BatchesManager(const BatchesManager&) = delete;
 		BatchesManager(BatchesManager&&) = default;
@@ -33,22 +33,11 @@ namespace render
 		BatchesManager& operator=(const BatchesManager&) = delete;
 		BatchesManager& operator=(BatchesManager&&) = default;
 
-		std::vector<std::reference_wrapper<render::Batch>> GetBatches();
+		const std::vector<Batch>& GetBatches() const;
 
-		uint32_t GetUniformSetCnt();
-		uint32_t GetSamplerSetCnt();
-
-		struct DescSetsAndBuffers
-		{
-			std::vector<VkDescriptorSet> descriptor_sets;
-			std::vector<UniformBuffer> uniform_buffers;
-		};
+		const ImageView& GetEnvImageView() const;
 
 	private:
-
-		DescSetsAndBuffers BuildDescriptorSets(uint32_t frames_cnt, const ImageView& image_view, const VkDescriptorSetLayout& layout);
-
-		VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
 		std::unique_ptr<DescriptorPool> descriptor_pool_ptr_;
 
@@ -57,15 +46,11 @@ namespace render
 		uint32_t uniform_set_cnt_;
 		uint32_t sampler_set_cnt_;
 
-
-		std::vector<GraphicsPipeline> pipelines_;
 		std::vector<GPULocalBuffer> buffers_;
 		std::vector<Image> images_;
 		std::vector<ImageView> image_views_;
 		
 		std::vector<GLTFWrapper> gltf_wrappers_;
-
-		Sampler color_sampler_;
 
 	};
 }

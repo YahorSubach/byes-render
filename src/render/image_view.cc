@@ -7,7 +7,7 @@ render::ImageView::ImageView(const DeviceConfiguration& device_cfg, const Image&
 	view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	view_info.image = image.GetHandle();
 	view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	view_info.format = image.GetFromat();
+	view_info.format = image.GetFormat();
 	
 	if		(image.GetImageType() == Image::ImageType::kColorImage) view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	else if (image.GetImageType() == Image::ImageType::kSwapchainImage) view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

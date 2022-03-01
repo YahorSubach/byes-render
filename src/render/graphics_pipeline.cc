@@ -9,7 +9,7 @@
 #include "render/data_types.h"
 
 
-render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const VkExtent2D& extent, const render::RenderPass& render_pass, const VertexBindings& bindings):
+render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const Extent& extent, const render::RenderPass& render_pass, const VertexBindings& bindings):
 	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE), bindings_(bindings)
 {
 	VkPipelineShaderStageCreateInfo vert_shader_stage_info{};

@@ -42,7 +42,7 @@ VkPresentModeKHR render::Surface::GetSurfacePresentMode(const VkPhysicalDevice& 
 	return presentat_modes[2]; //TODO fuck
 }
 
-VkExtent2D render::Surface::GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const
+render::Extent render::Surface::GetSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const
 {
 	if (capabilities.currentExtent.width != UINT32_MAX) {
 		return capabilities.currentExtent;

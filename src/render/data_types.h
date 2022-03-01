@@ -32,6 +32,15 @@ namespace render
 		DescriptorPool* descriptor_pool;
 	};
 
+	struct Extent
+	{
+		uint32_t width;
+		uint32_t height;
+		
+		Extent() = default;
+		Extent(VkExtent2D vk_ext): width(vk_ext.width), height(vk_ext.height) {}
+		operator VkExtent2D() const { return VkExtent2D{ width , height }; }
+	};
 
 	struct Vertex {
 		glm::vec3 pos;

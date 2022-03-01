@@ -1,14 +1,16 @@
 #include "command_pool.h"
 
-render::CommandPool::CommandPool(const DeviceConfiguration& device_cfg, PoolType pool_type): RenderObjBase(device_cfg)
+render::CommandPool::CommandPool(const DeviceConfiguration& device_cfg, PoolType pool_type): RenderObjBase(device_cfg), next_available_buffer_(0)
 {
 	VkCommandPoolCreateInfo pool_info{};
 	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	pool_info.flags = 0; // Optional
 
 	if (pool_type == PoolType::kGraphics)
 	{
 		pool_info.queueFamilyIndex = device_cfg.graphics_queue_index;
 		pool_queue_ = device_cfg.graphics_queue;
+		pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	}
 	else if (pool_type == PoolType::kTransfer)
 	{
@@ -16,7 +18,7 @@ render::CommandPool::CommandPool(const DeviceConfiguration& device_cfg, PoolType
 		pool_queue_ = device_cfg.transfer_queue;
 	}
 
-	pool_info.flags = 0; // Optional
+
 
 	if (vkCreateCommandPool(device_cfg_.logical_device, &pool_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
@@ -44,6 +46,11 @@ bool render::CommandPool::CreateCommandBuffers(uint32_t size)
 	}
 
 	return true;
+}
+
+VkCommandBuffer render::CommandPool::GetCommandBuffer()
+{
+	return command_buffers_[next_available_buffer_++];
 }
 
 void render::CommandPool::ClearCommandBuffers()

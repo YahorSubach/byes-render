@@ -37,9 +37,17 @@ void main() {
 	float mirror_tex_x = (mirrorNormalizeFlatDir.x > 0 ? acos(mirrorNormalizeFlatDir.y) : (2*M_PI - acos(mirrorNormalizeFlatDir.y))) / (2 * M_PI);
 	
 	vec2 mirrorTexCoord = vec2(mirror_tex_x, mirror_tex_y);
-	mirrorTexCoord = mirrorTexCoord + 0.01 * rand(mirrorTexCoord);
 
-	vec4 mirror = vec4(texture(envSampler,mirrorTexCoord).rgb, 1.0) * (0.1 + 0.9 * diffuseMultiplier);
+//	vec4 mirror = (
+//	vec4(texture(envSampler,mirrorTexCoord + vec2(0.02, 0.02)).rgb, 1.0) +
+//	vec4(texture(envSampler,mirrorTexCoord + vec2(-0.02, 0.02)).rgb, 1.0) +
+//	vec4(texture(envSampler,mirrorTexCoord + vec2(0.02, -0.02)).rgb, 1.0) +
+//	vec4(texture(envSampler,mirrorTexCoord + vec2(-0.02, -0.02)).rgb, 1.0)) / 4
+//	* (0.1 + 0.9 * diffuseMultiplier);
+
+	mirrorTexCoord = mirrorTexCoord + 0.003*(rand(mirrorTexCoord) - 0.5);
+	vec4 mirror =vec4(texture(envSampler,mirrorTexCoord).rgb, 1.0) * (0.1 + 0.9 * diffuseMultiplier);
+
 	float mirrorMultiplier = 1 - dot(normal, normalize(fragToEyeVec));
 
 	vec4 diffuse = vec4(texture(texSampler, fragTexCoord).rgb, 1.0) * (0.1 + 0.9 * diffuseMultiplier);
