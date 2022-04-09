@@ -4,6 +4,9 @@
 
 #include "vulkan/vulkan.h"
 
+#include <vector>
+#include <functional>
+
 #include "render/object_base.h"
 #include "render/render_pass.h"
 #include "render/image_view.h"
@@ -13,7 +16,7 @@ namespace render
 	class Framebuffer : public RenderObjBase<VkFramebuffer>
 	{
 	public:
-		Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const ImageView& color_image_view, const ImageView& depth_image_view, const RenderPass& render_pass);
+		Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const std::vector<std::reference_wrapper<const ImageView>>& attachments, const RenderPass& render_pass);
 
 		Framebuffer(const Framebuffer&) = delete;
 		Framebuffer(Framebuffer&&) = default;

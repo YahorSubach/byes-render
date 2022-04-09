@@ -31,7 +31,7 @@ if(Vulkan_FOUND)
 
 		add_custom_target(shaders
 			COMMAND cmd /c "cd ../shaders && compile.bat"
-			COMMENT "testing shaders..."
+			COMMENT "compiling shaders..."
 		)
 
 		add_subdirectory(shaders)

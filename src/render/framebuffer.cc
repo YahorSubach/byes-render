@@ -4,19 +4,22 @@
 
 #include "common.h"
 
-render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const ImageView& color_image_view, const ImageView& depth_image_view, const RenderPass& render_pass):
+render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const std::vector<std::reference_wrapper<const ImageView>>& attachments, const RenderPass& render_pass):
 	RenderObjBase(device_cfg), extent_(extent)
 {
-	std::array<VkImageView, 2> attachments = {
-		color_image_view.GetHandle(),
-		depth_image_view.GetHandle()
-	};
+
+	std::vector<VkImageView> vk_attachments;
+
+	for (auto&& attachment : attachments)
+	{
+		vk_attachments.push_back(attachment.get().GetHandle());
+	}
 
 	VkFramebufferCreateInfo framebuffer_info{};
 	framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebuffer_info.renderPass = render_pass.GetHandle();
-	framebuffer_info.attachmentCount = attachments.size();
-	framebuffer_info.pAttachments = attachments.data();
+	framebuffer_info.attachmentCount = vk_attachments.size();
+	framebuffer_info.pAttachments = vk_attachments.data();
 	framebuffer_info.width = extent.width;
 	framebuffer_info.height = extent.height;
 	framebuffer_info.layers = 1;

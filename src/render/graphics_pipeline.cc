@@ -9,32 +9,38 @@
 #include "render/data_types.h"
 
 
-render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const Extent& extent, const render::RenderPass& render_pass, const VertexBindings& bindings):
-	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE), bindings_(bindings)
+render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderPass& render_pass, const GraphicsPipelineCreateInfo& create_info):
+	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE)
 {
-	VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
-	vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vert_shader_stage_info.module = vert_shader_module;
-	vert_shader_stage_info.pName = "main"; // entry point in shader
+	std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
+	std::vector<VkVertexInputBindingDescription> vertex_input_bindings_descs;
+	std::vector<VkVertexInputAttributeDescription> vertex_input_attr_descs;
 
-	VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
-	frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	frag_shader_stage_info.module = frag_shader_module;
-	frag_shader_stage_info.pName = "main";
+	for (auto&& shader_module : create_info.shader_modules)
+	{
+		VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
+		vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		vert_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		vert_shader_stage_info.module = shader_module.get().GetHandle();
+		vert_shader_stage_info.pName = "main"; // entry point in shader
 
-	VkPipelineShaderStageCreateInfo shader_stages[] = { vert_shader_stage_info, frag_shader_stage_info };
+		if (!shader_module.get().GetVertexBindingsDescs().empty())
+		{
+			vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
 
-	auto binding_description = BuildVertexInputBindingDescriptions();
-	auto attribute_descriptions = BuildVertexAttributeDescription();
+			vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(shader_module.get().GetVertexBindingsDescs());
+			vertex_input_attr_descs = BuildVertexAttributeDescription(shader_module.get().GetVertexBindingsDescs());
+		}
+
+		shader_stage_create_infos.push_back(vert_shader_stage_info);
+	}
 
 	VkPipelineVertexInputStateCreateInfo vertex_input_info{};
 	vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertex_input_info.vertexBindingDescriptionCount = binding_description.size();
-	vertex_input_info.pVertexBindingDescriptions = binding_description.data(); // Optional
-	vertex_input_info.vertexAttributeDescriptionCount = attribute_descriptions.size();
-	vertex_input_info.pVertexAttributeDescriptions = attribute_descriptions.data(); // Optional
+	vertex_input_info.vertexBindingDescriptionCount = vertex_input_bindings_descs.size();
+	vertex_input_info.pVertexBindingDescriptions = vertex_input_bindings_descs.data(); // Optional
+	vertex_input_info.vertexAttributeDescriptionCount = vertex_input_attr_descs.size();
+	vertex_input_info.pVertexAttributeDescriptions = vertex_input_attr_descs.data(); // Optional
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly{};
 	input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -44,14 +50,14 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = extent.width;
-	viewport.height = extent.height;
+	viewport.width = create_info.extent.width;
+	viewport.height = create_info.extent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = extent;
+	scissor.extent = create_info.extent;
 
 	VkPipelineViewportStateCreateInfo viewport_state{};
 	viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -118,38 +124,6 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	depth_stencil.front = {}; // Optional
 	depth_stencil.back = {}; // Optional
 
-	VkDescriptorSetLayoutBinding ubo_layout_binding{};
-	ubo_layout_binding.binding = 0;
-	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ubo_layout_binding.descriptorCount = 1;
-	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	ubo_layout_binding.pImmutableSamplers = nullptr;
-
-	VkDescriptorSetLayoutBinding color_sampler_layout_binding{};
-	color_sampler_layout_binding.binding = 1;
-	color_sampler_layout_binding.descriptorCount = 1;
-	color_sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	color_sampler_layout_binding.pImmutableSamplers = nullptr;
-	color_sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	VkDescriptorSetLayoutBinding env_sampler_layout_binding{};
-	env_sampler_layout_binding.binding = 2;
-	env_sampler_layout_binding.descriptorCount = 1;
-	env_sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	env_sampler_layout_binding.pImmutableSamplers = nullptr;
-	env_sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	std::array<VkDescriptorSetLayoutBinding, 3> desc_bindings = { ubo_layout_binding, color_sampler_layout_binding, env_sampler_layout_binding };
-
-	VkDescriptorSetLayoutCreateInfo ubo_layout_create_info{};
-	ubo_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	ubo_layout_create_info.bindingCount = desc_bindings.size();
-	ubo_layout_create_info.pBindings = desc_bindings.data();
-
-	if (vkCreateDescriptorSetLayout(device_cfg_.logical_device, &ubo_layout_create_info, nullptr, &descriptor_set_layot_) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create descriptor set layout!");
-	}
-
 
 	VkPushConstantRange vertex_push_constant{};
 	vertex_push_constant.offset = 0;
@@ -163,10 +137,16 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	std::vector<VkPushConstantRange> push_constants = { vertex_push_constant, fragment_push_constant };
 
+	std::vector<VkDescriptorSetLayout> descriptor_sets_layots(create_info.descriptor_set_layouts.size());
+	for (int i = 0; i < descriptor_sets_layots.size(); i++)
+	{
+		descriptor_sets_layots[i] = create_info.descriptor_set_layouts[i].get().GetHandle();
+	}
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1; // Optional
-	pipelineLayoutInfo.pSetLayouts = &descriptor_set_layot_; // Optional
+	pipelineLayoutInfo.setLayoutCount = descriptor_sets_layots.size();
+	pipelineLayoutInfo.pSetLayouts = descriptor_sets_layots.data(); // Optional
 	pipelineLayoutInfo.pushConstantRangeCount = push_constants.size(); // Optional
 	pipelineLayoutInfo.pPushConstantRanges = push_constants.data(); // Optional
 
@@ -176,8 +156,8 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	VkGraphicsPipelineCreateInfo pipeline_info{};
 	pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipeline_info.stageCount = 2;
-	pipeline_info.pStages = shader_stages;
+	pipeline_info.stageCount = shader_stage_create_infos.size();
+	pipeline_info.pStages = shader_stage_create_infos.data();
 
 	pipeline_info.pVertexInputState = &vertex_input_info;
 	pipeline_info.pInputAssemblyState = &input_assembly;
@@ -202,11 +182,6 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	}
 }
 
-const VkDescriptorSetLayout& render::GraphicsPipeline::GetDescriptorSetLayout() const
-{
-	return descriptor_set_layot_;
-}
-
 const VkPipelineLayout& render::GraphicsPipeline::GetLayout() const
 {
 	return layout_;
@@ -222,43 +197,38 @@ render::GraphicsPipeline::~GraphicsPipeline()
 		{
 			vkDestroyPipelineLayout(device_cfg_.logical_device, layout_, nullptr);
 		}
-
-		if (layout_ != VK_NULL_HANDLE)
-		{
-			vkDestroyDescriptorSetLayout(device_cfg_.logical_device, descriptor_set_layot_, nullptr);
-		}
 	}
 }
 
-std::vector<VkVertexInputBindingDescription> render::GraphicsPipeline::BuildVertexInputBindingDescriptions()
+std::vector<VkVertexInputBindingDescription> render::GraphicsPipeline::BuildVertexInputBindingDescriptions(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs)
 {
-	std::vector<VkVertexInputBindingDescription> result(bindings_.size());
+	std::vector<VkVertexInputBindingDescription> result(vertex_bindings_descs.size());
 
-	for (uint32_t i = 0; i < bindings_.size(); i++)
+	for (uint32_t i = 0; i < vertex_bindings_descs.size(); i++)
 	{
 		result[i].binding = i;
-		result[i].stride = bindings_[i].stride_;
+		result[i].stride = vertex_bindings_descs[i].stride;
 		result[i].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	}
 
 	return result;
 }
 
-std::vector<VkVertexInputAttributeDescription> render::GraphicsPipeline::BuildVertexAttributeDescription()
+std::vector<VkVertexInputAttributeDescription> render::GraphicsPipeline::BuildVertexAttributeDescription(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs)
 {
 	std::vector<VkVertexInputAttributeDescription> result;
 
 	uint32_t location_index = 0;
 
-	for (uint32_t binding_index = 0; binding_index < bindings_.size(); binding_index++)
+	for (uint32_t binding_index = 0; binding_index < vertex_bindings_descs.size(); binding_index++)
 	{
-		for (uint32_t attr_index = 0; attr_index < bindings_[binding_index].attributes_.size(); attr_index++)
+		for (uint32_t attr_index = 0; attr_index < vertex_bindings_descs[binding_index].attributes.size(); attr_index++)
 		{
 			result.push_back({});
 			result.back().binding = binding_index;
-			result.back().format = static_cast<VkFormat>(bindings_[binding_index].attributes_[attr_index].format_);
+			result.back().format = static_cast<VkFormat>(vertex_bindings_descs[binding_index].attributes[attr_index].format);
 			result.back().location = location_index;
-			result.back().offset = bindings_[binding_index].attributes_[attr_index].offset_;
+			result.back().offset = vertex_bindings_descs[binding_index].attributes[attr_index].offset;
 
 			location_index++;
 		}

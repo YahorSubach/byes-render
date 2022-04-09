@@ -25,7 +25,7 @@ namespace render
 		FrameHandler& operator=(const FrameHandler&) = delete;
 		FrameHandler& operator=(FrameHandler&&) = default;
 		
-		bool FillCommandBuffer(const Framebuffer& swapchain_framebuffer, uint32_t swapchain_image_index, const PipelineCollection& pipeline_collection, const BatchesManager& batches_manager);
+		bool FillCommandBuffer(const Framebuffer& swapchain_framebuffer, const PipelineCollection& pipeline_collection, const BatchesManager& batches_manager);
 		bool Draw(const Framebuffer& swapchain_framebuffer, uint32_t image_index, const PipelineCollection& pipeline_collection, const BatchesManager& batches_manager, glm::vec3 pos, glm::vec3 look);
 
 		VkSemaphore GetImageAvailableSemaphore() const;
@@ -49,15 +49,22 @@ namespace render
 
 		VkQueue graphics_queue_;
 
-		//VkSemaphore acquire_semaphore = VK_NULL_HANDLE;
-		//VkSemaphore acquire_semaphore_prev = VK_NULL_HANDLE;
+		std::map<std::string, DescriptorSetLayout> descriptor_sets_layouts;
 
-		std::vector<UniformBuffer> uniform_buffers_;
-		std::vector<VkDescriptorSet> descriptor_sets_;
+		UniformBuffer camera_uniform_buffer_;
+		VkDescriptorSet camera_descriptor_set_;
+
+		std::vector<UniformBuffer> model_uniform_buffers_;
+		std::vector<VkDescriptorSet> model_descriptor_sets_;
+
+		std::vector<VkDescriptorSet> material_descriptor_sets_;
 
 		Sampler color_sampler_;
 
-		void BuildDescriptorSet(uint32_t batch_index, const ImageView& color_image_view, const ImageView& env_image_view);
+
+		void UpdateCameraDescriptorSet(glm::vec3 pos, glm::vec3 look);
+		void UpdateModelDescriptorSet(uint32_t model_descriptor_set_index, const Batch& batch);
+		void UpdateMaterialDescriptorSet(uint32_t material_descriptor_set_index, const Batch& batch, const ImageView& env_image_view);
 	};
 }
 

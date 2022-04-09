@@ -231,7 +231,12 @@ namespace render
 
 				for (int i = 0; i < swapchain.GetImagesCount(); i++)
 				{
-					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), swapchain.GetImageView(i), depth_image_view, pipeline_collection.GetRenderPass()));
+					std::vector<std::reference_wrapper<const ImageView>> attachments;
+					
+					attachments.push_back(swapchain.GetImageView(i));
+					attachments.push_back(depth_image_view);
+
+					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), attachments, pipeline_collection.GetRenderPass(PipelineCollection::RenderPassId::kScreen)));
 				}
 
 				BatchesManager batches_manager(device_cfg_, kFramesCount, swapchain, descriptor_pool);

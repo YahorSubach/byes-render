@@ -5,22 +5,14 @@
 
 #include "vulkan/vulkan.h"
 
+#include "render/descriptor_set_layout.h"
 #include "render/object_base.h"
 #include "render/render_pass.h"
+#include "render/shader_module.h"
 
 namespace render
 {
-	struct VertexBindingAttributeDesc
-	{
-		uint32_t format_;
-		uint32_t offset_;
-	};
-
-	struct VertexBindingDesc
-	{
-		uint64_t stride_;
-		std::vector<VertexBindingAttributeDesc> attributes_;
-	};
+	
 
 	struct VertexPushConstants {
 		glm::mat4 project_matrix;
@@ -32,12 +24,18 @@ namespace render
 		float roughness;
 	};
 
-	using VertexBindings = std::vector<VertexBindingDesc>;
+	struct GraphicsPipelineCreateInfo
+	{
+		Extent extent;
+
+		std::vector<std::reference_wrapper<const ShaderModule>> shader_modules;
+		std::vector<std::reference_wrapper<const DescriptorSetLayout>> descriptor_set_layouts;
+	};
 
 	class GraphicsPipeline : public RenderObjBase<VkPipeline>
 	{
 	public:
-		GraphicsPipeline(const DeviceConfiguration& device_cfg, const VkShaderModule& vert_shader_module, const VkShaderModule& frag_shader_module, const Extent& extent, const RenderPass& render_pass, const VertexBindings& bindings);
+		GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderPass& render_pass, const GraphicsPipelineCreateInfo& create_info);
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;
 		GraphicsPipeline(GraphicsPipeline&&) = default;
@@ -45,18 +43,14 @@ namespace render
 		GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
 		GraphicsPipeline& operator=(GraphicsPipeline&&) = default;
 
-		const VkDescriptorSetLayout& GetDescriptorSetLayout() const;
 		const VkPipelineLayout& GetLayout() const;
 
 		virtual ~GraphicsPipeline() override;
 	private:
 
-		std::vector<VkVertexInputBindingDescription> BuildVertexInputBindingDescriptions();
-		std::vector<VkVertexInputAttributeDescription> BuildVertexAttributeDescription();
+		std::vector<VkVertexInputBindingDescription> BuildVertexInputBindingDescriptions(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
+		std::vector<VkVertexInputAttributeDescription> BuildVertexAttributeDescription(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
 
-		VertexBindings bindings_;
-
-		VkDescriptorSetLayout descriptor_set_layot_;
 		VkPipelineLayout layout_;
 	};
 }
