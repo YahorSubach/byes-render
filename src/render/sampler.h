@@ -12,7 +12,14 @@ namespace render
 	{
 	public:
 
-		Sampler(const DeviceConfiguration& device_cfg);
+		enum class AddressMode
+		{
+			kRepeat,
+			kClampToEdge,
+			kClampToBorder,
+		};
+
+		Sampler(const DeviceConfiguration& device_cfg, AddressMode address_mode);
 
 		Sampler(const Sampler&) = delete;
 		Sampler(Sampler&&) = default;

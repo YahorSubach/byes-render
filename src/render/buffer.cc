@@ -8,7 +8,7 @@ render::Buffer::Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size,
     buffer_info.size = size;
     buffer_info.usage = usage;
     buffer_info.sharingMode = queue_famaly_indeces.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
-    buffer_info.queueFamilyIndexCount = queue_famaly_indeces.size();
+    buffer_info.queueFamilyIndexCount = u32(queue_famaly_indeces.size());
     buffer_info.pQueueFamilyIndices = queue_famaly_indeces.data();
 
     if (vkCreateBuffer(device_cfg.logical_device, &buffer_info, nullptr, &handle_) != VK_SUCCESS) {

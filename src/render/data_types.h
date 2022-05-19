@@ -13,6 +13,8 @@ namespace render
 {
 	class CommandPool;
 	class DescriptorPool;
+	class Sampler;
+
 
 	struct DeviceConfiguration
 	{
@@ -30,7 +32,38 @@ namespace render
 		CommandPool* graphics_cmd_pool;
 		CommandPool* transfer_cmd_pool;
 		DescriptorPool* descriptor_pool;
+
+		Sampler* texture_sampler;
+		Sampler* shadowmap_sampler;
 	};
+
+	enum class ShaderType
+	{
+		Vertex,
+		Fragment
+	};
+
+	enum class ShaderTypeFlags : uint32_t
+	{
+		Empty = 0,
+
+		Vertex = 1 << static_cast<int>(ShaderType::Vertex),
+		Fragment = 1 << static_cast<int>(ShaderType::Fragment),
+	};
+
+	constexpr ShaderTypeFlags operator|(ShaderTypeFlags lhs, ShaderTypeFlags rhs) {
+		return static_cast<ShaderTypeFlags>(
+			static_cast<std::underlying_type_t<ShaderTypeFlags>>(lhs) |
+			static_cast<std::underlying_type_t<ShaderTypeFlags>>(rhs)
+			);
+	}
+
+	constexpr ShaderTypeFlags operator&(ShaderTypeFlags lhs, ShaderTypeFlags rhs) {
+		return static_cast<ShaderTypeFlags>(
+			static_cast<std::underlying_type_t<ShaderTypeFlags>>(lhs) &
+			static_cast<std::underlying_type_t<ShaderTypeFlags>>(rhs)
+			);
+	}
 
 	struct Extent
 	{
@@ -39,6 +72,7 @@ namespace render
 		
 		Extent() = default;
 		Extent(VkExtent2D vk_ext): width(vk_ext.width), height(vk_ext.height) {}
+		Extent(uint32_t width, uint32_t height) : width(width), height(height) {}
 		operator VkExtent2D() const { return VkExtent2D{ width , height }; }
 	};
 
@@ -86,6 +120,9 @@ namespace render
 	{
 		VertexIndex indices[3];
 	};
+
+	template<typename T>
+	uint32_t u32(T t) { return static_cast<uint32_t>(t); }
 
 	//struct UniformBufferObject {
 	//	glm::mat4 model;

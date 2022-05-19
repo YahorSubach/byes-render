@@ -29,10 +29,17 @@ namespace render
 		}
 
 		RenderObjBase& operator=(const RenderObjBase&) = delete;
-		RenderObjBase& operator=(RenderObjBase&& rhs) = delete;
+		RenderObjBase& operator=(RenderObjBase&& rhs)
+		{
+			assert(&device_cfg_ == &rhs.device_cfg_);
+			handle_ = rhs.handle_;
+			rhs.handle_ = VK_NULL_HANDLE;
+			return *this;
+		}
 
 		HandleType GetHandle() const { return handle_; }
 
+		const DeviceConfiguration& GetDeviceCfg() { return device_cfg_; };
 		//virtual ~RenderObjBase() override
 		//{
 		//	int a = 1;

@@ -103,10 +103,6 @@ namespace render::platform
 
 			int x = point.x;
 			int y = point.y;
-			
-			//std::cout <<"xy "<< x << " " << y << std::endl;
-			//std::cout << "center " << rect_x_center << " " << rect_y_center << std::endl;
-			//std::cout << "global xy " << rect.left + x << " " << rect.top + y << std::endl;
 
 			if (x == rect_x_center && y == rect_y_center)
 				break;

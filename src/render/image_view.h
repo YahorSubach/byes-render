@@ -17,6 +17,7 @@ namespace render
 	{
 	public:
 
+		ImageView(const DeviceConfiguration& device_cfg);
 		ImageView(const DeviceConfiguration& device_cfg, const Image& image);
 
 		ImageView(const ImageView&) = delete;
@@ -25,8 +26,13 @@ namespace render
 		ImageView& operator=(const ImageView&) = delete;
 		ImageView& operator=(ImageView&&) = default;
 
+		void Assign(const Image& image);
+		Image::ImageType GetImageType() const;
+
 		virtual ~ImageView() override;
 
+	protected:
+		Image::ImageType image_type_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_IMAGE_VIEW_H_

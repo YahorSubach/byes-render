@@ -20,10 +20,16 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/render/command_pool.h
 		${CMAKE_CURRENT_LIST_DIR}/render/command_pool.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/data_types.h
+		${CMAKE_CURRENT_LIST_DIR}/render/descriptor.h
 		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_pool.h
 		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_pool.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_set.h
+		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_set_holder.h
 		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_set_layout.h
 		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_set_layout.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_sets_manager.h
+		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_sets_manager.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/descriptor_types.inl
 		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.h
 		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.h
@@ -41,10 +47,12 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/render/mesh.h
 		${CMAKE_CURRENT_LIST_DIR}/render/mesh.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/object_base.h
-		${CMAKE_CURRENT_LIST_DIR}/render/pipeline_collection.h
-		${CMAKE_CURRENT_LIST_DIR}/render/pipeline_collection.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/render_setup.h
+		${CMAKE_CURRENT_LIST_DIR}/render/render_setup.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.h
 		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/scene.h
+		${CMAKE_CURRENT_LIST_DIR}/render/scene.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/sampler.h
 		${CMAKE_CURRENT_LIST_DIR}/render/sampler.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/shader_module.h

@@ -12,8 +12,8 @@
 render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, DescriptorPool& descriptor_pool) : RenderObjBase(device_cfg)
 {
 
-	images_.push_back(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png"));
-	image_views_.push_back(ImageView(device_cfg, images_.back()));
+	//images_.push_back(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png"));
+	//image_views_.push_back(ImageView(device_cfg, images_.back()));
 
 //	const std::vector<Vertex> vertices = {
 //{{-0.5f, -0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},

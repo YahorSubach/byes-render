@@ -9,6 +9,8 @@
 #include "render/graphics_pipeline.h"
 #include "render/image_view.h"
 
+#include "render/descriptor_set.h"
+
 
 namespace render
 {
@@ -16,7 +18,7 @@ namespace render
 	{
 	public:
 
-		Batch(std::vector<BufferAccessor> vertex_buffers, const BufferAccessor& index_buffer, const ImageView& color_image_view, uint64_t draw_size, const glm::mat4& model_matrix);
+		Batch(std::vector<BufferAccessor> vertex_buffers, const BufferAccessor& index_buffer, const Image& color_image, uint32_t draw_size, const glm::mat4& model_matrix);
 
 		Batch(const Batch&) = delete;
 		Batch(Batch&&) = default;
@@ -27,21 +29,21 @@ namespace render
 		const std::vector<BufferAccessor>& GetVertexBuffers() const;
 		const BufferAccessor& GetIndexBuffer() const;
 
-		uint64_t GetDrawSize() const;
+		uint32_t GetDrawSize() const;
 
 		const glm::mat4& GetModelMatrix() const;
 
-		const ImageView& GetColorImageView() const;
+		const Image& GetColorImage() const;
 
 	private:
 
 		std::vector<BufferAccessor> vertex_buffers_;
 		BufferAccessor index_buffer_;
 
-		uint64_t draw_size_;
+		uint32_t draw_size_;
 
 		glm::mat4 model_matrix_;
-		const ImageView& color_image_view_;
+		const Image& color_image_;
 	};
 }
 

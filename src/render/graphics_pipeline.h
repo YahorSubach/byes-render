@@ -35,13 +35,15 @@ namespace render
 	class GraphicsPipeline : public RenderObjBase<VkPipeline>
 	{
 	public:
-		GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderPass& render_pass, const GraphicsPipelineCreateInfo& create_info);
+		GraphicsPipeline(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module);
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;
 		GraphicsPipeline(GraphicsPipeline&&) = default;
 
 		GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
 		GraphicsPipeline& operator=(GraphicsPipeline&&) = default;
+
+		const std::map<uint32_t, const DescriptorSetLayout&>& GetDescriptorSets() const;
 
 		const VkPipelineLayout& GetLayout() const;
 
@@ -50,6 +52,8 @@ namespace render
 
 		std::vector<VkVertexInputBindingDescription> BuildVertexInputBindingDescriptions(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
 		std::vector<VkVertexInputAttributeDescription> BuildVertexAttributeDescription(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
+		
+		std::map<uint32_t, const DescriptorSetLayout&> descriptor_sets_;
 
 		VkPipelineLayout layout_;
 	};

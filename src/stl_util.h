@@ -79,5 +79,10 @@ namespace render::stl_util
 
 		return result;
 	}
+
+
+	template<class Result, class Container>
+	Result size(const Container& c) { return static_cast<Result>(c.size()); }
+
 }
 #endif  // RENDER_ENGINE_RENDER_STL_UTIL_H_

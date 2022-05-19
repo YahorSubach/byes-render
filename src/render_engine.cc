@@ -193,7 +193,7 @@ namespace render
 		void ShowWindow()
 		{
 
-			DescriptorPool descriptor_pool(device_cfg_, 100, 100);
+			DescriptorPool descriptor_pool(device_cfg_, 500, 500);
 
 			device_cfg_.descriptor_pool = &descriptor_pool;
 
@@ -208,7 +208,7 @@ namespace render
 			float yaw = glm::pi<float>() * 5 / 4;
 			float pitch = -glm::pi<float>() /4;
 
-			glm::vec3 position(2, 2, 2);
+			glm::vec3 position(2, 2, 1.7);
 
 			uint32_t current_frame_index = -1;
 
@@ -221,7 +221,7 @@ namespace render
 
 				Swapchain swapchain(device_cfg_, *surface_ptr_);
 
-				PipelineCollection pipeline_collection(device_cfg_, swapchain.GetExtent(), swapchain.GetFormat());
+				RenderSetup render_setup(device_cfg_, swapchain.GetExtent(), swapchain.GetFormat());
 
 				std::vector<Framebuffer> swapchain_framebuffers;
 
@@ -236,7 +236,7 @@ namespace render
 					attachments.push_back(swapchain.GetImageView(i));
 					attachments.push_back(depth_image_view);
 
-					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), attachments, pipeline_collection.GetRenderPass(PipelineCollection::RenderPassId::kScreen)));
+					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), attachments, render_setup.GetRenderPass(RenderSetup::RenderPassId::kScreen)));
 				}
 
 				BatchesManager batches_manager(device_cfg_, kFramesCount, swapchain, descriptor_pool);
@@ -246,7 +246,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(device_cfg_, swapchain));
+					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, batches_manager));
 				}
 
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
@@ -287,14 +287,16 @@ namespace render
 
 					glm::vec3 look = glm::normalize(glm::vec3(glm::sin(yaw) * glm::cos(pitch), glm::cos(yaw) * glm::cos(pitch), glm::sin(pitch)));
 
+					glm::vec3 walk = glm::vec3(look.x, look.y, 0);
+
 					if (buttons['w' - 'a'])
 					{
-						position += (0.001f * glm::normalize(look));
+						position += (0.001f * glm::normalize(walk));
 					}
 
 					if (buttons['s' - 'a'])
 					{
-						position -= (0.001f * glm::normalize(look));
+						position -= (0.001f * glm::normalize(walk));
 					}
 
 					if (buttons['d' - 'a'])
@@ -307,7 +309,7 @@ namespace render
 						position -= (0.001f * glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>() / 2), glm::cos(yaw + glm::pi<float>() / 2), 0)));
 					}
 
-					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], image_index, pipeline_collection, batches_manager, position, look);
+					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], image_index, render_setup, position, look);
 
 					auto current_time = std::chrono::high_resolution_clock::now();
 

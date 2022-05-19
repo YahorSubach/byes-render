@@ -21,7 +21,7 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	if(image_type == ImageType::kColorImage)		image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	else if (image_type == ImageType::kDepthImage)	image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	else if (image_type == ImageType::kDepthImage)	image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
 

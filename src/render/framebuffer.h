@@ -28,7 +28,18 @@ namespace render
 	
 		Extent GetExtent() const;
 
+		struct ClearValues
+		{
+			float color[4];
+			float depth;
+			uint32_t stencil;
+		};
+
+		const std::vector<ClearValues>& GetClearValues() const;
+
 	private:
+
+		std::vector<ClearValues> clear_values_;
 
 		Extent extent_;
 	};

@@ -26,7 +26,7 @@ namespace render
 				BufferAccessor normals;
 				BufferAccessor tex_coords;
 
-				const ImageView& color_tex;
+				const Image& color_tex;
 			};
 
 			std::vector<Primitive> primitives;

@@ -62,7 +62,8 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, RenderPass
 	{
 		VkSubpassDependency vk_dependency = dependency.dependency;
 		
-		vk_dependency.srcSubpass = dependency.from_name.empty() ? 0 : subpass_name_to_index[dependency.from_name];
+		vk_dependency.srcSubpass = dependency.from_name.empty() ? VK_SUBPASS_EXTERNAL : subpass_name_to_index[dependency.from_name];
+		vk_dependency.dstSubpass = dependency.to_name.empty() ? VK_SUBPASS_EXTERNAL : subpass_name_to_index[dependency.to_name];
 		dependencies.push_back(vk_dependency);
 	}
 

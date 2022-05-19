@@ -9,37 +9,46 @@
 #include "render/data_types.h"
 
 
-render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderPass& render_pass, const GraphicsPipelineCreateInfo& create_info):
+render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module):
 	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE)
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
 	std::vector<VkVertexInputBindingDescription> vertex_input_bindings_descs;
 	std::vector<VkVertexInputAttributeDescription> vertex_input_attr_descs;
 
-	for (auto&& shader_module : create_info.shader_modules)
 	{
 		VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
 		vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vert_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		vert_shader_stage_info.module = shader_module.get().GetHandle();
+		vert_shader_stage_info.module = vertex_shader_module.GetHandle();
 		vert_shader_stage_info.pName = "main"; // entry point in shader
 
-		if (!shader_module.get().GetVertexBindingsDescs().empty())
+		if (!vertex_shader_module.GetVertexBindingsDescs().empty())
 		{
 			vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
 
-			vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(shader_module.get().GetVertexBindingsDescs());
-			vertex_input_attr_descs = BuildVertexAttributeDescription(shader_module.get().GetVertexBindingsDescs());
+			vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(vertex_shader_module.GetVertexBindingsDescs());
+			vertex_input_attr_descs = BuildVertexAttributeDescription(vertex_shader_module.GetVertexBindingsDescs());
 		}
 
 		shader_stage_create_infos.push_back(vert_shader_stage_info);
 	}
 
+	{
+		VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
+		frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		frag_shader_stage_info.module = fragment_shader_module.GetHandle();
+		frag_shader_stage_info.pName = "main"; // entry point in shader
+
+		shader_stage_create_infos.push_back(frag_shader_stage_info);
+	}
+
 	VkPipelineVertexInputStateCreateInfo vertex_input_info{};
 	vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertex_input_info.vertexBindingDescriptionCount = vertex_input_bindings_descs.size();
+	vertex_input_info.vertexBindingDescriptionCount = u32(vertex_input_bindings_descs.size());
 	vertex_input_info.pVertexBindingDescriptions = vertex_input_bindings_descs.data(); // Optional
-	vertex_input_info.vertexAttributeDescriptionCount = vertex_input_attr_descs.size();
+	vertex_input_info.vertexAttributeDescriptionCount = u32(vertex_input_attr_descs.size());
 	vertex_input_info.pVertexAttributeDescriptions = vertex_input_attr_descs.data(); // Optional
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly{};
@@ -50,14 +59,14 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = create_info.extent.width;
-	viewport.height = create_info.extent.height;
+	viewport.width = static_cast<float>(extent.width);
+	viewport.height = static_cast<float>(extent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = create_info.extent;
+	scissor.extent = extent;
 
 	VkPipelineViewportStateCreateInfo viewport_state{};
 	viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -137,17 +146,44 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	std::vector<VkPushConstantRange> push_constants = { vertex_push_constant, fragment_push_constant };
 
-	std::vector<VkDescriptorSetLayout> descriptor_sets_layots(create_info.descriptor_set_layouts.size());
-	for (int i = 0; i < descriptor_sets_layots.size(); i++)
+	for (auto&& [set_index, set_layout] : vertex_shader_module.GetDescriptorSets())
 	{
-		descriptor_sets_layots[i] = create_info.descriptor_set_layouts[i].get().GetHandle();
+		if (auto&& existing_set = descriptor_sets_.find(set_index); existing_set != descriptor_sets_.end())
+		{
+			if (existing_set->second.GetType() != set_layout.GetType())
+			{
+				throw std::runtime_error("invalid descripton set combination");
+			}
+		}
+
+		descriptor_sets_.emplace(set_index, set_layout);
+	}
+
+	for (auto&& [set_index, set_layout] : fragment_shader_module.GetDescriptorSets())
+	{
+		if (auto&& existing_set = descriptor_sets_.find(set_index); existing_set != descriptor_sets_.end())
+		{
+			if (existing_set->second.GetType() != set_layout.GetType())
+			{
+				throw std::runtime_error("invalid descripton set combination");
+			}
+		}
+
+		descriptor_sets_.emplace(set_index, set_layout);
+	}
+
+	std::vector<VkDescriptorSetLayout> descriptor_sets_layouts(descriptor_sets_.size());
+
+	for (int i = 0; i < descriptor_sets_layouts.size(); i++)
+	{
+		descriptor_sets_layouts[i] = descriptor_sets_.at(i).GetHandle();
 	}
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = descriptor_sets_layots.size();
-	pipelineLayoutInfo.pSetLayouts = descriptor_sets_layots.data(); // Optional
-	pipelineLayoutInfo.pushConstantRangeCount = push_constants.size(); // Optional
+	pipelineLayoutInfo.setLayoutCount = u32(descriptor_sets_layouts.size());
+	pipelineLayoutInfo.pSetLayouts = descriptor_sets_layouts.data(); // Optional
+	pipelineLayoutInfo.pushConstantRangeCount = u32(push_constants.size()); // Optional
 	pipelineLayoutInfo.pPushConstantRanges = push_constants.data(); // Optional
 
 	if (vkCreatePipelineLayout(device_cfg_.logical_device, &pipelineLayoutInfo, nullptr, &layout_) != VK_SUCCESS) {
@@ -180,6 +216,11 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	if (vkCreateGraphicsPipelines(device_cfg_.logical_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
+}
+
+const std::map<uint32_t, const render::DescriptorSetLayout&>& render::GraphicsPipeline::GetDescriptorSets() const
+{
+	return descriptor_sets_;
 }
 
 const VkPipelineLayout& render::GraphicsPipeline::GetLayout() const

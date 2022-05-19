@@ -60,8 +60,17 @@ namespace render
 	class UniformBuffer : public Buffer
 	{
 	public:
+
+		// NOTE: Rule of 5 should be repeated in nested classes
+
 		UniformBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size) :
 			Buffer(device_cfg, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {}) {}
+
+		UniformBuffer(const UniformBuffer&) = delete;
+		UniformBuffer(UniformBuffer&&) = default;
+
+		UniformBuffer& operator=(const UniformBuffer&) = delete;
+		UniformBuffer& operator=(UniformBuffer&&) = default;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_VERTEX_BUFFER_H_

@@ -27,6 +27,8 @@ namespace render
 
 		enum class ImageType
 		{
+			kUndefined,
+
 			kSwapchainImage,
 			kColorImage,
 			kDepthImage,
