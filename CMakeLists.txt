@@ -11,6 +11,7 @@ find_package(Vulkan REQUIRED)
 if(Vulkan_FOUND)
 
 	add_subdirectory(submodules/glm)
+	add_subdirectory(submodules/freetype)
 
 	add_library(render_engine "")
 

@@ -1,7 +1,7 @@
 #include "batch.h"
 
-render::Batch::Batch(std::vector<BufferAccessor> vertex_buffers, const BufferAccessor& index_buffer, const Image& color_image, uint32_t draw_size, const glm::mat4& model_matrix):
-	vertex_buffers_(vertex_buffers), index_buffer_(index_buffer), draw_size_(draw_size), model_matrix_(model_matrix), color_image_(color_image)
+render::Batch::Batch(std::vector<BufferAccessor> vertex_buffers, const BufferAccessor& index_buffer, const Image& color_image, uint32_t draw_size, const glm::mat4& model_matrix, bool emit_param):
+	vertex_buffers_(vertex_buffers), index_buffer_(index_buffer), draw_size_(draw_size), model_matrix_(model_matrix), color_image_(color_image), emit(emit_param)
 {
 }
 

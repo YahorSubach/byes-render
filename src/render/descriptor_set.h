@@ -115,13 +115,27 @@ namespace render
 	template<>
 	struct DescriptorSet<DescriptorSetType::kMaterial>
 	{
-		static const uint32_t bindings_count = 1;
+		static const uint32_t bindings_count = 2;
 
 		template<int i>
 		struct Binding;
 
 		template<>
 		struct Binding<0>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				uint32_t emit;
+			};
+
+			Data data;
+		};
+
+		template<>
+		struct Binding<1>
 		{
 			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
 			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;

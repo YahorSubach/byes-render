@@ -45,9 +45,27 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 			{	
 				std::vector<BufferAccessor> vert_bufs = { primitive.positions, primitive.normals, primitive.tex_coords };
 
-				Batch batch(vert_bufs, primitive.indices, primitive.color_tex, primitive.indices.count_, node.node_matrix);
+				Batch batch(vert_bufs, primitive.indices, primitive.color_tex, primitive.indices.count_, node.node_matrix, primitive.emit);
 				batches_.emplace_back(std::move(batch));
-				int a = 1;
+			}
+		}
+	}
+
+	{
+
+		gltf_wrappers_.push_back(GLTFWrapper(device_cfg, "../blender/sky/sky.glb"));
+
+		auto&& wrapper = gltf_wrappers_.back();
+
+
+		for (auto&& node : wrapper.nodes)
+		{
+			for (auto&& primitive : node.mesh.primitives)
+			{
+				std::vector<BufferAccessor> vert_bufs = { primitive.positions, primitive.normals, primitive.tex_coords };
+
+				Batch batch(vert_bufs, primitive.indices, primitive.color_tex, primitive.indices.count_, node.node_matrix, primitive.emit);
+				batches_.emplace_back(std::move(batch));
 			}
 		}
 	}

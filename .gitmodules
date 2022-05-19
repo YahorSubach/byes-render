@@ -7,3 +7,6 @@
 [submodule "submodules/tinygltf"]
 	path = submodules/tinygltf
 	url = git@github.com:syoyo/tinygltf.git
+[submodule "submodules/freetype"]
+	path = submodules/freetype
+	url = https://gitlab.freedesktop.org/freetype/freetype.git

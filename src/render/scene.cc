@@ -25,6 +25,11 @@ void render::Model::Update()
 
 void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
 {
+	data.emit = batch_.emit;
+}
+
+void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
+{
 	data.image = &batch_.GetColorImage();
 	data.sampler = &diffuse_sampler_;
 }
@@ -62,7 +67,7 @@ const std::vector<render::Model>& render::Scene::GetModels() const
 void render::Scene::UpdateCameraData(glm::vec3 pos, glm::vec3 look)
 {
 	camera_data_.position = glm::vec4(pos, 1.0f);
-	glm::mat4 proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 100.0f);
+	glm::mat4 proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.f, 0.1f, 200.0f);
 	proj[1][1] *= -1;
 	camera_data_.proj_view_mat = proj * glm::lookAt(pos, pos + look, glm::vec3(0.0f, 0.0f, 1.0f));
 }

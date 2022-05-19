@@ -18,7 +18,7 @@ namespace render
 	{
 	public:
 
-		Batch(std::vector<BufferAccessor> vertex_buffers, const BufferAccessor& index_buffer, const Image& color_image, uint32_t draw_size, const glm::mat4& model_matrix);
+		Batch(std::vector<BufferAccessor> vertex_buffers, const BufferAccessor& index_buffer, const Image& color_image, uint32_t draw_size, const glm::mat4& model_matrix, bool emit_param);
 
 		Batch(const Batch&) = delete;
 		Batch(Batch&&) = default;
@@ -34,6 +34,8 @@ namespace render
 		const glm::mat4& GetModelMatrix() const;
 
 		const Image& GetColorImage() const;
+
+		bool emit;
 
 	private:
 

@@ -26,6 +26,8 @@ namespace render
 				BufferAccessor normals;
 				BufferAccessor tex_coords;
 
+				bool emit;
+
 				const Image& color_tex;
 			};
 
