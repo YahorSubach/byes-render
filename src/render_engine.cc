@@ -37,6 +37,8 @@
 #include "render/sampler.h"
 #include "render/swapchain.h"
 
+#include "render/ui/ui.h"
+
 namespace render
 {
 
@@ -193,10 +195,6 @@ namespace render
 		void ShowWindow()
 		{
 
-			DescriptorPool descriptor_pool(device_cfg_, 500, 500);
-
-			device_cfg_.descriptor_pool = &descriptor_pool;
-
 			static auto start_time = std::chrono::high_resolution_clock::now();
 
 			platform::ShowWindow(surface_ptr_->GetWindow());
@@ -212,14 +210,22 @@ namespace render
 
 			uint32_t current_frame_index = -1;
 
+
+
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
+				DescriptorPool descriptor_pool(device_cfg_, 500, 500);
+
+				device_cfg_.descriptor_pool = &descriptor_pool;
+
 				graphics_command_pool_ptr_->ClearCommandBuffers();
 				graphics_command_pool_ptr_->CreateCommandBuffers(kFramesCount);
 
 				should_refresh_swapchain = false;
 
 				Swapchain swapchain(device_cfg_, *surface_ptr_);
+
+				ui::UI ui(device_cfg_, swapchain.GetExtent());
 
 				RenderSetup render_setup(device_cfg_, swapchain.GetExtent(), swapchain.GetFormat());
 
@@ -246,7 +252,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, batches_manager));
+					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, batches_manager, ui));
 				}
 
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)

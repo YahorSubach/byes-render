@@ -53,12 +53,18 @@ VkCommandBuffer render::CommandPool::GetCommandBuffer()
 	return command_buffers_[next_available_buffer_++];
 }
 
+void render::CommandPool::Reset()
+{
+	next_available_buffer_ = 0;
+}
+
 void render::CommandPool::ClearCommandBuffers()
 {
 	if (command_buffers_.size() > 0)
 	{
 		vkFreeCommandBuffers(device_cfg_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
 		command_buffers_.clear();
+		next_available_buffer_ = 0;
 	}
 }
 

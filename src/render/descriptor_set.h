@@ -113,6 +113,30 @@ namespace render
 	};
 
 	template<>
+	struct DescriptorSet<DescriptorSetType::kSkeleton>
+	{
+		static const uint32_t bindings_count = 1;
+
+		template<int i>
+		struct Binding;
+
+		template<>
+		struct Binding<0>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Vertex;
+
+			struct Data
+			{
+				glm::mat4 matrices[32];
+				uint32_t use;
+			};
+
+			Data data;
+		};
+	};
+
+	template<>
 	struct DescriptorSet<DescriptorSetType::kMaterial>
 	{
 		static const uint32_t bindings_count = 2;
@@ -176,6 +200,30 @@ namespace render
 
 		template<>
 		struct Binding<1>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				const Image* image;
+				const Sampler* sampler;
+			};
+
+			Data data;
+		};
+	};
+
+	template<>
+	struct DescriptorSet<DescriptorSetType::kTexture>
+	{
+		static const uint32_t bindings_count = 1;
+
+		template<int i>
+		struct Binding;
+
+		template<>
+		struct Binding<0>
 		{
 			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
 			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;

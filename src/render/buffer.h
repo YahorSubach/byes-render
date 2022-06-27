@@ -38,14 +38,17 @@ namespace render
 
 	struct BufferAccessor
 	{
-		BufferAccessor(const Buffer& buffer, uint32_t stride, uint64_t offset, uint64_t count) :buffer_(buffer), stride_(stride), offset_(offset), count_(count) {}
+		BufferAccessor(const Buffer& buffer, uint32_t stride, uint64_t offset, uint64_t count) :buffer(&buffer), stride(stride), offset(offset), count(count) {}
 		BufferAccessor(const Buffer& buffer) :BufferAccessor(buffer, 0, 0, buffer.GetSize()) {}
 
-		const Buffer& buffer_;
-		uint32_t stride_;
+		BufferAccessor() :buffer(nullptr), stride(0), offset(0), count(0) {}
 
-		uint64_t offset_;
-		uint64_t count_;
+
+		const Buffer* buffer;
+		uint32_t stride;
+
+		uint64_t offset;
+		uint64_t count;
 	};
 
 	class GPULocalBuffer : public Buffer
@@ -61,7 +64,6 @@ namespace render
 	{
 	public:
 
-		// NOTE: Rule of 5 should be repeated in nested classes
 
 		UniformBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size) :
 			Buffer(device_cfg, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {}) {}

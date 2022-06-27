@@ -19,7 +19,10 @@ namespace render
 		enum class PipelineId
 		{
 			kColor,
-			kDepth
+			kColorSkinned,
+			kDepth,
+			kDepthSkinned,
+			kUI
 		};
 
 		enum class RenderPassId

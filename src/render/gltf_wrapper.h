@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "tinygltf/tiny_gltf.h"
 
@@ -17,14 +18,26 @@ namespace render
 	{
 	public:
 
+		struct Node
+		{
+			glm::mat4 node_matrix;
+			//std::map<int, Node&> children;
+
+			std::optional<std::reference_wrapper<Node>> parent;
+		};
+
 		struct Mesh
 		{
+			Node& node;
+
 			struct Primitive
 			{
 				BufferAccessor indices;
 				BufferAccessor positions;
 				BufferAccessor normals;
 				BufferAccessor tex_coords;
+				BufferAccessor joints;
+				BufferAccessor weights;
 
 				bool emit;
 
@@ -34,22 +47,23 @@ namespace render
 			std::vector<Primitive> primitives;
 		};
 
-		struct Node
+		struct Bone
 		{
-			Mesh mesh;
-			glm::mat4 node_matrix;
+			Node& node;
 		};
 
 
 		GLTFWrapper(const DeviceConfiguration& device_cfg, const std::string& path);
 
 		std::vector<Node> nodes;
+		std::vector<Mesh> meshes;
+		std::vector<Bone> bones;
 
 	private:
 
 		BufferAccessor BuildBufferAccessor(int acc_ind);
 
-		tinygltf::Model model;
+		tinygltf::Model gltf_model;
 
 		std::vector<GPULocalBuffer> buffers_;
 		std::vector<Image> images_;

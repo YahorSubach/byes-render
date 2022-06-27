@@ -22,3 +22,11 @@ VkDescriptorSet render::DescriptorSetsManager::GetFreeDescriptor(DescriptorSetTy
 
 	return VkDescriptorSet();
 }
+
+render::DescriptorSetsManager::~DescriptorSetsManager()
+{
+	for (auto&& [type, sets] : descriptor_sets_)
+	{
+		//device_cfg_.descriptor_pool->FreeSet(sets);
+	}
+}

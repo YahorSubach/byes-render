@@ -35,6 +35,8 @@ namespace render
 		bool CreateCommandBuffers(uint32_t size);
 		VkCommandBuffer GetCommandBuffer();
 
+		void Reset();
+
 		void ClearCommandBuffers();
 
 		const VkCommandBuffer& GetCommandBuffer(size_t index) const;

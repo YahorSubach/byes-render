@@ -29,6 +29,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 			vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(vertex_shader_module.GetVertexBindingsDescs());
 			vertex_input_attr_descs = BuildVertexAttributeDescription(vertex_shader_module.GetVertexBindingsDescs());
+			vertex_bindings_count_ = vertex_input_bindings_descs.size();
 		}
 
 		shader_stage_create_infos.push_back(vert_shader_stage_info);
@@ -98,15 +99,16 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
 	multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
+	//TODO: configure blend
 
 	VkPipelineColorBlendAttachmentState color_blend_attachment{};
 	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	color_blend_attachment.blendEnable = VK_FALSE;
-	color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-	color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+	color_blend_attachment.blendEnable = VK_TRUE;
+	color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA; // Optional
+	color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // Optional
 	color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
 	color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-	color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+	color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
 	color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
 
@@ -127,7 +129,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	depth_stencil.depthWriteEnable = VK_TRUE;
 	depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
 	depth_stencil.depthBoundsTestEnable = VK_FALSE;
-	depth_stencil.minDepthBounds = 0.0f; // Optional
+	depth_stencil.minDepthBounds = -1.0f; // Optional
 	depth_stencil.maxDepthBounds = 1.0f; // Optional
 	depth_stencil.stencilTestEnable = VK_FALSE;
 	depth_stencil.front = {}; // Optional
@@ -172,12 +174,23 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 		descriptor_sets_.emplace(set_index, set_layout);
 	}
 
-	std::vector<VkDescriptorSetLayout> descriptor_sets_layouts(descriptor_sets_.size());
+	std::vector<VkDescriptorSetLayout> descriptor_sets_layouts;
 
-	for (int i = 0; i < descriptor_sets_layouts.size(); i++)
+	int processed_desc_layouts = 0;
+
+	for (int i = 0; processed_desc_layouts < descriptor_sets_.size(); i++)
 	{
-		descriptor_sets_layouts[i] = descriptor_sets_.at(i).GetHandle();
+		if (descriptor_sets_.find(i) != descriptor_sets_.end())
+		{
+			descriptor_sets_layouts.push_back(descriptor_sets_.at(i).GetHandle());
+			processed_desc_layouts++;
+		}
+		else
+		{
+			//descriptor_sets_layouts.push_back(VK_NULL_HANDLE);
+		}
 	}
+
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -226,6 +239,11 @@ const std::map<uint32_t, const render::DescriptorSetLayout&>& render::GraphicsPi
 const VkPipelineLayout& render::GraphicsPipeline::GetLayout() const
 {
 	return layout_;
+}
+
+uint32_t render::GraphicsPipeline::GetVertesBindingsCount() const
+{
+	return vertex_bindings_count_;
 }
 
 render::GraphicsPipeline::~GraphicsPipeline()

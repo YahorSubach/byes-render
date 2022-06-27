@@ -20,7 +20,7 @@ namespace render
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
-		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, const BatchesManager& batches_manager);
+		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, const BatchesManager& batches_manager, const ui::UI& ui);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;
@@ -53,12 +53,16 @@ namespace render
 
 		DescriptorSetsManager descriptor_sets_manager_;
 
+		const ui::UI& ui_;
 
 		Image depth_map_;
 		ImageView depth_map_view_;
 		Framebuffer depth_map_framebuffer_;
 
-		Scene scene_;
+
+
+		ModelScene model_scene_;
+		UIScene ui_scene_;
 	};
 }
 

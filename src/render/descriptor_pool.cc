@@ -42,6 +42,11 @@ void render::DescriptorPool::AllocateSet(VkDescriptorSetLayout descriptor_set_la
 	}
 }
 
+void render::DescriptorPool::FreeSet(std::vector<VkDescriptorSet>& allocated_sets)
+{
+	vkFreeDescriptorSets(device_cfg_.logical_device, handle_, allocated_sets.size(), allocated_sets.data());
+}
+
 render::DescriptorPool::~DescriptorPool()
 {
 	if(handle_ != VK_NULL_HANDLE)

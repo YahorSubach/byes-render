@@ -61,5 +61,9 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/render/swapchain.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/vertex_buffer.h
 		${CMAKE_CURRENT_LIST_DIR}/render/vertex_buffer.cc
-		${CMAKE_CURRENT_LIST_DIR}/render/vk_util.h)
-                                  
+		${CMAKE_CURRENT_LIST_DIR}/render/vk_util.h
+
+
+		${CMAKE_CURRENT_LIST_DIR}/render/ui/ui.h
+		${CMAKE_CURRENT_LIST_DIR}/render/ui/ui.cc
+)

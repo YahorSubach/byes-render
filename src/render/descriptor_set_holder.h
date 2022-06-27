@@ -99,14 +99,14 @@ namespace render
 
 		virtual void FillData(BindingDataType& data) = 0;
 
-		void UpdateData()
+		void UpdateDataInternal()
 		{
 			BindingDesc::Data new_data;
 			FillData(new_data);
 
 			data_.Update(new_data);
 
-			DescriptorSetBinding<Type, BindingIndex - 1>::UpdateData();
+			DescriptorSetBinding<Type, BindingIndex - 1>::UpdateDataInternal();
 		}
 
 		void FillWriteDescriptorSets(VkDescriptorSet descriptor_set, std::vector<VkWriteDescriptorSet>& write_descriptor_sets)
@@ -127,7 +127,7 @@ namespace render
 
 		DescriptorSetBinding(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg) {}
 
-		void UpdateData() {}
+		void UpdateDataInternal() {}
 
 		void FillWriteDescriptorSets(VkDescriptorSet descriptor_set, std::vector<VkWriteDescriptorSet>& write_descriptor_sets) {}
 	};
@@ -139,21 +139,21 @@ namespace render
 
 		DescriptorSetBindingsCollection(const DeviceConfiguration& device_cfg) : DescriptorSetBinding<Type, DescriptorSet<Type>::bindings_count - 1>(device_cfg) {}
 
-		VkDescriptorSet AttachDescriptorSets(DescriptorSetsManager& manager)
+		VkDescriptorSet AttachDescriptorSetsInternal(DescriptorSetsManager& manager)
 		{
 			VkDescriptorSet desc_set = manager.GetFreeDescriptor(Type);
 			std::vector<VkWriteDescriptorSet> writes(DescriptorSet<Type>::bindings_count);
 
 			DescriptorSetBinding<Type, DescriptorSet<Type>::bindings_count - 1>::FillWriteDescriptorSets(desc_set, writes);
 
-			vkUpdateDescriptorSets(device_cfg_.logical_device, writes.size(), writes.data(), 0, nullptr);
+			vkUpdateDescriptorSets(device_cfg_.logical_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 
 			return desc_set;
 		}
 
-		void UpdateData()
+		void UpdateDataInternal()
 		{
-			DescriptorSetBinding<Type, DescriptorSet<Type>::bindings_count - 1>::UpdateData();
+			DescriptorSetBinding<Type, DescriptorSet<Type>::bindings_count - 1>::UpdateDataInternal();
 		}
 	};
 
@@ -161,7 +161,6 @@ namespace render
 
 
 	//--------------------------------------------------------------------------------------------------------------------------
-
 
 
 
@@ -175,19 +174,19 @@ namespace render
 
 	protected:
 
-		void AttachDescriptorSets(DescriptorSetsManager& manager)
+		void AttachDescriptorSetsInternal(DescriptorSetsManager& manager)
 		{
-			VkDescriptorSet desc_set = DescriptorSetBindingsCollection<T1>::AttachDescriptorSets(manager);
+			VkDescriptorSet desc_set = DescriptorSetBindingsCollection<T1>::AttachDescriptorSetsInternal(manager);
 
 			descriptor_sets_[T1] = desc_set;
 			
-			DescriptorSetHolderInternal<Ts...>::AttachDescriptorSets(manager);
+			DescriptorSetHolderInternal<Ts...>::AttachDescriptorSetsInternal(manager);
 		}
 
-		void UpdateData()
+		void UpdateDataInternal()
 		{
-			DescriptorSetBindingsCollection<T1>::UpdateData();
-			DescriptorSetHolderInternal<Ts...>::UpdateData();
+			DescriptorSetBindingsCollection<T1>::UpdateDataInternal();
+			DescriptorSetHolderInternal<Ts...>::UpdateDataInternal();
 		}
 	};
 
@@ -196,31 +195,75 @@ namespace render
 	{
 	public:
 
+		DescriptorSetHolderInternal(const DeviceConfiguration& device_cfg) {}
+
+	protected:
+
+
+		virtual void AttachDescriptorSetsInternal(DescriptorSetsManager& manager) {}
+		virtual void UpdateDataInternal() {}
+
+		std::map<DescriptorSetType, VkDescriptorSet> descriptor_sets_;
+	};
+
+	struct NoChild {};
+
+	template<class ChildType, DescriptorSetType... Ts>
+	class DescriptorSetHolder : private DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>
+	{
+	public:
+
+		DescriptorSetHolder(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal(device_cfg) {}
+		
+		virtual std::vector<std::reference_wrapper<ChildType>>& GetChildren() = 0;
+
 		const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const
 		{
 			return descriptor_sets_;
 		}
 
-		DescriptorSetHolderInternal(const DeviceConfiguration& device_cfg) {}
+		void UpdateData()
+		{
+			DescriptorSetHolderInternal::UpdateDataInternal();
 
-	protected:
+			for (auto&& child : GetChildren())
+			{
+				child.get().UpdateData();
+			}
+		}
 
-		void AttachDescriptorSets(DescriptorSetsManager& manager) {}
+		void AttachDescriptorSets(DescriptorSetsManager& manager)
+		{
+			DescriptorSetHolderInternal::AttachDescriptorSetsInternal(manager);
 
-		void UpdateData() {}
-
-		std::map<DescriptorSetType, VkDescriptorSet> descriptor_sets_;
+			for (auto&& child : GetChildren())
+			{
+				child.get().AttachDescriptorSets(manager);
+			}
+		}
 	};
 
 	template<DescriptorSetType... Ts>
-	class DescriptorSetHolder : public DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>
+	class DescriptorSetHolder<NoChild, Ts...> : private DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>
 	{
 	public:
 
 		DescriptorSetHolder(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal(device_cfg) {}
+
+		const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const
+		{
+			return descriptor_sets_;
+		}
+
+		void UpdateData()
+		{
+			DescriptorSetHolderInternal::UpdateDataInternal();
+		}
+
+		void AttachDescriptorSets(DescriptorSetsManager& manager)
+		{
+			DescriptorSetHolderInternal::AttachDescriptorSetsInternal(manager);
+		}
 	};
-
-
-
 }
 #endif  // RENDER_ENGINE_RENDER_DESCRIPTOR_SET_HOLDER_H_

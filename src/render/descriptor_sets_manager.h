@@ -29,6 +29,8 @@ namespace render
 
 		VkDescriptorSet GetFreeDescriptor(DescriptorSetType);
 
+		virtual ~DescriptorSetsManager();
+
 	private:
 
 		std::map<DescriptorSetType, std::vector<VkDescriptorSet>> descriptor_sets_;

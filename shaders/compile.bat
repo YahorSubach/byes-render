@@ -3,6 +3,10 @@ glslc.exe test.frag -o frag.spv
 glslc.exe test_2.vert -o vert_2.spv
 glslc.exe test_2.frag -o frag_2.spv
 glslc.exe color.vert -o color.vert.spv
+glslc.exe color_skin.vert -o color_skin.vert.spv
 glslc.exe color.frag -o color.frag.spv
 glslc.exe shadow.vert -o shadow.vert.spv
+glslc.exe shadow_skin.vert -o shadow_skin.vert.spv
 glslc.exe shadow.frag -o shadow.frag.spv
+glslc.exe ui.vert -o ui.vert.spv
+glslc.exe ui.frag -o ui.frag.spv

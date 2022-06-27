@@ -62,25 +62,39 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 
 			ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, pipeline_info.scene.GetDescriptorSets());
 
-			for (auto&& model : pipeline_info.scene.GetModels())
+			for (auto&& child : pipeline_info.scene.GetChildren())
 			{
-				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, model.GetDescriptorSets());
+				if (child.get().GetPrimitives().begin()->type != pipeline_info.primitive_type)
+					continue;
+
+				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.get().GetDescriptorSets());
 
 				std::vector<VkBuffer> vert_bufs;
 				std::vector<VkDeviceSize> offsetes;
 
 				stl_util::size<uint32_t>(offsetes);
 
-				for (auto&& buf : model.GetBatch().GetVertexBuffers())
+				for (auto&& buf : child.get().GetPrimitives().begin()->vertex_buffers)
 				{
-					vert_bufs.push_back(buf.buffer_.GetHandle());
-					offsetes.push_back(buf.offset_);
+					if (buf.count > 0)
+					{
+						vert_bufs.push_back(buf.buffer->GetHandle());
+						offsetes.push_back(buf.offset);
+					}
 				}
 
-				vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
-				vkCmdBindIndexBuffer(command_buffer, model.GetBatch().GetIndexBuffer().buffer_.GetHandle(), model.GetBatch().GetIndexBuffer().offset_, VK_INDEX_TYPE_UINT16);
 
-				vkCmdDrawIndexed(command_buffer, model.GetBatch().GetDrawSize(), 1, 0, 0, 0);
+				vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
+				vkCmdBindIndexBuffer(command_buffer, child.get().GetPrimitives().begin()->index_buffer.buffer->GetHandle(), child.get().GetPrimitives().begin()->index_buffer.offset, VK_INDEX_TYPE_UINT16);
+
+				//if (pipeline_info.id == RenderSetup::PipelineId::kUI)
+				//{
+				//	vkCmdDraw(command_buffer, 3, 1, 0, 0);
+				//}
+				//else
+				{
+					vkCmdDrawIndexed(command_buffer, u32(child.get().GetPrimitives().begin()->index_buffer.count), 1, 0, 0, 0);
+				}
 			}
 		}
 

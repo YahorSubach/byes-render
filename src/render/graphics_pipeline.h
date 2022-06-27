@@ -47,6 +47,8 @@ namespace render
 
 		const VkPipelineLayout& GetLayout() const;
 
+		uint32_t GetVertesBindingsCount() const;
+
 		virtual ~GraphicsPipeline() override;
 	private:
 
@@ -56,6 +58,8 @@ namespace render
 		std::map<uint32_t, const DescriptorSetLayout&> descriptor_sets_;
 
 		VkPipelineLayout layout_;
+
+		uint32_t vertex_bindings_count_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_GRAPHICS_PIPELINE_H_

@@ -27,41 +27,94 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 		throw std::runtime_error("failed to create shader module!");
 	}
 
-	if (shader_path.find("color") != std::string::npos || shader_path.find("shadow") != std::string::npos)
+	if (shader_path.find("color") != std::string::npos || shader_path.find("shadow") != std::string::npos || shader_path.find("ui") != std::string::npos)
 	{
 		if (shader_path.find("vert") != std::string::npos)
 		{
 			shader_type_ = ShaderType::Vertex;
 
-			const int t = sizeof(float);
-			VertexBindingDesc position_binding =
+			if (shader_path.find("ui") != std::string::npos)
 			{
-			(32 / 8) * 3,
-
+				VertexBindingDesc position_binding =
 				{
-					{ VK_FORMAT_R32G32B32_SFLOAT, 0}
-				}
-			};
+				(32 / 8) * 3,
 
-			VertexBindingDesc normal_binding =
+					{
+						{ VK_FORMAT_R32G32B32_SFLOAT, 0}
+					}
+				};
+
+				VertexBindingDesc tex_binding =
+				{
+				(32 / 8) * 2,
+
+					{
+						{ VK_FORMAT_R32G32_SFLOAT, 0}
+					}
+				};
+
+				vertex_bindings_descs_ = { position_binding , tex_binding };
+
+			}
+			else
 			{
-			(32 / 8) * 3,
-
+				VertexBindingDesc position_binding =
 				{
-					{ VK_FORMAT_R32G32B32_SFLOAT, 0}
-				}
-			};
+				(32 / 8) * 3,
 
-			VertexBindingDesc tex_binding =
-			{
-			(32 / 8) * 2,
+					{
+						{ VK_FORMAT_R32G32B32_SFLOAT, 0}
+					}
+				};
 
+				VertexBindingDesc normal_binding =
 				{
-					{ VK_FORMAT_R32G32_SFLOAT, 0}
-				}
-			};
+				(32 / 8) * 3,
 
-			vertex_bindings_descs_ = { position_binding , normal_binding , tex_binding };
+					{
+						{ VK_FORMAT_R32G32B32_SFLOAT, 0}
+					}
+				};
+
+				VertexBindingDesc tex_binding =
+				{
+				(32 / 8) * 2,
+
+					{
+						{ VK_FORMAT_R32G32_SFLOAT, 0}
+					}
+				};
+
+				if (shader_path.find("skin") != std::string::npos)
+				{
+
+					VertexBindingDesc joints_binding =
+					{
+					(8 / 8) * 4,
+
+						{
+							{ VK_FORMAT_R8G8B8A8_UINT, 0}
+						}
+					};
+
+					VertexBindingDesc weights_binding =
+					{
+					(32 / 8) * 4,
+
+						{
+							{ VK_FORMAT_R32G32B32A32_SFLOAT, 0}
+						}
+					};
+
+					vertex_bindings_descs_ = { position_binding , normal_binding , tex_binding, joints_binding, weights_binding };
+				}
+				else
+				{
+					vertex_bindings_descs_ = { position_binding , normal_binding , tex_binding};
+				}
+			}
+
+
 		}
 		else if (shader_path.find("frag") != std::string::npos)
 		{
@@ -74,6 +127,11 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 	{
 		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kCameraPositionAndViewProjMat)]);
 		descriptor_sets_.emplace(1, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kModelMatrix)]);
+
+		if (shader_path.find("skin") != std::string::npos)
+		{
+			descriptor_sets_.emplace(5, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kSkeleton)]);
+		}
 	}
 
 	if (shader_path.find("color") != std::string::npos && shader_path.find("frag") != std::string::npos)
@@ -87,10 +145,20 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 	{
 		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kLightPositionAndViewProjMat)]);
 		descriptor_sets_.emplace(1, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kModelMatrix)]);
+
+		if (shader_path.find("skin") != std::string::npos)
+		{
+			descriptor_sets_.emplace(2, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kSkeleton)]);
+		}
 	}
 
 	if (shader_path.find("shadow") != std::string::npos && shader_path.find("frag") != std::string::npos)
 	{
+	}
+
+	if (shader_path.find("ui") != std::string::npos && shader_path.find("frag") != std::string::npos)
+	{
+		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kTexture)]);
 	}
 
 }

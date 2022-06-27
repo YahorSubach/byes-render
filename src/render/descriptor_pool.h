@@ -23,6 +23,7 @@ namespace render
 		DescriptorPool& operator=(DescriptorPool&&) = default;
 
 		void AllocateSet(VkDescriptorSetLayout descriptor_set_layout, uint32_t count,std::vector<VkDescriptorSet>& allocated_sets);
+		void FreeSet(std::vector<VkDescriptorSet>& allocated_sets);
 
 		virtual ~DescriptorPool() override;
 	};

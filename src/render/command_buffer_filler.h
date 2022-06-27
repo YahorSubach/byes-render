@@ -25,7 +25,8 @@ namespace render
 	struct PipelineInfo
 	{
 		RenderSetup::PipelineId id;
-		const Scene& scene;
+		RenderModelType primitive_type;
+		ModelScene& scene;
 	};
 
 	struct RenderPassInfo

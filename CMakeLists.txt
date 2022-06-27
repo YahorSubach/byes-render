@@ -18,6 +18,10 @@ if(Vulkan_FOUND)
 	target_link_libraries(render_engine PRIVATE Vulkan::Vulkan)
 
 	add_subdirectory(src)
+	
+	get_target_property (_render_engine_sources render_engine SOURCES)
+	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${_render_engine_sources}) 
+
 
 	target_sources(render_engine 
 		PRIVATE
@@ -40,9 +44,12 @@ if(Vulkan_FOUND)
 	endif()	
 
 
+	target_link_libraries(render_engine PRIVATE glm)
+	target_link_libraries(render_engine PRIVATE freetype)
+
 	add_executable(render_engine_example "")
 	target_link_libraries(render_engine_example PRIVATE render_engine)
-	target_link_libraries(render_engine_example PRIVATE glm)
+
 
 	add_subdirectory(examples)
 

@@ -15,6 +15,11 @@ namespace render
 	class DescriptorPool;
 	class Sampler;
 
+	enum class RenderModelType
+	{
+		kStatic,
+		kSkinned
+	};
 
 	struct DeviceConfiguration
 	{
