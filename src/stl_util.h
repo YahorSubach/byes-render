@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <any>
 #include <functional>
+#include <optional>
 
 namespace render::stl_util
 {
@@ -83,6 +84,41 @@ namespace render::stl_util
 
 	template<class Result, class Container>
 	Result size(const Container& c) { return static_cast<Result>(c.size()); }
+
+	template<typename ReferencedType>
+	struct Nullable : public std::optional<std::reference_wrapper<ReferencedType>>
+	{
+		template<typename ...Params>
+		Nullable(Params&& ... params) : std::optional<std::reference_wrapper<ReferencedType>>(std::forward<Params>(params)...) {}
+
+		std::remove_reference_t<ReferencedType>* operator->()
+		{
+			return &(std::optional<std::reference_wrapper<ReferencedType>>::value().get());
+		}
+
+		const std::remove_reference_t<ReferencedType>* operator->() const
+		{
+			return &(std::optional<std::reference_wrapper<ReferencedType>>::value().get());
+		}
+
+		std::remove_reference_t<ReferencedType>& operator*()
+		{
+			return (std::optional<std::reference_wrapper<ReferencedType>>::value().get());
+		}
+
+		const std::remove_reference_t<ReferencedType>& operator*() const
+		{
+			return (std::optional<std::reference_wrapper<ReferencedType>>::value().get());
+		}
+
+		template<typename RHS>
+		Nullable& operator=(RHS&& rhs)
+		{
+			std::optional<std::reference_wrapper<ReferencedType>>::operator=(std::forward<RHS>(rhs));
+			return *this;
+		}
+	};
+
 
 }
 #endif  // RENDER_ENGINE_RENDER_STL_UTIL_H_

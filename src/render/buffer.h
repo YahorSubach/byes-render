@@ -3,9 +3,11 @@
 
 #include <vector>
 #include <array>
+#include <optional>
 
 #include "vulkan/vulkan.h"
 
+#include "stl_util.h"
 #include "common.h"
 #include "render/object_base.h"
 #include "render/data_types.h"
@@ -38,13 +40,13 @@ namespace render
 
 	struct BufferAccessor
 	{
-		BufferAccessor(const Buffer& buffer, uint32_t stride, uint64_t offset, uint64_t count) :buffer(&buffer), stride(stride), offset(offset), count(count) {}
+		BufferAccessor(const Buffer& buffer, uint32_t stride, uint64_t offset, uint64_t count) :buffer(buffer), stride(stride), offset(offset), count(count) {}
 		BufferAccessor(const Buffer& buffer) :BufferAccessor(buffer, 0, 0, buffer.GetSize()) {}
 
-		BufferAccessor() :buffer(nullptr), stride(0), offset(0), count(0) {}
+		BufferAccessor() :stride(0), offset(0), count(0) {}
 
 
-		const Buffer* buffer;
+		stl_util::Nullable<const Buffer> buffer;
 		uint32_t stride;
 
 		uint64_t offset;

@@ -76,7 +76,7 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 
 				for (auto&& buf : child.get().GetPrimitives().begin()->vertex_buffers)
 				{
-					if (buf.count > 0)
+					if (buf.buffer)
 					{
 						vert_bufs.push_back(buf.buffer->GetHandle());
 						offsetes.push_back(buf.offset);
