@@ -55,7 +55,8 @@ float GetShadowMapValue(vec2 coords)
 {
 	//return (texture(shadowSampler, coords + vec2(0,0.001)).r + texture(shadowSampler, coords + vec2(-0.001, -0.001)).r + texture(shadowSampler, coords + vec2(0.001, -0.001)).r) / 3;
 	
-	return texture(shadowSampler, coords + 0.01*(rand2(coords) - 0.5)).r;
+	//return texture(shadowSampler, coords + 0.01*(rand2(coords) - 0.5)).r;
+	return texture(shadowSampler, coords).r;
 }
 
 void main() {
@@ -64,7 +65,7 @@ void main() {
 
 	vec3 normal = normalize(fragNorm);
 
-	vec3 to_light_unit = normalize(lightPos - fragPosition.xyz);
+	vec3 to_light_unit = normalize(lightPos - fragPosition.xyz); 
 	vec3 light_refl_unit =  2 * dot(to_light_unit, normal) * normal - to_light_unit;
 	vec3 frag_to_eye_unit = normalize(fragToEyeVec);
 
@@ -106,7 +107,8 @@ void main() {
 	float shadow_map_value = GetShadowMapValue(vec2(shadow_map_coord.x/2+0.5,shadow_map_coord.y/2+0.5));
 	shadow_map_value = LinearizeShadow(shadow_light.near, shadow_light.far, shadow_map_value);
 
-	float shadow_value = clamp((shadow_map_value - light_space_frag_pos.z) * 3, 0.0, 1.0);
+	//float shadow_value = clamp((shadow_map_value - light_space_frag_pos.z) * 3, 0.0, 1.0);
+	float shadow_value = shadow_map_value - 0.01 > light_space_frag_pos.z ? 1.0 : 0.0;
 
 	float diffuse_multiplier = (1 - shadow_value) * (light_multiplier + spec_multiplier); 
 

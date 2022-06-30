@@ -3,45 +3,56 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 
-render::Model::Model(const DeviceConfiguration& device_cfg, const Batch& batch, const Sampler& diffuse_sampler): 
-	DescriptorSetHolder(device_cfg), batch_(batch), diffuse_sampler_(diffuse_sampler)
+render::ModelHolder::ModelHolder(const DeviceConfiguration& device_cfg, const Mesh& mesh, const Sampler& diffuse_sampler): 
+	DescriptorSetHolder(device_cfg), mesh_(mesh), diffuse_sampler_(diffuse_sampler)
+{}
+
+const render::Mesh& render::ModelHolder::GetMesh() const
 {
-	primitives_.push_back(Primitive{ batch_.GetVertexBuffers(), batch_.GetIndexBuffer()});
-	if (primitives_.back().vertex_buffers.size() == 5)
+	return mesh_;
+}
+
+void render::ModelHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
+{
+	data.emit = mesh_.primitives[0].emit;
+}
+
+void render::ModelHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
+{
+	if (mesh_.primitives[0].color_tex)
 	{
-		primitives_.back().type = RenderModelType::kSkinned;
+		data.image = mesh_.primitives[0].color_tex;
 	}
+	else
+	{
+		data.image = GetDeviceCfg().default_image;
+	}
+
+	data.sampler = diffuse_sampler_;
 }
 
-const render::Batch& render::Model::GetBatch() const
+void render::ModelHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
 {
-	return batch_;
+	int ind = 0;
+
+	for (auto&& joint : mesh_.joints)
+	{
+		glm::mat4 joint_transform = glm::inverse(mesh_.node.GetGlobalTransformMatrix()) * joint.node.GetGlobalTransformMatrix() * joint.inverse_bind_matrix;
+		data.matrices[ind] = joint_transform;
+		ind++;
+	}
+
+	//data.use = mesh_.primitives[0].type == RenderModelType::kSkinned;
 }
 
-void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
+void render::ModelHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
 {
-	data.emit = batch_.emit;
+	data.model_mat = mesh_.node.GetGlobalTransformMatrix();
 }
 
-void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
+const std::vector<render::Primitive>& render::ModelHolder::GetPrimitives() const
 {
-	data.image = &batch_.GetColorImage();
-	data.sampler = &diffuse_sampler_;
-}
-
-void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
-{
-	data.use = batch_.GetVertexBuffers().size() > 3;
-}
-
-void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
-{
-	data.model_mat = batch_.GetModelMatrix();
-}
-
-const std::vector<render::Primitive>& render::Model::GetPrimitives() const
-{
-	return primitives_;
+	return mesh_.primitives;
 }
 
 
@@ -50,11 +61,11 @@ render::ModelScene::ModelScene(const DeviceConfiguration& device_cfg, const Batc
 	diffuse_sampler_(device_cfg, Sampler::AddressMode::kRepeat), shadow_sampler_(device_cfg, Sampler::AddressMode::kClampToBorder)
 {
 
-	models_.reserve(batch_manager.GetBatches().size());
+	models_.reserve(batch_manager.GetMeshes().size());
 
-	for (auto&& batch : batch_manager.GetBatches())
+	for (auto&& mesh : batch_manager.GetMeshes())
 	{
-		models_.push_back(Model(device_cfg, batch, diffuse_sampler_));
+		models_.push_back(ModelHolder(device_cfg, mesh, diffuse_sampler_));
 		children_.push_back(models_.back());
 	}
 
@@ -69,7 +80,7 @@ render::ModelScene::ModelScene(const DeviceConfiguration& device_cfg, const Batc
 	light_data_.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 }	
 
-const std::vector<render::Model>& render::ModelScene::GetModels() const
+const std::vector<render::ModelHolder>& render::ModelScene::GetModels() const
 {
 	return models_;
 }
@@ -95,17 +106,17 @@ void render::ModelScene::FillData(render::DescriptorSet<render::DescriptorSetTyp
 
 void render::ModelScene::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
 {
-	data.image = &env_image_;
-	data.sampler = &diffuse_sampler_;
+	data.image = env_image_;
+	data.sampler = diffuse_sampler_;
 }
 
 void render::ModelScene::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
 {
-	data.image = &shadow_map_;
-	data.sampler = &shadow_sampler_;
+	data.image = shadow_map_;
+	data.sampler = shadow_sampler_;
 }
 
-std::vector<std::reference_wrapper<render::Model>>& render::ModelScene::GetChildren()
+std::vector<std::reference_wrapper<render::ModelHolder>>& render::ModelScene::GetChildren()
 {
 	return children_;
 }
@@ -125,8 +136,8 @@ render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui
 
 void render::UIScene::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
 {
-	data.image = &ui_.GetTestImage();
-	data.sampler = &ui_.GetUISampler();
+	data.image = ui_.GetTestImage();
+	data.sampler = ui_.GetUISampler();
 }
 
 std::vector<std::reference_wrapper<render::UIPoly>>& render::UIScene::GetChildren()
@@ -152,7 +163,7 @@ render::UIPoly::UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, 
 
 	polygon_vert_pos_.LoadData(positions.data(), sizeof(positions));
 
-	primitives_.push_back({ui.GetVertexBuffers(), ui.GetIndexBuffer()});
+	//primitives_.push_back({ui.GetVertexBuffers(), ui.GetIndexBuffer()});
 }
 
 void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)

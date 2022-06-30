@@ -5,6 +5,7 @@
 
 #include "vulkan/vulkan.h"
 
+#include "render/data_types.h"
 #include "render/image_view.h"
 #include "render/object_base.h"
 #include "render/sampler.h"
@@ -129,7 +130,6 @@ namespace render
 			struct Data
 			{
 				glm::mat4 matrices[32];
-				uint32_t use;
 			};
 
 			Data data;
@@ -166,8 +166,8 @@ namespace render
 
 			struct Data
 			{
-				const Image* image;
-				const Sampler* sampler;
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
 			};
 
 			Data data;
@@ -191,8 +191,8 @@ namespace render
 
 			struct Data
 			{
-				const Image* image;
-				const Sampler* sampler;
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
 			};
 
 			Data data;
@@ -206,8 +206,8 @@ namespace render
 
 			struct Data
 			{
-				const Image* image;
-				const Sampler* sampler;
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
 			};
 
 			Data data;
@@ -230,8 +230,8 @@ namespace render
 
 			struct Data
 			{
-				const Image* image;
-				const Sampler* sampler;
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
 			};
 
 			Data data;

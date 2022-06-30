@@ -8,18 +8,14 @@
 #include "glm/glm/glm.hpp"
 
 #include "common.h"
+#include "stl_util.h"
 
 namespace render
 {
 	class CommandPool;
 	class DescriptorPool;
 	class Sampler;
-
-	enum class RenderModelType
-	{
-		kStatic,
-		kSkinned
-	};
+	class Image;
 
 	struct DeviceConfiguration
 	{
@@ -40,6 +36,8 @@ namespace render
 
 		Sampler* texture_sampler;
 		Sampler* shadowmap_sampler;
+
+		stl_util::NullableRef<Image> default_image;
 	};
 
 	enum class ShaderType

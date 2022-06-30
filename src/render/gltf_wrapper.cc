@@ -15,29 +15,29 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 	std::string err;
 	std::string wrn;
 
-	bool load_result = loader.LoadBinaryFromFile(&gltf_model, &err, &wrn, path);
+	bool load_result = loader.LoadBinaryFromFile(&gltf_model_, &err, &wrn, path);
 
 	if (load_result)
 	{
 		std::vector<uint32_t> queue_indices = { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index };
 
-		for (auto&& buffer : gltf_model.buffers)
+		for (auto&& buffer : gltf_model_.buffers)
 		{
-			buffers_.push_back(GPULocalBuffer(device_cfg, gltf_model.buffers[0].data.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
+			buffers_.push_back(GPULocalBuffer(device_cfg, gltf_model_.buffers[0].data.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
 			buffers_.back().LoadData(buffer.data.data(), buffer.data.size());
 		}
 
-		for (auto&& image : gltf_model.images)
+		for (auto&& image : gltf_model_.images)
 		{
 			images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, image.image.data()));
 			images_views_.push_back(ImageView(device_cfg, images_.back()));
 		}
 
-		nodes.resize(gltf_model.nodes.size());
+		nodes.resize(gltf_model_.nodes.size());
 
-		for (int i = 0; i < gltf_model.nodes.size(); i++)
+		for (int i = 0; i < gltf_model_.nodes.size(); i++)
 		{
-			auto&& node = gltf_model.nodes[i];
+			auto&& node = gltf_model_.nodes[i];
 
 			nodes[i].node_matrix = glm::identity<glm::mat4>();
 
@@ -46,64 +46,85 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 				nodes[i].node_matrix = glm::translate(nodes[i].node_matrix, glm::vec3(node.translation[0], node.translation[1], node.translation[2]));
 			}
 
+			if (node.scale.size() == 3)
+			{
+				nodes[i].node_matrix = glm::scale(nodes[i].node_matrix, glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
+			}
+
 			if (node.rotation.size() == 4)
 			{
 				//glm::rotate(glm::mat4(1.0f), (1 * (1.0f + 1 * 1.37f)) * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-				nodes.back().node_matrix = glm::rotate(nodes[i].node_matrix, (float)node.rotation[3], glm::vec3(node.rotation[0], node.rotation[1], node.rotation[2]));
+				glm::quat rot_quat = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+				nodes[i].node_matrix *= glm::mat4_cast(rot_quat);
 				//nodes.back().node_matrix = glm::rotate(nodes.back().node_matrix, 1. glm::vec3());
 			}
 
 		}
 
-		for (int i = 0; i < gltf_model.nodes.size(); i++)
+		for (int i = 0; i < gltf_model_.nodes.size(); i++)
 		{
-			auto&& node = gltf_model.nodes[i];
+			auto&& node = gltf_model_.nodes[i];
 			for (auto&& children_index : node.children)
 			{
 				nodes[children_index].parent = nodes[i];
 			}
 		}
 
-		for (int i = 0; i < gltf_model.nodes.size(); i++)
+		for (int i = 0; i < gltf_model_.nodes.size(); i++)
 		{
-			auto&& gltf_node = gltf_model.nodes[i];
+			auto&& gltf_node = gltf_model_.nodes[i];
 
 			if (gltf_node.mesh != -1)
 			{
 
-				tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
+				tinygltf::Mesh& gltf_mesh = gltf_model_.meshes[gltf_node.mesh];
 
 				meshes.push_back(Mesh{ nodes[i] });
 
 				for (auto&& gltf_primitive : gltf_mesh.primitives)
 				{
-					int diffuse_tex_index = gltf_model.materials[gltf_primitive.material].pbrMetallicRoughness.baseColorTexture.index;
-					int emit_tex_index = gltf_model.materials[gltf_primitive.material].emissiveTexture.index;
 
-					Mesh::Primitive primitive
+
+					Primitive primitive
 					{
 						BuildBufferAccessor(gltf_primitive.indices),
-						BuildBufferAccessor(gltf_primitive.attributes["POSITION"]),
-						BuildBufferAccessor(gltf_primitive.attributes["NORMAL"]),
-						BuildBufferAccessor(gltf_primitive.attributes["TEXCOORD_0"]),
-						BuildBufferAccessor(gltf_primitive.attributes["JOINTS_0"]),
-						BuildBufferAccessor(gltf_primitive.attributes["WEIGHT_0"]),
-						emit_tex_index >= 0,
-						images_[
-							gltf_model.textures[
-								diffuse_tex_index >= 0 ? diffuse_tex_index : emit_tex_index
-							].source
-						],
+						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "POSITION")),
+						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "NORMAL")),
+						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "TEXCOORD_0")),
+						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "JOINTS_0")),
+						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "WEIGHTS_0")),
 					};
+
+					if (gltf_primitive.material >= 0)
+					{
+
+						int diffuse_tex_index = gltf_model_.materials[gltf_primitive.material].pbrMetallicRoughness.baseColorTexture.index;
+						int emit_tex_index = gltf_model_.materials[gltf_primitive.material].emissiveTexture.index;
+
+						primitive.emit = emit_tex_index >= 0;
+						primitive.color_tex = images_[
+							gltf_model_.textures[
+								diffuse_tex_index >= 0 ? diffuse_tex_index : emit_tex_index
+							].source];
+					}
+
+					auto&& tmp = *(primitive.positions.buffer);
+
+					if (primitive.positions.buffer) primitive.vertex_buffers.push_back(primitive.positions);
+					if (primitive.normals.buffer) primitive.vertex_buffers.push_back(primitive.normals);
+					if (primitive.tex_coords.buffer) primitive.vertex_buffers.push_back(primitive.tex_coords);
+					if (primitive.joints.buffer) { primitive.vertex_buffers.push_back(primitive.joints);  primitive.type = RenderModelType::kSkinned; }
+					if (primitive.weights.buffer) primitive.vertex_buffers.push_back(primitive.weights);
+
 
 					meshes.back().primitives.push_back(primitive);
 				}
 
 				if(gltf_node.skin != -1)
 				{
-					auto&& gltf_skin = gltf_model.skins[gltf_node.skin];
-					auto&& gltf_inverse_matrix_acc = gltf_model.accessors[gltf_skin.inverseBindMatrices];
-					auto&& gltf_inverse_matrix_buf_view = gltf_model.bufferViews[gltf_inverse_matrix_acc.bufferView];
+					auto&& gltf_skin = gltf_model_.skins[gltf_node.skin];
+					auto&& gltf_inverse_matrix_acc = gltf_model_.accessors[gltf_skin.inverseBindMatrices];
+					auto&& gltf_inverse_matrix_buf_view = gltf_model_.bufferViews[gltf_inverse_matrix_acc.bufferView];
 
 					auto overriden_stride = gltf_inverse_matrix_buf_view.byteStride;
 					auto element_size = tinygltf::GetNumComponentsInType(gltf_inverse_matrix_acc.type) * tinygltf::GetComponentSizeInBytes(gltf_inverse_matrix_acc.componentType);
@@ -118,10 +139,34 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 
 					for (int i = 0; i < gltf_inverse_matrix_acc.count; i++)
 					{
-						glm::mat4* mat_ptr = reinterpret_cast<glm::mat4*>( & (gltf_model.buffers[gltf_inverse_matrix_buf_view.buffer].data[offset + actual_stride * i]));
+						glm::mat4* mat_ptr = reinterpret_cast<glm::mat4*>( & (gltf_model_.buffers[gltf_inverse_matrix_buf_view.buffer].data[offset + actual_stride * i]));
 						inverce_matrices.push_back(*mat_ptr);
 					}
+
+					for (int i = 0; i < gltf_skin.joints.size(); i++)
+					{
+						meshes.back().joints.push_back(Bone{ nodes[gltf_skin.joints[i]], inverce_matrices[i] });
+					}
 				}
+
+				for (auto&& anim : gltf_model_.animations)
+				{
+					for (int sampler_ind = 0;  sampler_ind < anim.samplers.size(); sampler_ind++)
+					{
+						std::vector<float> times = BuildVectorFromAccessorIndex<float>(anim.samplers[sampler_ind].input);
+
+						if (anim.channels[sampler_ind].target_path == "translation")
+						{
+							std::vector<glm::vec3> values = BuildVectorFromAccessorIndex<glm::vec3>(anim.samplers[sampler_ind].output);
+						}
+						else if (anim.channels[sampler_ind].target_path == "rotation")
+						{
+							std::vector<glm::vec4> values = BuildVectorFromAccessorIndex<glm::vec4>(anim.samplers[sampler_ind].output);
+						}
+
+					}
+				}
+
 			}
 		}
 
@@ -133,19 +178,29 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 
 }
 
+int render::GLTFWrapper::GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, const std::string& name) const
+{
+	if (auto&& it = attributes.find(name); it != attributes.end())
+	{
+		return it->second;
+	}
 
-render::BufferAccessor render::GLTFWrapper::BuildBufferAccessor(int acc_ind)
+	return -1;
+}
+
+
+render::BufferAccessor render::GLTFWrapper::BuildBufferAccessor(int acc_ind) const
 {
 	if (acc_ind >= 0)
 	{
-		auto overriden_stride = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteStride;
-		auto element_size = tinygltf::GetNumComponentsInType(gltf_model.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model.accessors[acc_ind].componentType);
+		auto overriden_stride = gltf_model_.bufferViews[gltf_model_.accessors[acc_ind].bufferView].byteStride;
+		auto element_size = tinygltf::GetNumComponentsInType(gltf_model_.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model_.accessors[acc_ind].componentType);
 
 		auto actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
 
-		auto offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
+		auto offset = gltf_model_.bufferViews[gltf_model_.accessors[acc_ind].bufferView].byteOffset + gltf_model_.accessors[acc_ind].byteOffset;
 
-		BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, gltf_model.accessors[acc_ind].count);
+		BufferAccessor buffer_accessor(buffers_[gltf_model_.bufferViews[gltf_model_.accessors[acc_ind].bufferView].buffer], actual_stride, offset, gltf_model_.accessors[acc_ind].count);
 
 		return buffer_accessor;
 	}

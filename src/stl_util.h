@@ -86,10 +86,10 @@ namespace render::stl_util
 	Result size(const Container& c) { return static_cast<Result>(c.size()); }
 
 	template<typename ReferencedType>
-	struct Nullable : public std::optional<std::reference_wrapper<ReferencedType>>
+	struct NullableRef : public std::optional<std::reference_wrapper<ReferencedType>>
 	{
 		template<typename ...Params>
-		Nullable(Params&& ... params) : std::optional<std::reference_wrapper<ReferencedType>>(std::forward<Params>(params)...) {}
+		NullableRef(Params&& ... params) : std::optional<std::reference_wrapper<ReferencedType>>(std::forward<Params>(params)...) {}
 
 		std::remove_reference_t<ReferencedType>* operator->()
 		{
@@ -112,7 +112,7 @@ namespace render::stl_util
 		}
 
 		template<typename RHS>
-		Nullable& operator=(RHS&& rhs)
+		NullableRef& operator=(RHS&& rhs)
 		{
 			std::optional<std::reference_wrapper<ReferencedType>>::operator=(std::forward<RHS>(rhs));
 			return *this;

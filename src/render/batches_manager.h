@@ -15,6 +15,7 @@
 #include "render/render_pass.h"
 #include "render/sampler.h"
 #include "render/swapchain.h"
+#include "stl_util.h"
 
 #include "gltf_wrapper.h"
 
@@ -33,7 +34,7 @@ namespace render
 		BatchesManager& operator=(const BatchesManager&) = delete;
 		BatchesManager& operator=(BatchesManager&&) = default;
 
-		const std::vector<Batch>& GetBatches() const;
+		const std::vector<std::reference_wrapper<Mesh>>& GetMeshes() const;
 
 		const ImageView& GetEnvImageView() const;
 
@@ -41,7 +42,7 @@ namespace render
 
 		std::unique_ptr<DescriptorPool> descriptor_pool_ptr_;
 
-		std::vector<Batch> batches_;
+		std::vector<std::reference_wrapper<Mesh>> meshes_;
 
 		uint32_t uniform_set_cnt_;
 		uint32_t sampler_set_cnt_;

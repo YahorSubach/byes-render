@@ -85,7 +85,7 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 
 
 				vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
-				vkCmdBindIndexBuffer(command_buffer, child.get().GetPrimitives().begin()->index_buffer.buffer->GetHandle(), child.get().GetPrimitives().begin()->index_buffer.offset, VK_INDEX_TYPE_UINT16);
+				vkCmdBindIndexBuffer(command_buffer, child.get().GetPrimitives().begin()->indices.buffer->GetHandle(), child.get().GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
 
 				//if (pipeline_info.id == RenderSetup::PipelineId::kUI)
 				//{
@@ -93,7 +93,7 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 				//}
 				//else
 				{
-					vkCmdDrawIndexed(command_buffer, u32(child.get().GetPrimitives().begin()->index_buffer.count), 1, 0, 0, 0);
+					vkCmdDrawIndexed(command_buffer, u32(child.get().GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
 				}
 			}
 		}

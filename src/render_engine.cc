@@ -210,7 +210,8 @@ namespace render
 
 			uint32_t current_frame_index = -1;
 
-
+			Image def_image = Image::FromFile(device_cfg_, "../images/test.jpg");
+			device_cfg_.default_image = def_image;
 
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
@@ -275,8 +276,6 @@ namespace render
 						continue;
 					}
 
-
-					auto&& render_batches = batches_manager.GetBatches();
 
 					int mouse_x_delta;
 					int mouse_y_delta;

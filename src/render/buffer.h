@@ -41,12 +41,12 @@ namespace render
 	struct BufferAccessor
 	{
 		BufferAccessor(const Buffer& buffer, uint32_t stride, uint64_t offset, uint64_t count) :buffer(buffer), stride(stride), offset(offset), count(count) {}
-		BufferAccessor(const Buffer& buffer) :BufferAccessor(buffer, 0, 0, buffer.GetSize()) {}
+		//BufferAccessor(const Buffer& buffer) :BufferAccessor(buffer, 0, 0, buffer.GetSize()) {}
 
 		BufferAccessor() :stride(0), offset(0), count(0) {}
 
 
-		stl_util::Nullable<const Buffer> buffer;
+		stl_util::NullableRef<const Buffer> buffer;
 		uint32_t stride;
 
 		uint64_t offset;

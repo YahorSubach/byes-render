@@ -41,13 +41,7 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 
 		for (auto&& mesh : wrapper.meshes)
 		{
-			for (auto&& primitive : mesh.primitives)
-			{	
-				std::vector<BufferAccessor> vert_bufs = { primitive.positions, primitive.normals, primitive.tex_coords };
-
-				Batch batch(vert_bufs, primitive.indices, primitive.color_tex, primitive.indices.count, mesh.node.node_matrix, primitive.emit);
-				batches_.emplace_back(std::move(batch));
-			}
+			meshes_.push_back(mesh);
 		}
 	}
 
@@ -60,13 +54,7 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 
 		for (auto&& mesh : wrapper.meshes)
 		{
-			for (auto&& primitive : mesh.primitives)
-			{
-				std::vector<BufferAccessor> vert_bufs = { primitive.positions, primitive.normals, primitive.tex_coords, primitive.joints, primitive.weights };
-
-				Batch batch(vert_bufs, primitive.indices, primitive.color_tex, primitive.indices.count, mesh.node.node_matrix, primitive.emit);
-				batches_.emplace_back(std::move(batch));
-			}
+			meshes_.push_back(mesh);
 		}
 	}
 
@@ -79,13 +67,7 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 
 		for (auto&& mesh : wrapper.meshes)
 		{
-			for (auto&& primitive : mesh.primitives)
-			{
-				std::vector<BufferAccessor> vert_bufs = { primitive.positions, primitive.normals, primitive.tex_coords };
-
-				Batch batch(vert_bufs, primitive.indices, primitive.color_tex, primitive.indices.count, mesh.node.node_matrix, primitive.emit);
-				batches_.emplace_back(std::move(batch));
-			}
+			meshes_.push_back(mesh);
 		}
 	}
 
@@ -273,7 +255,7 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 
 }
 
-const std::vector<render::Batch>& render::BatchesManager::GetBatches() const
+const std::vector<std::reference_wrapper<render::Mesh>>& render::BatchesManager::GetMeshes() const
 {
 	//std::vector<Batch> result;
 
@@ -282,10 +264,18 @@ const std::vector<render::Batch>& render::BatchesManager::GetBatches() const
 	//	result.push_back(batch);
 	//}
 
-	return batches_;
+	return meshes_;
 }
 
 const render::ImageView& render::BatchesManager::GetEnvImageView() const
 {
 	return image_views_.front();
+}
+
+glm::mat4 render::Node::GetGlobalTransformMatrix() const
+{
+	if (parent)
+		return parent->GetGlobalTransformMatrix() * node_matrix;
+
+	return node_matrix;
 }

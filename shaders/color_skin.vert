@@ -12,7 +12,6 @@ layout(set = 1, binding = 0) uniform ObjectUniformBufferObject {
 
 layout(set = 5, binding = 0) uniform SceletonUniformBufferObject {
     mat4 matrices[32];
-	uint use;
 } skeleton;
 
 
@@ -37,14 +36,12 @@ void main() {
 
 	vec4 offset = vec4(0,0,0,0);
 
-	if(skeleton.use == 1)
-	{
-		offset = vec4(0,1,0,0);
-	}
+	mat4 joint_transform = skeleton.matrices[inJoints.x] * inWeights.x + skeleton.matrices[inJoints.y] * inWeights.y + skeleton.matrices[inJoints.z] * inWeights.z + skeleton.matrices[inJoints.a] * inWeights.a;
 
-    gl_Position = camera.projViewMatrix * (object.modelMatrix * vec4(inPosition, 1.0) + offset); 
 
-	fragPosition = (object.modelMatrix * vec4(inPosition, 1.0)).xyz +  + offset.xyz;
+    gl_Position = camera.projViewMatrix * object.modelMatrix * joint_transform * vec4(inPosition, 1.0); 
+
+	fragPosition = (object.modelMatrix * vec4(inPosition, 1.0)).xyz;
 	fragToEyeVec = camera.position.xyz - fragPosition;
 
 	fragNorm = (mat3(object.modelMatrix) * vec3(inNormal));
