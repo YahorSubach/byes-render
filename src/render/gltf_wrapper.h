@@ -21,9 +21,13 @@ namespace render
 	public:
 
 		GLTFWrapper(const DeviceConfiguration& device_cfg, const std::string& path);
+		GLTFWrapper(const GLTFWrapper&) = delete;
+		GLTFWrapper(GLTFWrapper&&) = default;
+
 
 		std::vector<Node> nodes;
 		std::vector<Mesh> meshes;
+		std::map<std::string, Animation> animations;
 		
 	private:
 

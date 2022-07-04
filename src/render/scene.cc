@@ -3,8 +3,8 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 
-render::ModelHolder::ModelHolder(const DeviceConfiguration& device_cfg, const Mesh& mesh, const Sampler& diffuse_sampler): 
-	DescriptorSetHolder(device_cfg), mesh_(mesh), diffuse_sampler_(diffuse_sampler)
+render::ModelHolder::ModelHolder(const DeviceConfiguration& device_cfg, const Mesh& mesh): 
+	DescriptorSetHolder(device_cfg), mesh_(mesh), diffuse_sampler_(Sampler(device_cfg, mesh_.primitives[0].color_tex))
 {}
 
 const render::Mesh& render::ModelHolder::GetMesh() const
@@ -58,14 +58,14 @@ const std::vector<render::Primitive>& render::ModelHolder::GetPrimitives() const
 
 render::ModelScene::ModelScene(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Image& shadow_map):
 	DescriptorSetHolder(device_cfg), env_image_(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png")), shadow_map_(shadow_map),
-	diffuse_sampler_(device_cfg, Sampler::AddressMode::kRepeat), shadow_sampler_(device_cfg, Sampler::AddressMode::kClampToBorder)
+	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder)
 {
 
 	models_.reserve(batch_manager.GetMeshes().size());
 
 	for (auto&& mesh : batch_manager.GetMeshes())
 	{
-		models_.push_back(ModelHolder(device_cfg, mesh, diffuse_sampler_));
+		models_.push_back(ModelHolder(device_cfg, mesh));
 		children_.push_back(models_.back());
 	}
 

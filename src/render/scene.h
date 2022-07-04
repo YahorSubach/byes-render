@@ -15,11 +15,13 @@
 
 namespace render
 {
+	struct T {};
+
 	class ModelHolder : public DescriptorSetHolder<NoChild, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>
 	{
 	public:
 
-		ModelHolder(const DeviceConfiguration& device_cfg, const Mesh& batch, const Sampler& diffuse_sampler);
+		ModelHolder(const DeviceConfiguration& device_cfg, const Mesh& batch);
 		const Mesh& GetMesh() const;
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
@@ -33,7 +35,7 @@ namespace render
 
 	private:
 		const Mesh& mesh_;
-		const Sampler& diffuse_sampler_;
+		Sampler diffuse_sampler_; // write note about const movable fields
 	};
 
 	class ModelScene : public DescriptorSetHolder<ModelHolder, DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>

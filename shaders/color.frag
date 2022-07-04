@@ -55,8 +55,8 @@ float GetShadowMapValue(vec2 coords)
 {
 	//return (texture(shadowSampler, coords + vec2(0,0.001)).r + texture(shadowSampler, coords + vec2(-0.001, -0.001)).r + texture(shadowSampler, coords + vec2(0.001, -0.001)).r) / 3;
 	
-	//return texture(shadowSampler, coords + 0.01*(rand2(coords) - 0.5)).r;
-	return texture(shadowSampler, coords).r;
+	return texture(shadowSampler, coords + 0.01*(rand2(coords) - 0.5)).r;
+	//return texture(shadowSampler, coords).r;
 }
 
 void main() {
@@ -108,14 +108,14 @@ void main() {
 	shadow_map_value = LinearizeShadow(shadow_light.near, shadow_light.far, shadow_map_value);
 
 	//float shadow_value = clamp((shadow_map_value - light_space_frag_pos.z) * 3, 0.0, 1.0);
-	float shadow_value = shadow_map_value - 0.01 > light_space_frag_pos.z ? 1.0 : 0.0;
+	float shadow_value = shadow_map_value - 0.1 > light_space_frag_pos.z ? 1.0 : 0.0;
 
 	float diffuse_multiplier = (1 - shadow_value) * (light_multiplier + spec_multiplier); 
 
-	//float shadow_multiplier = clamp(shadow_map_value+0.001 - shadow_map_coord.z, 0, 1);
+	//float shadow_multiplier = clamp(shadow_map_value+0. - shadow_map_coord.z, 0, 1);
 
 
-	//float color = ((shadow_map_value+0.001) < shadow_map_coord.z) ? 0.f : 1.f; 
+	//float color = ((shadow_map_value+0.01) < shadow_map_coord.z) ? 0.f : 1.f; 
 	//vec4 diffuse = vec4(color,color,color, 1.0) * (0.1 + 0.9 * diffuseMultiplier);
 	
 	if(material.emit == 1)

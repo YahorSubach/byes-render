@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common.h"
+#include "render/animator.h"
 #include "render/object_base.h"
 #include "render/data_types.h"
 #include "render/batch.h"
@@ -38,20 +39,21 @@ namespace render
 
 		const ImageView& GetEnvImageView() const;
 
+		void Update();
+
 	private:
 
 		std::unique_ptr<DescriptorPool> descriptor_pool_ptr_;
 
 		std::vector<std::reference_wrapper<Mesh>> meshes_;
 
-		uint32_t uniform_set_cnt_;
-		uint32_t sampler_set_cnt_;
-
 		std::vector<GPULocalBuffer> buffers_;
 		std::vector<Image> images_;
 		std::vector<ImageView> image_views_;
 		
 		std::vector<GLTFWrapper> gltf_wrappers_;
+
+		std::vector<Animator> animators_;
 
 	};
 }

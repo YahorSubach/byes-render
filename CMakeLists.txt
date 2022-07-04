@@ -38,7 +38,7 @@ if(Vulkan_FOUND)
 			COMMAND cmd /c "cd ../shaders && compile.bat"
 			COMMENT "compiling shaders..."
 		)
-
+		
 		add_subdirectory(shaders)
 
 	endif()	
@@ -48,6 +48,7 @@ if(Vulkan_FOUND)
 	target_link_libraries(render_engine PRIVATE freetype)
 
 	add_executable(render_engine_example "")
+	add_dependencies(render_engine_example shaders)
 	target_link_libraries(render_engine_example PRIVATE render_engine)
 
 

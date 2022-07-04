@@ -3,9 +3,11 @@
 
 #include <vector>
 #include <array>
+#include <chrono>
 
 #include "vulkan/vulkan.h"
 #include "glm/glm/glm.hpp"
+#include "glm/gtx/quaternion.hpp"
 
 #include "common.h"
 
@@ -43,7 +45,13 @@ namespace render
 
 	struct Node
 	{
+		glm::vec3 translation;
+		glm::quat rotation;
+		glm::vec3 scale;
+		
 		glm::mat4 node_matrix;
+		
+		
 		stl_util::NullableRef<Node> parent;
 
 		glm::mat4 GetGlobalTransformMatrix() const;
@@ -65,8 +73,34 @@ namespace render
 		std::vector<Primitive> primitives;
 	};
 
+	template<typename ValueType>
+	struct FrameValue
+	{
+		std::chrono::milliseconds time;
+		ValueType value;
+	};
 
+	enum class InterpolationType
+	{
+		kLinear,
+		kCubicSpline
+	};
 
+	template<typename ValueType>
+	struct AnimSampler // TODO move to namespace
+	{
+		uint32_t node_index;
+
+		InterpolationType interpolation_type;
+		std::vector<FrameValue<ValueType>> frames;
+	};
+
+	struct Animation
+	{
+		std::vector<AnimSampler<glm::vec3>> translations;
+		std::vector<AnimSampler<glm::vec3>> scales;
+		std::vector<AnimSampler<glm::quat>> rotations;
+	};
 }
 
 #endif  // RENDER_ENGINE_RENDER_RENDER_PASS_H_

@@ -5,8 +5,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type) : RenderObjBase(device_cfg), image_type_(image_type)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type) : RenderObjBase(device_cfg), image_type_(image_type), width_(width), height_(height)
 {
+	mipmap_levels_count_ = image_type == ImageType::kColorImage ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
+
 	format_ = format;
 	VkImageCreateInfo image_info{};
 	image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -14,13 +16,13 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	image_info.extent.width = static_cast<uint32_t>(width);
 	image_info.extent.height = static_cast<uint32_t>(height);
 	image_info.extent.depth = 1;
-	image_info.mipLevels = 1;
+	image_info.mipLevels = mipmap_levels_count_;
 	image_info.arrayLayers = 1;
 	image_info.format = format;
 	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	if(image_type == ImageType::kColorImage)		image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	if(image_type == ImageType::kColorImage)		image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	else if (image_type == ImageType::kDepthImage)	image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -45,10 +47,9 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	vkBindImageMemory(device_cfg_.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : RenderObjBase(device_cfg), image_type_(ImageType::kSwapchainImage)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : RenderObjBase(device_cfg), image_type_(ImageType::kSwapchainImage), format_(format), mipmap_levels_count_(1)
 {
 	handle_ = image_handle;
-	format_ = format;
 }
 
 render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels): Image(device_cfg, format, width, height, ImageType::kColorImage)
@@ -57,9 +58,9 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	Buffer staging_buffer(device_cfg, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {});
 
 	staging_buffer.LoadData(pixels, image_size);
-	TransitionImageLayout(*device_cfg.graphics_cmd_pool, TransitionType::kPrepareToTransfer);
+	TransitionImageLayout(*device_cfg.graphics_cmd_pool, TransitionType::kTransferDst);
 	CopyBuffer(*device_cfg.transfer_cmd_pool, staging_buffer, width, height);
-	TransitionImageLayout(*device_cfg.graphics_cmd_pool, TransitionType::kTransferToFragment);
+	GenerateMipMaps();
 }
 
 render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, const std::string& path)
@@ -97,14 +98,14 @@ void render::Image::TransitionImageLayout(const CommandPool& command_pool, Trans
 	barrier.image = handle_;
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.levelCount = mipmap_levels_count_;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = 1;
 	barrier.srcAccessMask = 0; // TODO
 	barrier.dstAccessMask = 0; // TODO
 
 
-	if (transfer_type == TransitionType::kPrepareToTransfer)
+	if (transfer_type == TransitionType::kTransferDst)
 	{
 		barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -115,7 +116,18 @@ void render::Image::TransitionImageLayout(const CommandPool& command_pool, Trans
 		source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 	}
-	else if (transfer_type == TransitionType::kTransferToFragment)
+	else if (transfer_type == TransitionType::kTransferSrc)
+	{
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (transfer_type == TransitionType::kFragmentRead)
 	{
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -142,6 +154,10 @@ void render::Image::TransitionImageLayout(const CommandPool& command_pool, Trans
 
 void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, uint32_t width, uint32_t height)
 {
+
+	//Check here image type
+	mipmap_levels_count_ = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
 	region.bufferRowLength = 0;
@@ -183,4 +199,93 @@ render::Image::~Image()
 render::Image::ImageType render::Image::GetImageType() const
 {
 	return image_type_;
+}
+
+uint32_t render::Image::GetMipMapLevelsCount() const
+{
+	return mipmap_levels_count_;
+}
+
+void render::Image::GenerateMipMaps()
+{
+
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.image = handle_;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.levelCount = 1;
+
+
+		device_cfg_.graphics_cmd_pool->ExecuteOneTimeCommand([this, &barrier/*barrier, source_stage, destination_stage, image = handle_*/](VkCommandBuffer buffer)
+			{
+			int32_t mip_width = width_;
+			int32_t mip_height = height_;
+
+			for (uint32_t i = 1; i < mipmap_levels_count_; i++)
+			{
+				barrier.subresourceRange.baseMipLevel = i - 1;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+				vkCmdPipelineBarrier(buffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier);
+
+				VkImageBlit blit{};
+				blit.srcOffsets[0] = { 0, 0, 0 };
+				blit.srcOffsets[1] = { mip_width, mip_height, 1 };
+				blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit.srcSubresource.mipLevel = i - 1;
+				blit.srcSubresource.baseArrayLayer = 0;
+				blit.srcSubresource.layerCount = 1;
+				blit.dstOffsets[0] = { 0, 0, 0 };
+				blit.dstOffsets[1] = { mip_width > 1 ? mip_width / 2 : 1, mip_height > 1 ? mip_height / 2 : 1, 1 };
+				blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit.dstSubresource.mipLevel = i;
+				blit.dstSubresource.baseArrayLayer = 0;
+				blit.dstSubresource.layerCount = 1;
+
+				vkCmdBlitImage(buffer,
+					handle_, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					handle_, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					1, &blit,
+					VK_FILTER_LINEAR);
+
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				vkCmdPipelineBarrier(buffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier);
+
+				mip_width /= 2;
+				mip_height /= 2;
+			}
+
+			barrier.subresourceRange.baseMipLevel = mipmap_levels_count_ - 1;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			vkCmdPipelineBarrier(buffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+			});
+
 }

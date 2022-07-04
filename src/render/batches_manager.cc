@@ -32,6 +32,8 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 //		{4, 5, 6}, {6, 7, 4}
 //	};
 
+	gltf_wrappers_.reserve(16);
+
 	{
 
 		gltf_wrappers_.push_back(GLTFWrapper(device_cfg, "../blender/old_chair/old_chair_with_cube.glb"));
@@ -56,6 +58,15 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 		{
 			meshes_.push_back(mesh);
 		}
+
+		//animators_.push_back(Animator(gltf_wrappers_.back().animations["sit"], gltf_wrappers_.back().nodes));
+		//animators_.back().Start();
+
+		animators_.push_back(Animator(gltf_wrappers_.back().animations.at("breath "), gltf_wrappers_.back().nodes));
+		animators_.back().Start();
+
+		//animators_.push_back(Animator(gltf_wrappers_.back().animations["test_move"], gltf_wrappers_.back().nodes));
+		//animators_.back().Start();
 	}
 
 	{
@@ -270,6 +281,14 @@ const std::vector<std::reference_wrapper<render::Mesh>>& render::BatchesManager:
 const render::ImageView& render::BatchesManager::GetEnvImageView() const
 {
 	return image_views_.front();
+}
+
+void render::BatchesManager::Update()
+{
+	for (auto&& animator : animators_)
+	{
+		animator.Update();
+	}
 }
 
 glm::mat4 render::Node::GetGlobalTransformMatrix() const

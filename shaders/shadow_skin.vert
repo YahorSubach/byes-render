@@ -23,12 +23,10 @@ layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in uvec4 inJoints;
 layout(location = 4) in vec4 inWeights;
 
-layout( push_constant ) uniform constants
-{
-	mat4 project_matrix;
-	mat4 view_model_matrix;
-} PushConstants;
 
 void main() {
-    gl_Position = light.proj_mat * light.view_mat * object.modelMatrix * vec4(inPosition, 1.0);
+
+	mat4 joint_transform = skeleton.matrices[inJoints.x] * inWeights.x + skeleton.matrices[inJoints.y] * inWeights.y + skeleton.matrices[inJoints.z] * inWeights.z + skeleton.matrices[inJoints.a] * inWeights.a;
+
+    gl_Position = light.proj_mat * light.view_mat * object.modelMatrix * joint_transform * vec4(inPosition, 1.0);
 }

@@ -262,6 +262,7 @@ namespace render
 
 					uint32_t image_index;
 
+					batches_manager.Update();
 
 					VkResult result = vkAcquireNextImageKHR(device_cfg_.logical_device, swapchain.GetHandle(), UINT64_MAX,
 						frames[current_frame_index].GetImageAvailableSemaphore(), VK_NULL_HANDLE, &image_index);

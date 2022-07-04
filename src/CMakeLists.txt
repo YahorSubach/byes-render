@@ -7,6 +7,8 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/platform.cc
 		${CMAKE_CURRENT_LIST_DIR}/surface.h
 		${CMAKE_CURRENT_LIST_DIR}/surface.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/animator.h
+		${CMAKE_CURRENT_LIST_DIR}/render/animator.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/batch.h
 		${CMAKE_CURRENT_LIST_DIR}/render/batch.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/batches_manager.h

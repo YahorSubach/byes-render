@@ -21,8 +21,9 @@ namespace render
 		
 		enum class TransitionType
 		{
-			kPrepareToTransfer,
-			kTransferToFragment,
+			kTransferSrc,
+			kTransferDst,
+			kFragmentRead,
 		};
 
 		enum class ImageType
@@ -55,12 +56,21 @@ namespace render
 
 		ImageType GetImageType() const;
 
+		uint32_t GetMipMapLevelsCount() const;
+
 	private:
+
+		uint32_t width_;
+		uint32_t height_;
+
+		void GenerateMipMaps();
 
 		ImageType image_type_;
 
 		std::unique_ptr<Memory> memory_;
 		VkFormat format_;
+
+		uint32_t mipmap_levels_count_;
 
 	};
 }

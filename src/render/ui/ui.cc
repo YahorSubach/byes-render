@@ -4,7 +4,7 @@ render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBas
     polygon_vert_pos_(device_cfg, 4 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index }),
     polygon_vert_tex_(device_cfg, 4 * sizeof(glm::vec2), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index }),
     polygon_vert_ind_(device_cfg, 6 * sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index }),
-    ui_sampler_(device_cfg, Sampler::AddressMode::kClampToEdge), test_image_(Image::FromFile(device_cfg, "../images/test_a.png")),
+    ui_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToEdge), test_image_(Image::FromFile(device_cfg, "../images/test_a.png")),
     index_buffer_(polygon_vert_ind_, sizeof(uint16_t), 0, 6), extent_(extent)
 {
     std::array<glm::vec3, 4> positions =
@@ -59,7 +59,7 @@ render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBas
         std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
     }
 
-    char_images_.emplace('A', Image(device_cfg_, VK_FORMAT_R8_SRGB, face->glyph->bitmap.width, face->glyph->bitmap.rows, face->glyph->bitmap.buffer));
+    //char_images_.emplace('A', Image(device_cfg_, VK_FORMAT_R8_SRGB, face->glyph->bitmap.width, face->glyph->bitmap.rows, face->glyph->bitmap.buffer));
 }
 
 
