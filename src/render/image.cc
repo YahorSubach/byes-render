@@ -24,6 +24,7 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 
 	if(image_type == ImageType::kColorImage)		image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	else if (image_type == ImageType::kDepthImage)	image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	else if (image_type == ImageType::kBitmapImage)	image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
@@ -52,7 +53,7 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkI
 	handle_ = image_handle;
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels): Image(device_cfg, format, width, height, ImageType::kColorImage)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImageType image_type): Image(device_cfg, format, width, height, image_type)
 {
 	VkDeviceSize image_size = width * height * 4;
 	Buffer staging_buffer(device_cfg, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {});
@@ -156,7 +157,7 @@ void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& bu
 {
 
 	//Check here image type
-	mipmap_levels_count_ = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+	mipmap_levels_count_ = image_type_ == ImageType::kColorImage ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;

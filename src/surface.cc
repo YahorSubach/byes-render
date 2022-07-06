@@ -33,6 +33,17 @@ render::Surface::~Surface()
 VkSurfaceFormatKHR render::Surface::GetSurfaceFormat(const VkPhysicalDevice& physical_device) const
 {
 	auto formats = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfaceFormatsKHR, physical_device, handle_);
+
+	if (formats.size() == 0)
+		throw std::runtime_error("No surface formats detected. Epic fail:(");
+
+
+	for (auto format : formats)
+	{
+		if (format.format == VK_FORMAT_B8G8R8A8_SRGB)
+			return format;
+	}
+
 	return formats[0]; //TODO fuck
 }
 

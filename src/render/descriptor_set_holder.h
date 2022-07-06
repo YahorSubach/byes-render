@@ -201,6 +201,11 @@ namespace render
 
 		DescriptorSetHolderInternal(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg) {}
 
+		const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const
+		{
+			return descriptor_sets_;
+		}
+
 	protected:
 
 
@@ -210,54 +215,12 @@ namespace render
 		std::map<DescriptorSetType, VkDescriptorSet> descriptor_sets_;
 	};
 
-	struct NoChild {};
-
-	template<class ChildType, DescriptorSetType... Ts>
-	class DescriptorSetHolder : private DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>
-	{
-	public:
-
-		DescriptorSetHolder(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal(device_cfg) {}
-		
-		virtual std::vector<std::reference_wrapper<ChildType>>& GetChildren() = 0;
-
-		const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const
-		{
-			return descriptor_sets_;
-		}
-
-		void UpdateData()
-		{
-			DescriptorSetHolderInternal::UpdateDataInternal();
-
-			for (auto&& child : GetChildren())
-			{
-				child.get().UpdateData();
-			}
-		}
-
-		void AttachDescriptorSets(DescriptorSetsManager& manager)
-		{
-			DescriptorSetHolderInternal::AttachDescriptorSetsInternal(manager);
-
-			for (auto&& child : GetChildren())
-			{
-				child.get().AttachDescriptorSets(manager);
-			}
-		}
-	};
-
 	template<DescriptorSetType... Ts>
-	class DescriptorSetHolder<NoChild, Ts...> : private DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>
+	class DescriptorSetHolder : public DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>
 	{
 	public:
 
 		DescriptorSetHolder(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal(device_cfg) {}
-
-		const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const
-		{
-			return descriptor_sets_;
-		}
 
 		void UpdateData()
 		{
@@ -267,11 +230,6 @@ namespace render
 		void AttachDescriptorSets(DescriptorSetsManager& manager)
 		{
 			DescriptorSetHolderInternal::AttachDescriptorSetsInternal(manager);
-		}
-
-		const DeviceConfiguration& GetDeviceCfg()
-		{
-			return device_cfg_;
 		}
 	};
 }

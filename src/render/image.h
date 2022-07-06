@@ -33,9 +33,10 @@ namespace render
 			kSwapchainImage,
 			kColorImage,
 			kDepthImage,
+			kBitmapImage,
 		};
 
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImageType image_type = ImageType::kColorImage);
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type);
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle);
 

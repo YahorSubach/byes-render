@@ -15,13 +15,47 @@
 
 namespace render
 {
-	struct T {};
+	class RenderNodeBase
+	{
+	public:
+		RenderNodeBase(DescriptorSetHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder) : desc_set_holder_(desc_set_holder) {}
+		const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const { return desc_set_holder_.GetDescriptorSets(); }
 
-	class ModelHolder : public DescriptorSetHolder<NoChild, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>
+	protected:
+		DescriptorSetHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder_;
+	};
+
+	class PrimitivesHolderRenderNode : public RenderNodeBase
+	{
+
+	public:
+
+		PrimitivesHolderRenderNode(DescriptorSetHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder, const std::vector<Primitive>& primitives) : RenderNodeBase(desc_set_holder), primitives_(primitives) {}
+		
+		const std::vector<Primitive>& GetPrimitives() const { return primitives_; }
+	
+	protected:
+		const std::vector<Primitive>& primitives_;
+	
+	};
+
+	class SceneRenderNode : public RenderNodeBase
 	{
 	public:
 
-		ModelHolder(const DeviceConfiguration& device_cfg, const Mesh& batch);
+		SceneRenderNode(DescriptorSetHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder, const std::vector<PrimitivesHolderRenderNode>& children) : RenderNodeBase(desc_set_holder), children_(children) {}
+
+		const std::vector<PrimitivesHolderRenderNode>& GetChildren() const { return children_; }
+
+	protected:
+		const std::vector<PrimitivesHolderRenderNode>& children_;
+	};
+
+	class ModelDescSetHolder : public DescriptorSetHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>
+	{
+	public:
+
+		ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Mesh& mesh);
 		const Mesh& GetMesh() const;
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
@@ -33,18 +67,21 @@ namespace render
 
 		const std::vector<Primitive>& GetPrimitives() const;
 
+		PrimitivesHolderRenderNode GetRenderNode();
+
 	private:
 		const Mesh& mesh_;
-		Sampler diffuse_sampler_; // write note about const movable fields
+		Sampler diffuse_sampler_;
 	};
 
-	class ModelScene : public DescriptorSetHolder<ModelHolder, DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>
+
+	class ModelSceneDescSetHolder : public DescriptorSetHolder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>
 	{
 	public:
 
-		ModelScene(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Image& shadow_map);
+		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Image& shadow_map);
 
-		const std::vector<ModelHolder>& GetModels() const;
+		const std::vector<ModelDescSetHolder>& GetModels() const;
 
 		void UpdateCameraData(glm::vec3 pos, glm::vec3 look, float aspect);
 
@@ -53,12 +90,16 @@ namespace render
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
 
-		virtual std::vector<std::reference_wrapper<ModelHolder>>& GetChildren() override;
+		SceneRenderNode GetRenderNode();
+
+		void UpdateData();
+
+		void AttachDescriptorSets(DescriptorSetsManager& manager);
 
 	private:
 		
-		std::vector<ModelHolder> models_;
-		std::vector<std::reference_wrapper<ModelHolder>> children_;
+		std::vector<ModelDescSetHolder> models_;
+		std::vector<PrimitivesHolderRenderNode> children_nodes_;
 
 		DescriptorSet<DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data camera_data_;
 		DescriptorSet<DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data light_data_;
@@ -71,8 +112,7 @@ namespace render
 	};
 
 
-
-	class UIPoly : public DescriptorSetHolder<NoChild, DescriptorSetType::kModelMatrix>
+	class UIPoly : public DescriptorSetHolder<DescriptorSetType::kModelMatrix>
 	{
 		const ui::UI& ui_;
 		std::vector<Primitive> primitives_;
@@ -86,10 +126,10 @@ namespace render
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 
-		const std::vector<Primitive>& GetPrimitives() const;
+		PrimitivesHolderRenderNode GetRenderNode();
 	};
 
-	class UIScene : public DescriptorSetHolder<UIPoly, DescriptorSetType::kTexture>
+	class UIScene : public DescriptorSetHolder<DescriptorSetType::kTexture>
 	{
 		const ui::UI& ui_;
 
@@ -101,7 +141,9 @@ namespace render
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data) override;
 
-		virtual std::vector<std::reference_wrapper<UIPoly>>& GetChildren() override;
+		SceneRenderNode GetRenderNode();
+
+		std::vector<PrimitivesHolderRenderNode> children_nodes_;
 	};
 }
 

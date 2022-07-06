@@ -38,9 +38,9 @@ namespace render
 
 		std::vector<BufferAccessor> vertex_buffers;
 
-		RenderModelType type;
+		RenderModelType type = RenderModelType::kStatic;
 
-		bool emit;
+		bool emit = false;
 	};
 
 	struct Node

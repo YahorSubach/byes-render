@@ -61,7 +61,7 @@ namespace render
 
 
 
-		ModelScene model_scene_;
+		ModelSceneDescSetHolder model_scene_;
 		UIScene ui_scene_;
 	};
 }

@@ -13,6 +13,8 @@ namespace render::platform
 	int mouse_x = 0;
 	int mouse_y = 0;
 
+	bool consume_mouse_input = false;
+
 	std::array<bool, 'z' - 'a' + 1> buttons;
 
 	constexpr int kVkCharStart = 0x41;
@@ -20,6 +22,43 @@ namespace render::platform
 
 	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		if (false &&/*uMsg != WM_MOUSEMOVE &&*/ uMsg != WM_SETCURSOR && uMsg != WM_NCHITTEST  && uMsg != WM_GETICON && 
+			uMsg != WM_NCMOUSELEAVE && uMsg != WM_NCMOUSEHOVER && 
+			!(uMsg >= WM_NCMOUSEMOVE && uMsg <= WM_NCMBUTTONDBLCLK) &&
+			!(uMsg >= WM_NCCREATE && uMsg <= WM_SYNCPAINT) &&
+			uMsg != WM_SYSCOMMAND && uMsg != WM_GETMINMAXINFO && uMsg != WM_ERASEBKGND && uMsg != WM_PAINT
+			)
+		{
+			if (uMsg == WM_SETFOCUS)
+				std::cout << "WM_SETFOCUS" << std::endl;
+			else if(uMsg == WM_KILLFOCUS)
+				std::cout << "WM_KILLFOCUS" << std::endl;
+			else if (uMsg == WM_ACTIVATE)
+				std::cout << "WM_ACTIVATE" << std::endl;
+			else if (uMsg == WM_WINDOWPOSCHANGING)
+				std::cout << "WM_WINDOWPOSCHANGING" << std::endl;
+			else if (uMsg == WM_WINDOWPOSCHANGED)
+				std::cout << "WM_WINDOWPOSCHANGED" << std::endl;
+			else if (uMsg == WM_NCHITTEST)
+				std::cout << "WM_NCHITTEST" << std::endl;
+			else if (uMsg == WM_SETCURSOR)
+				std::cout << "WM_SETCURSOR" << std::endl;
+			else if (uMsg == WM_MOVE)
+				std::cout << "WM_MOVE" << std::endl;
+			else if (uMsg == WM_SIZE)
+				std::cout << "WM_SIZE" << std::endl;
+			else if (uMsg == WM_SIZING)
+				std::cout << "WM_SIZING" << std::endl;
+			else if (uMsg == WM_ENTERSIZEMOVE)
+				std::cout << "WM_ENTERSIZEMOVE" << std::endl;
+			else if (uMsg == WM_EXITSIZEMOVE)
+				std::cout << "WM_EXITSIZEMOVE" << std::endl;
+			else if (uMsg == WM_MOUSEMOVE)
+				std::cout << "WM_MOUSEMOVE" << std::endl;
+			else std::cout << uMsg << std::endl;
+			
+		}
+
 		switch (uMsg)
 		{
 		case WM_DESTROY:
@@ -28,23 +67,38 @@ namespace render::platform
 
 		case WM_SETFOCUS:
 		{
-
+			//SetCapture(hwnd);
 			ShowCursor(false);
+
+			consume_mouse_input = true;
 
 			RECT rect;
 			GetWindowRect(hwnd, &rect);
 			ClipCursor(&rect);
-
-
+			//std::cout << rect.left << " " << rect.top << " " << rect.right << " " << rect.bottom << std::endl;
 			break;
 		}
 
 		case WM_KILLFOCUS:
 		{
+			consume_mouse_input = false;
+
 			for (auto&& button : buttons)
 			{
 				button = false;
 			}
+
+			break;
+		}
+
+		case WM_WINDOWPOSCHANGED:
+		case WM_SIZE:
+		{
+			RECT rect;
+			GetWindowRect(hwnd, &rect);
+			ClipCursor(&rect);
+			//std::cout << rect.left << " " << rect.top << " " << rect.right << " " << rect.bottom << std::endl;
+
 
 			break;
 		}
@@ -60,8 +114,19 @@ namespace render::platform
 			switch (wParam)
 			{
 			case VK_ESCAPE:
-				ShowCursor(true);
-				ClipCursor(nullptr);
+				consume_mouse_input = !consume_mouse_input;
+				ShowCursor(!consume_mouse_input);
+
+				if (consume_mouse_input)
+				{
+					RECT rect;
+					GetWindowRect(hwnd, &rect);
+					ClipCursor(&rect);
+				}
+				else
+				{
+					ClipCursor(nullptr);
+				}
 				// Process the LEFT ARROW key. 
 
 				break;
@@ -86,31 +151,32 @@ namespace render::platform
 			RECT cursor_rect;
 
 			GetClipCursor(&cursor_rect);
-
+			//std::cout << cursor_rect.left << " " << cursor_rect.top << " " << cursor_rect.right << " " << cursor_rect.bottom << std::endl;
 			RECT rect;
 			GetWindowRect(hwnd, &rect);
-
-			int mr = memcmp(&cursor_rect, &rect, sizeof(RECT));
-
-			if (mr != 0)
-				break;
+			//std::cout << rect.left << " " << rect.top << " " << rect.right << " " << rect.bottom << std::endl;
+			
 
 			int rect_x_center = rect.left + (rect.right - rect.left) / 2;
 			int rect_y_center = rect.top + (rect.bottom - rect.top) / 2;
 
-			POINT point;
-			GetCursorPos(&point);
+			if (consume_mouse_input)
+			{
 
-			int x = point.x;
-			int y = point.y;
+				POINT point;
+				GetCursorPos(&point);
 
-			if (x == rect_x_center && y == rect_y_center)
-				break;
+				int x = point.x;
+				int y = point.y;
 
-			mouse_x += (x - rect_x_center);
-			mouse_y += (y - rect_y_center);
+				if (x == rect_x_center && y == rect_y_center)
+					break;
 
-			SetCursorPos(rect_x_center, rect_y_center);
+				mouse_x += (x - rect_x_center);
+				mouse_y += (y - rect_y_center);
+
+				SetCursorPos(rect_x_center, rect_y_center);
+			}
 
 			break;
 		}

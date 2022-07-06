@@ -151,6 +151,8 @@ namespace render
 
 			device_cfg_.physical_device = vk_physical_devices_[selected_device_index];
 			vkGetPhysicalDeviceProperties(device_cfg_.physical_device, &device_cfg_.physical_device_properties);
+			auto images_properties = GetImageFormatsProperties();
+
 
 
 			device_cfg_.graphics_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_GRAPHICS_BIT);
@@ -375,17 +377,32 @@ namespace render
 			return true;
 		}
 
-		bool InitLogicalDevices()
+		std::map<VkFormat, VkImageFormatProperties> GetImageFormatsProperties()
 		{
-			//TODO: add device selection
-			//for (VkPhysicalDevice& physical_device : vk_physical_devices_)
-			//{
-			//	if (!InitLogicalDevice(physical_device))
-			//		return false;
-			//}
-			//return true;
-			return false;
-	}
+			std::map<VkFormat, VkImageFormatProperties> res;
+
+			for (int i = 0; i < 125; i++)
+			{
+				VkImageFormatProperties prop;
+
+				VkResult vk_res = vkGetPhysicalDeviceImageFormatProperties(
+					device_cfg_.physical_device,
+					static_cast<VkFormat>(i),
+					VK_IMAGE_TYPE_2D,
+					VK_IMAGE_TILING_OPTIMAL,
+					VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+					0,
+					&prop);
+
+				if (vk_res == VK_SUCCESS)
+				{
+					res.emplace(static_cast<VkFormat>(i), prop);
+				}
+			}
+
+			return res;
+		}
+
 
 		uint32_t FindDeviceQueueFamalyWithFlag(const VkPhysicalDevice& physical_deivce, VkQueueFlags flags, VkQueueFlags flags_to_check_mask = 0)
 		{

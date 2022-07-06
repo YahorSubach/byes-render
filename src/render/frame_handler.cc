@@ -29,10 +29,10 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 {
 
 	model_scene_.UpdateData();
-	//ui_scene_.UpdateData();
+	ui_scene_.UpdateData();
 
 	model_scene_.AttachDescriptorSets(descriptor_sets_manager_);
-	//ui_scene_.AttachDescriptorSets(descriptor_sets_manager_);
+	ui_scene_.AttachDescriptorSets(descriptor_sets_manager_);
 
 	handle_ = (void*)(1);
 }
@@ -75,7 +75,7 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 	model_scene_.UpdateCameraData(pos, look, 1.0f * swapchain_framebuffer.GetExtent().width / swapchain_framebuffer.GetExtent().height);
 
 	model_scene_.UpdateData();
-	//ui_scene_.UpdateData();
+	ui_scene_.UpdateData();
 
 	std::vector<std::reference_wrapper<const Framebuffer>> framebuffers =
 	{
@@ -92,12 +92,12 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 				{
 					RenderSetup::PipelineId::kDepth,
 					RenderModelType::kStatic,
-					model_scene_
+					model_scene_.GetRenderNode()
 				},
 				{
 					RenderSetup::PipelineId::kDepthSkinned,
 					RenderModelType::kSkinned,
-					model_scene_
+					model_scene_.GetRenderNode()
 				}
 			}
 		},
@@ -109,24 +109,24 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 				{
 					RenderSetup::PipelineId::kColor,
 					RenderModelType::kStatic,
-					model_scene_
+					model_scene_.GetRenderNode()
 				},
 				{
 					RenderSetup::PipelineId::kColorSkinned,
 					RenderModelType::kSkinned,
-					model_scene_
+					model_scene_.GetRenderNode()
 				},
-				//{
-				//	RenderSetup::PipelineId::kUI,
-				//	Type::kStatic,
-				//	ui_scene_
-				//},
+				{
+					RenderSetup::PipelineId::kUI,
+					RenderModelType::kStatic,
+					ui_scene_.GetRenderNode()
+				},
 			}
 		},
 	};
 
 	
-	command_filler.Fill(command_buffer_, framebuffers, render_info/*, descriptor_sets*/);
+	command_filler.Fill(command_buffer_, framebuffers, render_info);
 
 	present_info_.pImageIndices = &image_index;
 

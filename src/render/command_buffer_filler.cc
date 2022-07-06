@@ -64,17 +64,17 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 
 			for (auto&& child : pipeline_info.scene.GetChildren())
 			{
-				if (child.get().GetPrimitives().begin()->type != pipeline_info.primitive_type)
+				if (child.GetPrimitives().begin()->type != pipeline_info.primitive_type)
 					continue;
 
-				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.get().GetDescriptorSets());
+				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.GetDescriptorSets());
 
 				std::vector<VkBuffer> vert_bufs;
 				std::vector<VkDeviceSize> offsetes;
 
 				stl_util::size<uint32_t>(offsetes);
 
-				for (auto&& buf : child.get().GetPrimitives().begin()->vertex_buffers)
+				for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
 				{
 					if (buf.buffer)
 					{
@@ -85,7 +85,7 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 
 
 				vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
-				vkCmdBindIndexBuffer(command_buffer, child.get().GetPrimitives().begin()->indices.buffer->GetHandle(), child.get().GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
+				vkCmdBindIndexBuffer(command_buffer, child.GetPrimitives().begin()->indices.buffer->GetHandle(), child.GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
 
 				//if (pipeline_info.id == RenderSetup::PipelineId::kUI)
 				//{
@@ -93,7 +93,7 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 				//}
 				//else
 				{
-					vkCmdDrawIndexed(command_buffer, u32(child.get().GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
+					vkCmdDrawIndexed(command_buffer, u32(child.GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
 				}
 			}
 		}

@@ -59,7 +59,7 @@ render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBas
         std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
     }
 
-    //char_images_.emplace('A', Image(device_cfg_, VK_FORMAT_R8_SRGB, face->glyph->bitmap.width, face->glyph->bitmap.rows, face->glyph->bitmap.buffer));
+    char_images_.emplace('A', Image(device_cfg_, VK_FORMAT_R8_SRGB, face->glyph->bitmap.width, face->glyph->bitmap.rows, face->glyph->bitmap.buffer, Image::ImageType::kBitmapImage));
 }
 
 
