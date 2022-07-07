@@ -119,6 +119,9 @@ namespace render::stl_util
 		}
 	};
 
+	template<typename ReferencedType>
+	NullableRef<ReferencedType> MakeNullableRef(ReferencedType& ref) { return NullableRef<ReferencedType>(ref); }
+
 
 }
 #endif  // RENDER_ENGINE_RENDER_STL_UTIL_H_

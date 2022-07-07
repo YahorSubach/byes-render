@@ -142,23 +142,23 @@ void render::ModelSceneDescSetHolder::AttachDescriptorSets(DescriptorSetsManager
 	}
 }
 
-render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): DescriptorSetHolder(device_cfg), ui_(ui)
+render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): DescriptorSetHolder(device_cfg), ui_(ui), screen_panel_(0,0,ui.GetExtent().width, ui.GetExtent().height), text_block_(ui, 300, 300, 30, "Hi, bro! Now we finally have a text!")
 {
 	ui_polygones_.reserve(64);
 	ui_polygones_geom_.reserve(64);
 
-	ui_polygones_.push_back(UIPoly(device_cfg, ui, {100, 100}, 40));
-	ui_polygones_geom_.push_back(ui_polygones_.back());
+	screen_panel_.AddChild(text_block_);
+	std::vector<std::pair<glm::mat4, const Image&>> to_render;
+	screen_panel_.CollectRender(glm::identity<glm::mat4>(), to_render);
 
-	ui_polygones_.push_back(UIPoly(device_cfg, ui, { 150, 100 }, 50));
-	ui_polygones_geom_.push_back(ui_polygones_.back());
+	for (auto&& [transform, image] : to_render)
+	{
+		ui_polygones_.push_back(UIPoly(device_cfg_, ui_, transform, image));
+		ui_polygones_geom_.push_back(ui_polygones_.back());
+	}
 }
 
-void render::UIScene::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
-{
-	data.image = ui_.GetTestImage();
-	data.sampler = ui_.GetUISampler();
-}
+
 
 render::SceneRenderNode render::UIScene::GetRenderNode()
 {
@@ -168,36 +168,47 @@ render::SceneRenderNode render::UIScene::GetRenderNode()
 	return SceneRenderNode(*this, children_nodes_);
 }
 
-
-
-render::UIPoly::UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::vec2 pos, uint32_t height): DescriptorSetHolder(device_cfg), ui_(ui), polygon_vert_pos_(device_cfg, 4 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index })
+void render::UIScene::UpdateData()
 {
-	float scale = 1.0f * height / ui.GetExtent().height;
-
-	glm::vec2 scaled_pos = glm::vec2(pos.x / (1.0f * ui.GetExtent().width), pos.y / (1.0f * ui.GetExtent().height));
-
-	scaled_pos = scaled_pos * 2.f - 1.0f;
-
-	std::array<glm::vec3, 4> positions =
+	DescriptorSetHolder::UpdateData();
+	for (auto&& child_model : ui_polygones_)
 	{
-		glm::vec3(scaled_pos.x, scaled_pos.y, 0.0f),
-		glm::vec3(scaled_pos.x, scaled_pos.y + scale, 0.0f),
-		glm::vec3(scaled_pos.x + scale, scaled_pos.y, 0.0f),
-		glm::vec3(scaled_pos.x + scale, scaled_pos.y + scale, 0.0f)
-	};
+		child_model.UpdateData();
+	}
+}
 
-	polygon_vert_pos_.LoadData(positions.data(), sizeof(positions));
+void render::UIScene::AttachDescriptorSets(DescriptorSetsManager& manager)
+{
+	DescriptorSetHolder::AttachDescriptorSets(manager);
+	for (auto&& child_model : ui_polygones_)
+	{
+		child_model.AttachDescriptorSets(manager);
+	}
+}
+
+
+
+render::UIPoly::UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, const Image& image): DescriptorSetHolder(device_cfg), ui_(ui), transform_(transform), image_(image)
+{
 
 	Primitive prim;
 	prim.positions = ui.GetVertexBuffers()[0];
 	prim.tex_coords = ui.GetVertexBuffers()[1];
 	prim.indices = ui.GetIndexBuffer();
+
 	prim.vertex_buffers = { prim.positions , prim.tex_coords };
 	primitives_.push_back(prim);
 }
 
 void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
 {
+	data.model_mat = transform_;
+}
+
+void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
+{
+	data.image = image_;
+	data.sampler = ui_.GetUISampler();
 }
 
 render::PrimitivesHolderRenderNode render::UIPoly::GetRenderNode()

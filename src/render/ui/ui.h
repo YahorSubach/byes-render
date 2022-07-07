@@ -15,6 +15,18 @@
 
 namespace render::ui
 {
+	struct Glyph
+	{
+		int advance;
+
+		int bitmap_x;
+		int bitmap_y;
+		int bitmap_width;
+		int bitmap_heigth;
+
+		stl_util::NullableRef<const Image> bitmap;
+	};
+
 	class UI: public RenderObjBase<void*>
 	{
 	public:
@@ -24,14 +36,24 @@ namespace render::ui
 		const std::vector<BufferAccessor>& GetVertexBuffers() const;
 		const BufferAccessor& GetIndexBuffer() const;
 
-		const Image& GetTestImage() const;
+		const Glyph& GetGlyph(char character, int font_size) const;
+
 		const Sampler& GetUISampler() const;
 
 		Extent GetExtent() const;
+		
+		Image test_image_;
+
 
 	private:
 
-		std::map<char32_t, Image> char_images_;
+		struct FontData
+		{
+			std::map<char32_t, Glyph> glyphs;
+			std::map<char32_t, Image> glyph_images;
+		};
+
+		mutable std::map<int, FontData> size_to_font_data_;
 
 		GPULocalBuffer polygon_vert_pos_;
 		GPULocalBuffer polygon_vert_tex_;
@@ -41,10 +63,17 @@ namespace render::ui
 		std::vector<BufferAccessor> vertex_buffers_;
 		BufferAccessor index_buffer_;
 
-		Image test_image_;
+
 		Sampler ui_sampler_;
 
 		Extent extent_;
+
+
+		FT_Library ft;
+
+		FT_Face face;
+
+		//TODO add release for ft
 
 	};
 }

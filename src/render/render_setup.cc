@@ -58,7 +58,7 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg, Extent o
 		ShaderModule vert_shader_module(device_cfg, "ui.vert.spv", descriptor_set_layouts_);
 		ShaderModule frag_shader_module(device_cfg, "ui.frag.spv", descriptor_set_layouts_);
 
-		pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(device_cfg, output_extent, render_passes_.at(RenderPassId::kScreen), vert_shader_module, frag_shader_module));
+		pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(device_cfg, output_extent, render_passes_.at(RenderPassId::kScreen), vert_shader_module, frag_shader_module, false));
 	}
 }
 

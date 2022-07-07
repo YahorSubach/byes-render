@@ -222,6 +222,8 @@ namespace render
 
 		DescriptorSetHolder(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal(device_cfg) {}
 
+	//protected:
+
 		void UpdateData()
 		{
 			DescriptorSetHolderInternal::UpdateDataInternal();

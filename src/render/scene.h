@@ -9,6 +9,7 @@
 #include "render/graphics_pipeline.h"
 #include "render/image_view.h"
 #include "render/ui/ui.h"
+#include "render/ui/panel.h"
 
 #include "render/descriptor_set_holder.h"
 
@@ -112,26 +113,29 @@ namespace render
 	};
 
 
-	class UIPoly : public DescriptorSetHolder<DescriptorSetType::kModelMatrix>
+	class UIPoly : public DescriptorSetHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kTexture>
 	{
 		const ui::UI& ui_;
 		std::vector<Primitive> primitives_;
 
-		GPULocalBuffer polygon_vert_pos_;
-
-		std::vector<BufferAccessor> vertex_buffers_;
+		glm::mat4 transform_;
+		const Image& image_;
 
 	public:
-		UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::vec2 pos, uint32_t height);
+		UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, const Image& image);
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data) override;
 
 		PrimitivesHolderRenderNode GetRenderNode();
 	};
 
-	class UIScene : public DescriptorSetHolder<DescriptorSetType::kTexture>
+	class UIScene : public DescriptorSetHolder<>
 	{
 		const ui::UI& ui_;
+
+		ui::Panel screen_panel_;
+		ui::TextBlock text_block_;
 
 		std::vector<UIPoly> ui_polygones_;
 		std::vector<std::reference_wrapper<UIPoly>> ui_polygones_geom_;
@@ -139,9 +143,11 @@ namespace render
 	public:
 		UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui);
 
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data) override;
-
 		SceneRenderNode GetRenderNode();
+
+		void UpdateData();
+
+		void AttachDescriptorSets(DescriptorSetsManager& manager);
 
 		std::vector<PrimitivesHolderRenderNode> children_nodes_;
 	};

@@ -217,7 +217,7 @@ namespace render
 
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
-				DescriptorPool descriptor_pool(device_cfg_, 500, 500);
+				DescriptorPool descriptor_pool(device_cfg_, 2000, 2000);
 
 				device_cfg_.descriptor_pool = &descriptor_pool;
 
@@ -258,6 +258,10 @@ namespace render
 					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, batches_manager, ui));
 				}
 
+				auto last_update_time = std::chrono::steady_clock::now();
+
+				glm::vec3 pos_velocity = glm::vec3(0, 0, 0);
+
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
 					current_frame_index = (current_frame_index + 1) % kFramesCount;
@@ -297,29 +301,68 @@ namespace render
 
 					glm::vec3 walk = glm::vec3(look.x, look.y, 0);
 
+					auto current_time = std::chrono::steady_clock::now();
+
+					auto time_delta = current_time - last_update_time;
+					last_update_time = current_time;
+
+					auto time_delta_s = std::chrono::duration_cast<std::chrono::duration<float>>(time_delta).count();
+
+					glm::vec3 vec = glm::vec3(0,0,0);
+					bool update_pos = false;
+
+
 					if (buttons['w' - 'a'])
 					{
-						position += (0.001f * glm::normalize(walk));
+						vec += glm::normalize(walk);
+						update_pos = true;
 					}
 
 					if (buttons['s' - 'a'])
 					{
-						position -= (0.001f * glm::normalize(walk));
+						vec -= glm::normalize(walk);
+						update_pos = true;
 					}
 
 					if (buttons['d' - 'a'])
 					{
-						position += (0.001f * glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>()/2), glm::cos(yaw + glm::pi<float>() / 2), 0)));
+						vec += glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>() / 2), glm::cos(yaw + glm::pi<float>() / 2), 0));
+						update_pos = true;
 					}
 
 					if (buttons['a' - 'a'])
 					{
-						position -= (0.001f * glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>() / 2), glm::cos(yaw + glm::pi<float>() / 2), 0)));
+						vec -= glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>() / 2), glm::cos(yaw + glm::pi<float>() / 2), 0));
+						update_pos = true;
 					}
+
+					glm::vec3 acc = glm::vec3(0,0,0);
+
+
+
+					if (glm::length(pos_velocity) > glm::epsilon<float>())
+					{
+						acc = 6.0f * glm::normalize(-pos_velocity);
+
+						if (glm::length(acc) * time_delta_s > glm::length(pos_velocity))
+						{
+							acc *= (glm::length(pos_velocity) / (glm::length(acc) * time_delta_s));
+						}
+					}
+
+					if (glm::length(vec) > glm::epsilon<float>())
+					{
+						acc += 12.0f * glm::normalize(vec);
+					}
+
+					pos_velocity += time_delta_s * acc;
+					position += time_delta_s * pos_velocity;
+
+
 
 					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], image_index, render_setup, position, look);
 
-					auto current_time = std::chrono::high_resolution_clock::now();
+
 
 				}
 

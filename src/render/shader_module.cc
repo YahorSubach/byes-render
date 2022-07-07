@@ -158,7 +158,8 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 
 	if (shader_path.find("ui") != std::string::npos && shader_path.find("frag") != std::string::npos)
 	{
-		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kTexture)]);
+		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kModelMatrix)]);
+		descriptor_sets_.emplace(1, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kTexture)]);
 	}
 
 }

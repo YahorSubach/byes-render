@@ -66,6 +66,8 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/render/vk_util.h
 
 
+		${CMAKE_CURRENT_LIST_DIR}/render/ui/panel.h
+		${CMAKE_CURRENT_LIST_DIR}/render/ui/panel.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/ui/ui.h
 		${CMAKE_CURRENT_LIST_DIR}/render/ui/ui.cc
 )
