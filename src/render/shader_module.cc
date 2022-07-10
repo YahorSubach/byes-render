@@ -27,12 +27,23 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 		throw std::runtime_error("failed to create shader module!");
 	}
 
-	if (shader_path.find("color") != std::string::npos || shader_path.find("shadow") != std::string::npos || shader_path.find("ui") != std::string::npos)
+	if (shader_path.find("vert") != std::string::npos)
+	{
+		shader_type_ = ShaderType::Vertex;
+	}
+	else if (shader_path.find("frag") != std::string::npos)
+	{
+		shader_type_ = ShaderType::Fragment;
+	}
+	else
+	{
+		shader_type_ = ShaderType::Invalid;
+	}
+
+	if (shader_path.find("color") != std::string::npos || shader_path.find("shadow") != std::string::npos || shader_path.find("ui") != std::string::npos || shader_path.find("build_g_buffers") != std::string::npos)
 	{
 		if (shader_path.find("vert") != std::string::npos)
 		{
-			shader_type_ = ShaderType::Vertex;
-
 			if (shader_path.find("ui") != std::string::npos)
 			{
 				VertexBindingDesc position_binding =
@@ -116,14 +127,10 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 
 
 		}
-		else if (shader_path.find("frag") != std::string::npos)
-		{
-			shader_type_ = ShaderType::Fragment;
-		}
 	}
 
 
-	if (shader_path.find("color") != std::string::npos && shader_path.find("vert") != std::string::npos)
+	if ((shader_path.find("color") != std::string::npos || shader_path.find("build_g_buffers") != std::string::npos) && shader_path.find("vert") != std::string::npos)
 	{
 		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kCameraPositionAndViewProjMat)]);
 		descriptor_sets_.emplace(1, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kModelMatrix)]);
@@ -133,14 +140,14 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 			descriptor_sets_.emplace(5, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kSkeleton)]);
 		}
 	}
-
-	if (shader_path.find("color") != std::string::npos && shader_path.find("frag") != std::string::npos)
+	else
+	if ((shader_path.find("color") != std::string::npos || shader_path.find("build_g_buffers") != std::string::npos) && shader_path.find("frag") != std::string::npos)
 	{
 		descriptor_sets_.emplace(2, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kMaterial)]);
 		descriptor_sets_.emplace(3, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kLightPositionAndViewProjMat)]);
 		descriptor_sets_.emplace(4, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kEnvironement)]);
 	}
-
+	else
 	if (shader_path.find("shadow") != std::string::npos && shader_path.find("vert") != std::string::npos)
 	{
 		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kLightPositionAndViewProjMat)]);
@@ -151,17 +158,21 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 			descriptor_sets_.emplace(2, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kSkeleton)]);
 		}
 	}
-
+	else
 	if (shader_path.find("shadow") != std::string::npos && shader_path.find("frag") != std::string::npos)
 	{
 	}
-
+	else
 	if (shader_path.find("ui") != std::string::npos && shader_path.find("frag") != std::string::npos)
 	{
 		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kModelMatrix)]);
 		descriptor_sets_.emplace(1, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kTexture)]);
 	}
-
+	else
+	if (shader_path.find("collect_g_buffers") != std::string::npos && shader_path.find("frag") != std::string::npos)
+	{
+		descriptor_sets_.emplace(0, descriptor_sets_layouts[static_cast<int>(DescriptorSetType::kGBuffers)]);
+	}
 }
 
 const std::vector<render::ShaderModule::VertexBindingDesc>& render::ShaderModule::GetVertexBindingsDescs() const

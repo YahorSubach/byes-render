@@ -17,6 +17,38 @@ namespace render
 	class Sampler;
 	class Image;
 
+
+	enum class PipelineId
+	{
+		kColor,
+		kColorSkinned,
+		kDepth,
+		kDepthSkinned,
+		kUI,
+
+		kBuildGBuffers,
+		kCollectGBuffers
+	};
+
+	enum class RenderPassId
+	{
+		kSimpleRenderToScreen,
+		kBuildDepthmap,
+		kBuildGBuffers,
+		kCollectGBuffers,
+	};
+
+	struct Extent
+	{
+		uint32_t width;
+		uint32_t height;
+
+		Extent() = default;
+		Extent(VkExtent2D vk_ext) : width(vk_ext.width), height(vk_ext.height) {}
+		Extent(uint32_t width, uint32_t height) : width(width), height(height) {}
+		operator VkExtent2D() const { return VkExtent2D{ width , height }; }
+	};
+
 	struct DeviceConfiguration
 	{
 		VkPhysicalDevice physical_device;
@@ -38,12 +70,21 @@ namespace render
 		Sampler* shadowmap_sampler;
 
 		stl_util::NullableRef<Image> default_image;
+
+		Extent presentation_extent;
+		Extent depth_map_extent = {512, 512};
+
+		VkFormat presentation_format;
+		VkFormat depth_map_format = VK_FORMAT_D32_SFLOAT;
+		VkFormat g_buffer_format = VK_FORMAT_R32G32B32A32_SFLOAT;
 	};
 
 	enum class ShaderType
 	{
 		Vertex,
-		Fragment
+		Fragment,
+
+		Invalid = -1
 	};
 
 	enum class ShaderTypeFlags : uint32_t
@@ -67,17 +108,6 @@ namespace render
 			static_cast<std::underlying_type_t<ShaderTypeFlags>>(rhs)
 			);
 	}
-
-	struct Extent
-	{
-		uint32_t width;
-		uint32_t height;
-		
-		Extent() = default;
-		Extent(VkExtent2D vk_ext): width(vk_ext.width), height(vk_ext.height) {}
-		Extent(uint32_t width, uint32_t height) : width(width), height(height) {}
-		operator VkExtent2D() const { return VkExtent2D{ width , height }; }
-	};
 
 	struct Vertex {
 		glm::vec3 pos;

@@ -15,7 +15,7 @@ render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Ex
 		vk_attachments.push_back(attachment.get().GetHandle());
 
 		ClearValues clear_values;
-		if (attachment.get().GetImageType() == Image::ImageType::kDepthImage)
+		if (attachment.get().GetImageType() == ImageType::kDepthMapImage || attachment.get().GetImageType() == ImageType::kGDepthImage)
 		{
 			clear_values.depth = 1.0f;
 			clear_values.stencil = 0;

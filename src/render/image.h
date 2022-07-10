@@ -15,6 +15,19 @@
 
 namespace render
 {
+	enum class ImageType
+	{
+		kUndefined,
+
+		kSwapchainImage,
+		kColorImage,
+		kColorAttachmentImage,
+		kDepthMapImage,
+		kGDepthImage,
+		kBitmapImage,
+	};
+
+
 	class Image : public RenderObjBase<VkImage>
 	{
 	public:
@@ -26,18 +39,9 @@ namespace render
 			kFragmentRead,
 		};
 
-		enum class ImageType
-		{
-			kUndefined,
-
-			kSwapchainImage,
-			kColorImage,
-			kDepthImage,
-			kBitmapImage,
-		};
-
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImageType image_type = ImageType::kColorImage);
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, const Extent& extent, ImageType image_type);
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle);
 
 		static Image FromFile(const DeviceConfiguration& device_cfg, const std::string& path);

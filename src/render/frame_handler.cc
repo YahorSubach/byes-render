@@ -19,10 +19,8 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	render_finished_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-	depth_map_(device_cfg, VK_FORMAT_D32_SFLOAT, 512, 512, Image::ImageType::kDepthImage),
-	depth_map_view_(device_cfg, depth_map_),
-	depth_map_framebuffer_(device_cfg, { 512, 512 }, { depth_map_view_ }, render_setup.GetRenderPass(RenderSetup::RenderPassId::kDepth)),
-	model_scene_(device_cfg, batches_manager, depth_map_),
+	framebuffer_collection(device_cfg_, render_setup),
+	model_scene_(device_cfg, batches_manager, framebuffer_collection),
 	ui_scene_(device_cfg, ui),
 	descriptor_sets_manager_(device_cfg, render_setup),
 	ui_(ui)
@@ -40,7 +38,7 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 
 bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32_t image_index, const RenderSetup& render_setup, glm::vec3 pos, glm::vec3 look)
 {
-	CommandBufferFiller command_filler(render_setup);
+	CommandBufferFiller command_filler(render_setup, framebuffer_collection);
 
 	submit_info_.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -77,25 +75,20 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 	model_scene_.UpdateData();
 	ui_scene_.UpdateData();
 
-	std::vector<std::reference_wrapper<const Framebuffer>> framebuffers =
-	{
-		swapchain_framebuffer,
-		depth_map_framebuffer_
-	};
 
 	std::vector<RenderPassInfo> render_info =
 	{
 		{
-			RenderSetup::RenderPassId::kDepth,
+			RenderPassId::kBuildDepthmap,
 			FramebufferId::kDepth,
 			{
 				{
-					RenderSetup::PipelineId::kDepth,
+					PipelineId::kDepth,
 					RenderModelType::kStatic,
 					model_scene_.GetRenderNode()
 				},
 				{
-					RenderSetup::PipelineId::kDepthSkinned,
+					PipelineId::kDepthSkinned,
 					RenderModelType::kSkinned,
 					model_scene_.GetRenderNode()
 				}
@@ -103,30 +96,54 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 		},
 
 		{
-			RenderSetup::RenderPassId::kScreen,
+			RenderPassId::kSimpleRenderToScreen,
 			FramebufferId::kScreen,
 			{
 				{
-					RenderSetup::PipelineId::kColor,
+					PipelineId::kColor,
 					RenderModelType::kStatic,
 					model_scene_.GetRenderNode()
 				},
 				{
-					RenderSetup::PipelineId::kColorSkinned,
+					PipelineId::kColorSkinned,
 					RenderModelType::kSkinned,
 					model_scene_.GetRenderNode()
 				},
 				{
-					RenderSetup::PipelineId::kUI,
+					PipelineId::kUI,
 					RenderModelType::kStatic,
 					ui_scene_.GetRenderNode()
 				},
 			}
 		},
+
+		{
+			RenderPassId::kBuildGBuffers,
+			FramebufferId::kGBuffers,
+			{
+				{
+					PipelineId::kBuildGBuffers,
+					RenderModelType::kStatic,
+					model_scene_.GetRenderNode()
+				}
+			}
+		},
+
+		{
+			RenderPassId::kCollectGBuffers,
+			FramebufferId::kScreen,
+			{
+				{
+					PipelineId::kCollectGBuffers,
+					RenderModelType::kStatic,
+					model_scene_.GetRenderNode()
+				}
+			}
+		},
 	};
 
 	
-	command_filler.Fill(command_buffer_, framebuffers, render_info);
+	command_filler.Fill(command_buffer_, render_info, swapchain_framebuffer);
 
 	present_info_.pImageIndices = &image_index;
 

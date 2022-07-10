@@ -10,3 +10,7 @@ glslc.exe shadow_skin.vert -o shadow_skin.vert.spv
 glslc.exe shadow.frag -o shadow.frag.spv
 glslc.exe ui.vert -o ui.vert.spv
 glslc.exe ui.frag -o ui.frag.spv
+glslc.exe collect_g_buffers.vert -o collect_g_buffers.vert.spv
+glslc.exe collect_g_buffers.frag -o collect_g_buffers.frag.spv
+glslc.exe build_g_buffers.vert -o build_g_buffers.vert.spv
+glslc.exe build_g_buffers.frag -o build_g_buffers.frag.spv

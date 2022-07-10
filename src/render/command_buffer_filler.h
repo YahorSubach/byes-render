@@ -8,7 +8,7 @@
 #include "vulkan/vulkan.h"
 
 #include "render/batches_manager.h"
-#include "render/framebuffer.h"
+#include "render/framebuffer_collection.h"
 #include "render/descriptor_set.h"
 #include "render/render_setup.h"
 #include "render/render_pass.h"
@@ -16,22 +16,17 @@
 
 namespace render
 {
-	enum class FramebufferId
-	{
-		kScreen,
-		kDepth
-	};
 
 	struct PipelineInfo
 	{
-		RenderSetup::PipelineId id;
+		PipelineId id;
 		RenderModelType primitive_type;
 		SceneRenderNode& scene;
 	};
 
 	struct RenderPassInfo
 	{
-		RenderSetup::RenderPassId render_pass_id;
+		RenderPassId render_pass_id;
 		FramebufferId framebuffer_id;
 
 		std::vector<PipelineInfo> pipelines;
@@ -42,15 +37,16 @@ namespace render
 	{
 	public:
 
-		CommandBufferFiller(const RenderSetup& render_setup);
+		CommandBufferFiller(const RenderSetup& render_setup, const FramebufferCollection& framebuffer_collection);
 
-		void Fill(VkCommandBuffer command_buffer, std::vector<std::reference_wrapper<const Framebuffer>> framebuffers, std::vector<RenderPassInfo> render_info);
+		void Fill(VkCommandBuffer command_buffer, std::vector<RenderPassInfo> render_info, const Framebuffer& screen_buffer);
 
 	private:
 
 		void ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets);
 
 		const RenderSetup& render_setup_;
+		const FramebufferCollection& framebuffer_collection_;
 		//std::map<RenderPassId, RenderPass> render_passes_;
 		//std::map<PipelineId, GraphicsPipeline> pipelines_;
 	};

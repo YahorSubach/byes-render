@@ -2,11 +2,11 @@
 
 #include <stl_util.h>
 
-render::CommandBufferFiller::CommandBufferFiller(const RenderSetup& render_setup) : render_setup_(render_setup)
+render::CommandBufferFiller::CommandBufferFiller(const RenderSetup& render_setup, const FramebufferCollection& framebuffer_collection) : render_setup_(render_setup), framebuffer_collection_(framebuffer_collection)
 {
 }
 
-void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vector<std::reference_wrapper<const Framebuffer>> framebuffers, std::vector<RenderPassInfo> render_info)
+void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vector<RenderPassInfo> render_info, const Framebuffer& screen_buffer)
 {
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -19,7 +19,7 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 
 	for (auto&& render_pass_info : render_info)
 	{
-		const Framebuffer& framebuffer = framebuffers[static_cast<uint32_t>(render_pass_info.framebuffer_id)].get();
+		const Framebuffer& framebuffer = render_pass_info.framebuffer_id == FramebufferId::kScreen ? screen_buffer : framebuffer_collection_.GetFramebuffer(render_pass_info.framebuffer_id);
 
 		VkRenderPassBeginInfo render_pass_begin_info{};
 		render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -27,7 +27,7 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 		render_pass_begin_info.framebuffer = framebuffer.GetHandle();
 
 		render_pass_begin_info.renderArea.offset = { 0, 0 };
-		render_pass_begin_info.renderArea.extent = framebuffers[static_cast<uint32_t>(render_pass_info.framebuffer_id)].get().GetExtent();
+		render_pass_begin_info.renderArea.extent = framebuffer.GetExtent();
 
 		std::vector<VkClearValue> clear_value(framebuffer.GetClearValues().size());
 
@@ -87,11 +87,11 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 				vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
 				vkCmdBindIndexBuffer(command_buffer, child.GetPrimitives().begin()->indices.buffer->GetHandle(), child.GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
 
-				//if (pipeline_info.id == RenderSetup::PipelineId::kUI)
-				//{
-				//	vkCmdDraw(command_buffer, 3, 1, 0, 0);
-				//}
-				//else
+				if (pipeline_info.id == PipelineId::kCollectGBuffers)
+				{
+					vkCmdDraw(command_buffer, 6, 1, 0, 0);
+				}
+				else
 				{
 					vkCmdDrawIndexed(command_buffer, u32(child.GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
 				}

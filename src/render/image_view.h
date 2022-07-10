@@ -27,12 +27,12 @@ namespace render
 		ImageView& operator=(ImageView&&) = default;
 
 		void Assign(const Image& image);
-		Image::ImageType GetImageType() const;
+		ImageType GetImageType() const;
 
 		virtual ~ImageView() override;
 
 	protected:
-		Image::ImageType image_type_;
+		ImageType image_type_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_IMAGE_VIEW_H_

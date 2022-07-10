@@ -14,6 +14,9 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, RenderPass
 	{
 		attachments.push_back(render_pass_desc.attachments[i].desc);
 		attachment_name_to_index[render_pass_desc.attachments[i].name] = i;
+
+		if(!render_pass_desc.attachments[i].is_depth_attachment)
+		attachments_cnt++;
 	}
 
 
@@ -85,14 +88,14 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, RenderPass
 
 }
 
-render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(RenderPassType type, VkFormat color_format, VkFormat depth_format)
+render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(render::RenderPassId type, VkFormat color_format, VkFormat depth_format)
 {
 
 	RenderPassDesc result;
 
 	switch (type)
 	{
-	case render::RenderPass::RenderPassType::kDraw:
+	case RenderPassId::kSimpleRenderToScreen:
 	{
 		{
 			RenderPassDesc::Attachment attachment{};
@@ -101,7 +104,7 @@ render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(Rende
 
 			attachment.desc.format = color_format;
 			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -151,7 +154,123 @@ render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(Rende
 		result.dependencies.push_back(dependency);
 	}
 	break;
-	case render::RenderPass::RenderPassType::kDepth:
+
+
+	case RenderPassId::kBuildGBuffers:
+	{
+		{
+			RenderPassDesc::Attachment attachment{};
+			attachment.name = "albedo";
+			attachment.is_depth_attachment = false;
+
+			attachment.desc.format = color_format;
+			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
+			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			result.attachments.push_back(attachment);
+		}
+
+		{
+			RenderPassDesc::Attachment attachment{};
+			attachment.name = "position";
+			attachment.is_depth_attachment = false;
+
+			attachment.desc.format = color_format;
+			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
+			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			result.attachments.push_back(attachment);
+		}
+
+		{
+			RenderPassDesc::Attachment attachment{};
+			attachment.name = "normal";
+			attachment.is_depth_attachment = false;
+
+			attachment.desc.format = color_format;
+			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
+			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			result.attachments.push_back(attachment);
+		}
+
+		{
+			RenderPassDesc::Attachment attachment{};
+			attachment.name = "depth";
+			attachment.is_depth_attachment = true;
+
+			attachment.desc.format = depth_format; //VK_FORMAT_D32_SFLOAT
+			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
+			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			result.attachments.push_back(attachment);
+		}
+
+
+
+		RenderPassDesc::Subpass subpass{};
+
+		subpass.name = "render";
+		subpass.attachment_refs.push_back({ "albedo", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+		subpass.attachment_refs.push_back({ "position", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+		subpass.attachment_refs.push_back({ "normal", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+		subpass.attachment_refs.push_back({ "depth", VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
+
+		result.subpasses.push_back(subpass);
+
+
+		{
+			RenderPassDesc::Dependency dependency{};
+
+			dependency.from_name = "";
+			dependency.to_name = "render";
+
+			dependency.dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT/* | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT*/;
+			dependency.dependency.srcAccessMask = 0;
+
+			dependency.dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			dependency.dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+			result.dependencies.push_back(dependency);
+		}
+
+		{
+			RenderPassDesc::Dependency dependency{};
+
+			dependency.from_name = "render";
+			dependency.to_name = "";
+
+			dependency.dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependency.dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+			dependency.dependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dependency.dependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			result.dependencies.push_back(dependency);
+		}
+	}
+	break;
+	case RenderPassId::kBuildDepthmap:
 	{
 		RenderPassDesc::Attachment attachment{};
 		attachment.name = "depth";

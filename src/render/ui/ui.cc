@@ -89,7 +89,7 @@ const render::ui::Glyph& render::ui::UI::GetGlyph(char character, int font_size)
 
         if (face->glyph->bitmap.width != 0 && face->glyph->bitmap.rows != 0)
         {
-            font_data.glyph_images.emplace((char32_t)character, Image(device_cfg_, VK_FORMAT_R8_SRGB, face->glyph->bitmap.width, face->glyph->bitmap.rows, face->glyph->bitmap.buffer, Image::ImageType::kBitmapImage));
+            font_data.glyph_images.emplace((char32_t)character, Image(device_cfg_, VK_FORMAT_R8_SRGB, face->glyph->bitmap.width, face->glyph->bitmap.rows, face->glyph->bitmap.buffer, ImageType::kBitmapImage));
             contains_bitmap = true;
         }
 

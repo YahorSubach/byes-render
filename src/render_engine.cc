@@ -228,14 +228,16 @@ namespace render
 
 				Swapchain swapchain(device_cfg_, *surface_ptr_);
 
+				device_cfg_.presentation_extent = swapchain.GetExtent();
+				device_cfg_.presentation_format = swapchain.GetFormat();
+
 				ui::UI ui(device_cfg_, swapchain.GetExtent());
 
-				RenderSetup render_setup(device_cfg_, swapchain.GetExtent(), swapchain.GetFormat());
+				RenderSetup render_setup(device_cfg_);
 
 				std::vector<Framebuffer> swapchain_framebuffers;
 
-				VkFormat depth_format = VK_FORMAT_D32_SFLOAT;
-				Image depth_image(device_cfg_, depth_format, swapchain.GetExtent().width, swapchain.GetExtent().height, Image::ImageType::kDepthImage);
+				Image depth_image(device_cfg_, device_cfg_.depth_map_format, swapchain.GetExtent().width, swapchain.GetExtent().height, ImageType::kDepthMapImage);
 				ImageView depth_image_view(device_cfg_, depth_image);
 
 				for (int i = 0; i < swapchain.GetImagesCount(); i++)
@@ -245,7 +247,7 @@ namespace render
 					attachments.push_back(swapchain.GetImageView(i));
 					attachments.push_back(depth_image_view);
 
-					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), attachments, render_setup.GetRenderPass(RenderSetup::RenderPassId::kScreen)));
+					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), attachments, render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen)));
 				}
 
 				BatchesManager batches_manager(device_cfg_, kFramesCount, swapchain, descriptor_pool);

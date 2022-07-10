@@ -22,9 +22,11 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	if(image_type == ImageType::kColorImage)		image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	else if (image_type == ImageType::kDepthImage)	image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	else if (image_type == ImageType::kBitmapImage)	image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	if(image_type == ImageType::kColorImage)					image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	else if (image_type == ImageType::kColorAttachmentImage)	image_info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	else if (image_type == ImageType::kDepthMapImage)			image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	else if (image_type == ImageType::kGDepthImage)				image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	else if (image_type == ImageType::kBitmapImage)				image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
@@ -46,6 +48,10 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	memory_ = std::make_unique<Memory>(device_cfg_, mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	vkBindImageMemory(device_cfg_.logical_device, handle_, memory_->GetMemoryHandle(), 0);
+}
+
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const Extent& extent, ImageType image_type) : Image(device_cfg, format, extent.width, extent.height, image_type)
+{
 }
 
 render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : RenderObjBase(device_cfg), image_type_(ImageType::kSwapchainImage), format_(format), mipmap_levels_count_(1)
@@ -197,7 +203,7 @@ render::Image::~Image()
 	}
 }
 
-render::Image::ImageType render::Image::GetImageType() const
+render::ImageType render::Image::GetImageType() const
 {
 	return image_type_;
 }

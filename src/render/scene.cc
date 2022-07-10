@@ -56,9 +56,11 @@ render::PrimitivesHolderRenderNode render::ModelDescSetHolder::GetRenderNode()
 }
 
 
-render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Image& shadow_map):
-	DescriptorSetHolder(device_cfg), env_image_(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png")), shadow_map_(shadow_map),
-	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder)
+render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const FramebufferCollection& framebuffer_collection):
+	DescriptorSetHolder(device_cfg), env_image_(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png")),
+	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder),
+	framebuffer_collection_(framebuffer_collection)
+
 {
 
 	models_.reserve(batch_manager.GetMeshes().size());
@@ -112,8 +114,14 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
 {
-	data.image = shadow_map_;
+	data.image = framebuffer_collection_.GetImage(AttachmentId::kDepthMap);
 	data.sampler = shadow_sampler_;
+}
+
+void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data)
+{
+	data.image = framebuffer_collection_.GetImage(AttachmentId::kGAlbedo);;
+	data.sampler = diffuse_sampler_;
 }
 
 render::SceneRenderNode render::ModelSceneDescSetHolder::GetRenderNode()

@@ -1,10 +1,10 @@
 #include "image_view.h"
 
-render::ImageView::ImageView(const DeviceConfiguration& device_cfg):RenderObjBase(device_cfg), image_type_(Image::ImageType::kUndefined)
+render::ImageView::ImageView(const DeviceConfiguration& device_cfg):RenderObjBase(device_cfg), image_type_(ImageType::kUndefined)
 {
 }
 
-render::ImageView::ImageView(const DeviceConfiguration& device_cfg, const Image& image): RenderObjBase(device_cfg), image_type_(Image::ImageType::kUndefined)
+render::ImageView::ImageView(const DeviceConfiguration& device_cfg, const Image& image): RenderObjBase(device_cfg), image_type_(ImageType::kUndefined)
 {
 	Assign(image);
 }
@@ -28,10 +28,12 @@ void render::ImageView::Assign(const Image& image)
 	view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	view_info.format = image.GetFormat();
 
-	if (image_type_ == Image::ImageType::kColorImage) view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	else if (image_type_ == Image::ImageType::kSwapchainImage) view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	else if (image_type_ == Image::ImageType::kDepthImage) view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-	else if (image_type_ == Image::ImageType::kBitmapImage) view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	if		(image_type_ == ImageType::kColorImage)				view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	else if (image_type_ == ImageType::kColorAttachmentImage)	view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	else if (image_type_ == ImageType::kSwapchainImage)			view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	else if (image_type_ == ImageType::kDepthMapImage)				view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	else if (image_type_ == ImageType::kGDepthImage)				view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	else if (image_type_ == ImageType::kBitmapImage)			view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
 	view_info.components.r = VK_COMPONENT_SWIZZLE_R;
 	view_info.components.g = VK_COMPONENT_SWIZZLE_G;
@@ -50,7 +52,7 @@ void render::ImageView::Assign(const Image& image)
 	image_type_ = image.GetImageType();
 }
 
-render::Image::ImageType render::ImageView::GetImageType() const
+render::ImageType render::ImageView::GetImageType() const
 {
 	return image_type_;
 }

@@ -238,6 +238,30 @@ namespace render
 		};
 	};
 
+	template<>
+	struct DescriptorSet<DescriptorSetType::kGBuffers>
+	{
+		static const uint32_t bindings_count = 1;
+
+		template<int i>
+		struct Binding;
+
+		template<>
+		struct Binding<0>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
+			};
+
+			Data data;
+		};
+	};
+
 
 	struct DescriptorSetInfo
 	{

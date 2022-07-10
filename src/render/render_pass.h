@@ -5,6 +5,7 @@
 #include "vulkan/vulkan.h"
 
 #include "render/object_base.h"
+#include "render/object_base.h"
 
 namespace render
 {
@@ -48,14 +49,8 @@ namespace render
 			std::vector<Dependency> dependencies;
 		};
 
-		enum class RenderPassType
-		{
-			kDraw,
-			kDepth
-		};
-
 		RenderPass(const DeviceConfiguration& device_cfg, RenderPassDesc render_pass_desc);
-		static RenderPassDesc BuildRenderPassDesc(RenderPassType type, VkFormat color_format, VkFormat depth_format);
+		static RenderPassDesc BuildRenderPassDesc(RenderPassId type, VkFormat color_format, VkFormat depth_format);
 
 		RenderPass(const RenderPass&) = delete;
 		RenderPass(RenderPass&&) = default;
@@ -63,11 +58,13 @@ namespace render
 		RenderPass& operator=(const RenderPass&) = delete;
 		RenderPass& operator=(RenderPass&&) = default;
 
+		int attachments_cnt = 0;
+
 		virtual ~RenderPass() override;
 
 	private:
 
-		
+
 
 	};
 }

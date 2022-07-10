@@ -19,17 +19,19 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	{
 		VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
 		vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		vert_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vert_shader_stage_info.module = vertex_shader_module.GetHandle();
 		vert_shader_stage_info.pName = "main"; // entry point in shader
 
 		if (!vertex_shader_module.GetVertexBindingsDescs().empty())
 		{
-			vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-
 			vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(vertex_shader_module.GetVertexBindingsDescs());
 			vertex_input_attr_descs = BuildVertexAttributeDescription(vertex_shader_module.GetVertexBindingsDescs());
 			vertex_bindings_count_ = vertex_input_bindings_descs.size();
+		}
+		else
+		{
+			vertex_bindings_count_ = 0;
 		}
 
 		shader_stage_create_infos.push_back(vert_shader_stage_info);
@@ -101,23 +103,28 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	//TODO: configure blend
 
-	VkPipelineColorBlendAttachmentState color_blend_attachment{};
-	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	color_blend_attachment.blendEnable = VK_TRUE;
-	color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA; // Optional
-	color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // Optional
-	color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-	color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-	color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-	color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+	std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_states(render_pass.attachments_cnt);
+
+	for (auto&& color_blend_attachment : blend_attachment_states)
+	{
+		color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		color_blend_attachment.blendEnable = VK_TRUE;
+		color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA; // Optional
+		color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // Optional
+		color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
+		color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+		color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+		color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+	}
+
 
 
 	VkPipelineColorBlendStateCreateInfo color_blending{};
 	color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	color_blending.logicOpEnable = VK_FALSE;
 	color_blending.logicOp = VK_LOGIC_OP_COPY; // Optional
-	color_blending.attachmentCount = 1;
-	color_blending.pAttachments = &color_blend_attachment;
+	color_blending.attachmentCount = render_pass.attachments_cnt;
+	color_blending.pAttachments = blend_attachment_states.data();
 	color_blending.blendConstants[0] = 0.0f; // Optional
 	color_blending.blendConstants[1] = 0.0f; // Optional
 	color_blending.blendConstants[2] = 0.0f; // Optional

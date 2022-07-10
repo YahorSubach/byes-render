@@ -6,7 +6,7 @@
 #include "object_base.h"
 
 #include "render/buffer.h"
-#include "render/framebuffer.h"
+#include "render/framebuffer_collection.h"
 #include "render/swapchain.h"
 #include "render/render_setup.h"
 #include "render/batches_manager.h"
@@ -15,7 +15,6 @@
 
 namespace render
 {
-
 
 	class FrameHandler: public RenderObjBase<void*>
 	{
@@ -54,12 +53,8 @@ namespace render
 		DescriptorSetsManager descriptor_sets_manager_;
 
 		const ui::UI& ui_;
-
-		Image depth_map_;
-		ImageView depth_map_view_;
-		Framebuffer depth_map_framebuffer_;
-
-
+		
+		FramebufferCollection framebuffer_collection;
 
 		ModelSceneDescSetHolder model_scene_;
 		UIScene ui_scene_;

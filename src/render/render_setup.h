@@ -16,22 +16,7 @@ namespace render
 	{
 	public:
 
-		enum class PipelineId
-		{
-			kColor,
-			kColorSkinned,
-			kDepth,
-			kDepthSkinned,
-			kUI
-		};
-
-		enum class RenderPassId
-		{
-			kScreen,
-			kDepth
-		};
-
-		RenderSetup(const DeviceConfiguration& device_cfg, Extent output_extent, uint32_t output_format);
+		RenderSetup(const DeviceConfiguration& device_cfg);
 
 		const GraphicsPipeline& GetPipeline(PipelineId pipeline_id) const;
 		const RenderPass& GetRenderPass(RenderPassId renderpass_id) const;

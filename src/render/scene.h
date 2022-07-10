@@ -7,6 +7,7 @@
 #include "render/object_base.h"
 #include "render/batches_manager.h"
 #include "render/graphics_pipeline.h"
+#include "render/framebuffer_collection.h"
 #include "render/image_view.h"
 #include "render/ui/ui.h"
 #include "render/ui/panel.h"
@@ -76,11 +77,11 @@ namespace render
 	};
 
 
-	class ModelSceneDescSetHolder : public DescriptorSetHolder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>
+	class ModelSceneDescSetHolder : public DescriptorSetHolder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement, DescriptorSetType::kGBuffers>
 	{
 	public:
 
-		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Image& shadow_map);
+		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const FramebufferCollection& framebuffer_collection);
 
 		const std::vector<ModelDescSetHolder>& GetModels() const;
 
@@ -90,6 +91,7 @@ namespace render
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
 
 		SceneRenderNode GetRenderNode();
 
@@ -106,7 +108,8 @@ namespace render
 		DescriptorSet<DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data light_data_;
 
 		Image env_image_;
-		const Image& shadow_map_;
+
+		const FramebufferCollection& framebuffer_collection_;
 
 		Sampler diffuse_sampler_;
 		Sampler shadow_sampler_;

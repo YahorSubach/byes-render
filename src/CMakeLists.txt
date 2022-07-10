@@ -36,6 +36,8 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/render/frame_handler.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.h
 		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer.cc
+		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer_collection.h
+		${CMAKE_CURRENT_LIST_DIR}/render/framebuffer_collection.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/gltf_wrapper.h
 		${CMAKE_CURRENT_LIST_DIR}/render/gltf_wrapper.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/graphics_pipeline.h
