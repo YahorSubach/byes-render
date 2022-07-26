@@ -5,9 +5,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type) : RenderObjBase(device_cfg), image_type_(image_type), width_(width), height_(height)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const ImagePropertiesStorage& properties) : RenderObjBase(device_cfg), image_properties_(properties), width_(width), height_(height)
 {
-	mipmap_levels_count_ = image_type == ImageType::kColorImage ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
+	mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
 
 	format_ = format;
 	VkImageCreateInfo image_info{};
@@ -22,11 +22,13 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	if(image_type == ImageType::kColorImage)					image_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	else if (image_type == ImageType::kColorAttachmentImage)	image_info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	else if (image_type == ImageType::kDepthMapImage)			image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	else if (image_type == ImageType::kGDepthImage)				image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	else if (image_type == ImageType::kBitmapImage)				image_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	image_info.usage = 0;
+
+	if (image_properties_.Check(ImageProperty::kShaderInput)) image_info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+	if (image_properties_.Check(ImageProperty::kColorAttachment)) image_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	if (image_properties_.Check(ImageProperty::kDepthAttachment)) image_info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	if (image_properties_.Check(ImageProperty::kRead) || image_properties_.Check(ImageProperty::kMipMap)) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	if (image_properties_.Check(ImageProperty::kWrite) || image_properties_.Check(ImageProperty::kMipMap)) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
@@ -50,16 +52,16 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	vkBindImageMemory(device_cfg_.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const Extent& extent, ImageType image_type) : Image(device_cfg, format, extent.width, extent.height, image_type)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const Extent& extent, const ImagePropertiesStorage& properties) : Image(device_cfg, format, extent.width, extent.height, properties)
 {
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : RenderObjBase(device_cfg), image_type_(ImageType::kSwapchainImage), format_(format), mipmap_levels_count_(1)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle, const ImagePropertiesStorage& properties) : RenderObjBase(device_cfg), image_properties_(properties), format_(format), mipmap_levels_count_(1)
 {
 	handle_ = image_handle;
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImageType image_type): Image(device_cfg, format, width, height, image_type)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImagePropertiesStorage properties): Image(device_cfg, format, width, height, properties.Set(ImageProperty::kLoad))
 {
 	VkDeviceSize image_size = width * height * 4;
 	Buffer staging_buffer(device_cfg, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {});
@@ -70,15 +72,17 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	GenerateMipMaps();
 }
 
-render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, const std::string& path)
+render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, const std::string& path, ImagePropertiesStorage properties)
 {
 	int width = 0;
 	int height = 0;
 	int channels;
 	
+	properties.Set(ImageProperty::kLoad);
+
 	stbi_uc* pixels = stbi_load(path.data(), &width, &height, &channels, STBI_rgb_alpha);
 
-	Image res = Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, width, height, pixels);
+	Image res = Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, width, height, pixels, properties);
 
 	stbi_image_free(pixels);
 
@@ -163,7 +167,7 @@ void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& bu
 {
 
 	//Check here image type
-	mipmap_levels_count_ = image_type_ == ImageType::kColorImage ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
+	mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
@@ -197,16 +201,17 @@ void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& bu
 
 render::Image::~Image()
 {
-	if (handle_ != VK_NULL_HANDLE && image_type_ != ImageType::kSwapchainImage)
+	if (handle_ != VK_NULL_HANDLE && !image_properties_.Check(ImageProperty::kShouldNotFreeHandle))
 	{
 		vkDestroyImage(device_cfg_.logical_device, handle_, nullptr);
 	}
 }
 
-render::ImageType render::Image::GetImageType() const
+const render::ImagePropertiesStorage& render::Image::GetImageProperties() const
 {
-	return image_type_;
+	return image_properties_;
 }
+
 
 uint32_t render::Image::GetMipMapLevelsCount() const
 {

@@ -52,8 +52,8 @@ namespace render
 		virtual ~GraphicsPipeline() override;
 	private:
 
-		std::vector<VkVertexInputBindingDescription> BuildVertexInputBindingDescriptions(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
-		std::vector<VkVertexInputAttributeDescription> BuildVertexAttributeDescription(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
+		std::vector<VkVertexInputBindingDescription> BuildVertexInputBindingDescriptions(const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
+		std::vector<VkVertexInputAttributeDescription> BuildVertexAttributeDescription(const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
 		
 		std::map<uint32_t, const DescriptorSetLayout&> descriptor_sets_;
 

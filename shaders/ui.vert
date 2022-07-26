@@ -1,6 +1,6 @@
 #version 450
 
-layout(set = 0, binding = 0) uniform TransformUniformBufferObject {
+layout(set = 0, binding = 0) uniform ModelMatrix {
     mat4 matrix;
 } transformUBO;
 

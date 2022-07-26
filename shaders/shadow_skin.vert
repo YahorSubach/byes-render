@@ -1,6 +1,6 @@
 #version 450
 
-layout(set = 0, binding = 0) uniform LightUniformBufferObject {
+layout(set = 0, binding = 0) uniform LightPositionAndViewProjMat {
 	vec4 position;
 	mat4 view_mat;
 	mat4 proj_mat;
@@ -8,11 +8,11 @@ layout(set = 0, binding = 0) uniform LightUniformBufferObject {
 	float far;
 } light;
 
-layout(set = 1, binding = 0) uniform ObjectUniformBufferObject {
+layout(set = 1, binding = 0) uniform ModelMatrix {
     mat4 modelMatrix;
 } object;
 
-layout(set = 2, binding = 0) uniform SceletonUniformBufferObject {
+layout(set = 2, binding = 0) uniform Skeleton {
     mat4 matrices[32];
 	uint use;
 } skeleton;

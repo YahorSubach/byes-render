@@ -25,7 +25,7 @@ namespace render
 		struct VertexBindingDesc
 		{
 			uint32_t stride;
-			std::vector<VertexBindingAttributeDesc> attributes;
+			std::map<uint32_t, VertexBindingAttributeDesc> attributes;
 		};
 
 		struct DescriptorSetLayoutBindingDesc
@@ -40,7 +40,7 @@ namespace render
 		//	std::vector<uint32_t> bindings_descs_types;
 		//};
 
-		ShaderModule(const DeviceConfiguration& device_cfg, const std::string& shader_path, const std::array<DescriptorSetLayout, static_cast<uint32_t>(DescriptorSetType::Count)>& descriptor_sets_layouts);
+		ShaderModule(const DeviceConfiguration& device_cfg, const std::string& shader_path, const std::array<DescriptorSetLayout, kDescriptorSetTypesCount>& descriptor_sets_layouts);
 
 		ShaderModule(const ShaderModule&) = delete;
 		ShaderModule(ShaderModule&&) = default;
@@ -48,7 +48,7 @@ namespace render
 		ShaderModule& operator=(const ShaderModule&) = delete;
 		ShaderModule& operator=(ShaderModule&&) = default;
 
-		const std::vector<VertexBindingDesc>& GetVertexBindingsDescs() const;
+		const std::map<uint32_t, VertexBindingDesc>& GetInputBindingsDescs() const;
 		const std::map<uint32_t, const render::DescriptorSetLayout&>& GetDescriptorSets() const;
 
 
@@ -60,9 +60,11 @@ namespace render
 
 	private:
 
+		void FillInputDescsAndDescSets(const std::string& shader_path, const std::array<DescriptorSetLayout, kDescriptorSetTypesCount>& descriptor_sets_layouts);
+
 		ShaderType shader_type_;
 
-		std::vector<VertexBindingDesc> vertex_bindings_descs_;
+		std::map<uint32_t, VertexBindingDesc> input_bindings_descs_;
 		std::map<uint32_t, const DescriptorSetLayout&> descriptor_sets_;
 		//std::vector<DescriptorSetLayoutDesc> descriptor_sets_descs_;
 	};

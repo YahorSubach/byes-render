@@ -15,17 +15,69 @@
 
 namespace render
 {
-	enum class ImageType
-	{
-		kUndefined,
+	//enum class ImageType
+	//{
+	//	kUndefined,
 
-		kSwapchainImage,
-		kColorImage,
-		kColorAttachmentImage,
-		kDepthMapImage,
-		kGDepthImage,
-		kBitmapImage,
+	//	kSwapchainImage,
+	//	kColorImage,
+	//	kColorAttachmentImage,
+	//	kDepthMapImage,
+	//	kGDepthImage,
+	//	kBitmapImage,
+	//};
+
+	enum class ImageProperty
+	{
+		kShouldNotFreeHandle,
+
+		kShaderInput,
+
+		kColorAttachment,
+		kDepthAttachment,
+
+		kMipMap,
+		kRead,
+		kWrite,
+
+
+		kLoad = kWrite,
 	};
+
+
+	class ImagePropertiesStorage
+	{
+	private:
+		uint32_t flags_;
+	
+	public:
+		ImagePropertiesStorage(std::initializer_list<ImageProperty> properties_list): flags_(0) {
+			
+			for (auto&& prop : properties_list)
+			{
+				flags_ |= (1 << static_cast<uint32_t>(prop));
+			}
+		}
+
+		bool Check(ImageProperty prop) const
+		{
+			return flags_ & (1 << static_cast<uint32_t>(prop));
+		}
+
+		const ImagePropertiesStorage& Set(ImageProperty prop)
+		{
+			flags_ |= (1 << static_cast<uint32_t>(prop));
+			return *this;
+		}
+
+		const ImagePropertiesStorage& Unset(ImageProperty prop)
+		{
+			flags_ &= ~(1 << static_cast<uint32_t>(prop));
+			return *this;
+		}
+
+	};
+
 
 
 	class Image : public RenderObjBase<VkImage>
@@ -39,12 +91,12 @@ namespace render
 			kFragmentRead,
 		};
 
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImageType image_type = ImageType::kColorImage);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, ImageType image_type);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const Extent& extent, ImageType image_type);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImagePropertiesStorage properties);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const ImagePropertiesStorage& properties);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, const Extent& extent, const ImagePropertiesStorage& properties);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle, const ImagePropertiesStorage& properties);
 
-		static Image FromFile(const DeviceConfiguration& device_cfg, const std::string& path);
+		static Image FromFile(const DeviceConfiguration& device_cfg, const std::string& path, ImagePropertiesStorage properties);
 
 		Image(const Image&) = delete;
 		Image(Image&&) = default;
@@ -59,7 +111,7 @@ namespace render
 
 		virtual ~Image() override;
 
-		ImageType GetImageType() const;
+		const ImagePropertiesStorage& GetImageProperties() const;
 
 		uint32_t GetMipMapLevelsCount() const;
 
@@ -70,7 +122,7 @@ namespace render
 
 		void GenerateMipMaps();
 
-		ImageType image_type_;
+		ImagePropertiesStorage image_properties_;
 
 		std::unique_ptr<Memory> memory_;
 		VkFormat format_;

@@ -11,7 +11,7 @@ render::DescriptorSetsManager::DescriptorSetsManager(const DeviceConfiguration& 
 
 VkDescriptorSet render::DescriptorSetsManager::GetFreeDescriptor(DescriptorSetType type)
 {
-	std::map<DescriptorSetType, DescriptorSetInfo> descriptor_sets_info = DescriptorSetsInfos::Get();
+	auto&& descriptor_sets_info = DescriptorSetUtil::GetTypeToInfoMap();
 
 	if (descriptor_sets_free_indices[type] < descriptor_sets_[type].size())
 	{

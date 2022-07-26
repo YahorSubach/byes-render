@@ -4,14 +4,12 @@
 render::FramebufferCollection::FramebufferCollection(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup) : RenderObjBase(device_cfg),
 
 images_{
-	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, ImageType::kColorAttachmentImage),
-	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, ImageType::kColorAttachmentImage),
-	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, ImageType::kColorAttachmentImage),
-	Image(device_cfg_, device_cfg_.depth_map_format, device_cfg_.presentation_extent, ImageType::kGDepthImage),
+	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
+	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
+	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
+	Image(device_cfg_, device_cfg_.depth_map_format, device_cfg_.presentation_extent, {ImageProperty::kDepthAttachment}),
 
-	Image(device_cfg_, device_cfg_.depth_map_format, device_cfg_.depth_map_extent, ImageType::kDepthMapImage),
-
-
+	Image(device_cfg_, device_cfg_.depth_map_format, device_cfg_.depth_map_extent, {ImageProperty::kDepthAttachment, ImageProperty::kShaderInput}),
 },
 
 image_views_{

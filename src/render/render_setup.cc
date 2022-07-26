@@ -40,51 +40,51 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 
 
 	{
-		ShaderModule vert_shader_module(device_cfg, "color.vert.spv", descriptor_set_layouts_);
-		ShaderModule frag_shader_module(device_cfg, "color.frag.spv", descriptor_set_layouts_);
+		ShaderModule vert_shader_module(device_cfg, "color.vert", descriptor_set_layouts_);
+		ShaderModule frag_shader_module(device_cfg, "color.frag", descriptor_set_layouts_);
 
 		pipelines_.emplace(PipelineId::kColor, GraphicsPipeline(device_cfg, output_extent, render_passes_.at(RenderPassId::kSimpleRenderToScreen), vert_shader_module, frag_shader_module));
 	}
 
 	{
-		ShaderModule vert_shader_module(device_cfg, "color_skin.vert.spv", descriptor_set_layouts_);
-		ShaderModule frag_shader_module(device_cfg, "color.frag.spv", descriptor_set_layouts_);
+		ShaderModule vert_shader_module(device_cfg, "color_skin.vert", descriptor_set_layouts_);
+		ShaderModule frag_shader_module(device_cfg, "color.frag", descriptor_set_layouts_);
 
 		pipelines_.emplace(PipelineId::kColorSkinned, GraphicsPipeline(device_cfg, output_extent, render_passes_.at(RenderPassId::kSimpleRenderToScreen), vert_shader_module, frag_shader_module));
 	}
 
 
 	{
-		ShaderModule vert_shader_module(device_cfg, "shadow.vert.spv", descriptor_set_layouts_);
-		ShaderModule frag_shader_module(device_cfg, "shadow.frag.spv", descriptor_set_layouts_);
+		ShaderModule vert_shader_module(device_cfg, "shadow.vert", descriptor_set_layouts_);
+		ShaderModule frag_shader_module(device_cfg, "shadow.frag", descriptor_set_layouts_);
 
 		pipelines_.emplace(PipelineId::kDepth, GraphicsPipeline(device_cfg, {512, 512}, render_passes_.at(RenderPassId::kBuildDepthmap), vert_shader_module, frag_shader_module));
 	}
 
 	{
-		ShaderModule vert_shader_module(device_cfg, "shadow_skin.vert.spv", descriptor_set_layouts_);
-		ShaderModule frag_shader_module(device_cfg, "shadow.frag.spv", descriptor_set_layouts_);
+		ShaderModule vert_shader_module(device_cfg, "shadow_skin.vert", descriptor_set_layouts_);
+		ShaderModule frag_shader_module(device_cfg, "shadow.frag", descriptor_set_layouts_);
 
 		pipelines_.emplace(PipelineId::kDepthSkinned, GraphicsPipeline(device_cfg, { 512, 512 }, render_passes_.at(RenderPassId::kBuildDepthmap), vert_shader_module, frag_shader_module));
 	}
 
 	{
-		ShaderModule vert_shader_module(device_cfg, "ui.vert.spv", descriptor_set_layouts_);
-		ShaderModule frag_shader_module(device_cfg, "ui.frag.spv", descriptor_set_layouts_);
+		ShaderModule vert_shader_module(device_cfg, "ui.vert", descriptor_set_layouts_);
+		ShaderModule frag_shader_module(device_cfg, "ui.frag", descriptor_set_layouts_);
 
 		pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(device_cfg, output_extent, render_passes_.at(RenderPassId::kSimpleRenderToScreen), vert_shader_module, frag_shader_module, false));
 	}
 
 	{
-		ShaderModule vert_shader_module(device_cfg, "build_g_buffers.vert.spv", descriptor_set_layouts_);
-		ShaderModule frag_shader_module(device_cfg, "build_g_buffers.frag.spv", descriptor_set_layouts_);
+		ShaderModule vert_shader_module(device_cfg, "build_g_buffers.vert", descriptor_set_layouts_);
+		ShaderModule frag_shader_module(device_cfg, "build_g_buffers.frag", descriptor_set_layouts_);
 
 		pipelines_.emplace(PipelineId::kBuildGBuffers, GraphicsPipeline(device_cfg, output_extent, render_passes_.at(RenderPassId::kBuildGBuffers), vert_shader_module, frag_shader_module));
 	}
 
 	{
-		ShaderModule vert_shader_module(device_cfg, "collect_g_buffers.vert.spv", descriptor_set_layouts_);
-		ShaderModule frag_shader_module(device_cfg, "collect_g_buffers.frag.spv", descriptor_set_layouts_);
+		ShaderModule vert_shader_module(device_cfg, "collect_g_buffers.vert", descriptor_set_layouts_);
+		ShaderModule frag_shader_module(device_cfg, "collect_g_buffers.frag", descriptor_set_layouts_);
 
 		pipelines_.emplace(PipelineId::kCollectGBuffers, GraphicsPipeline(device_cfg, output_extent, render_passes_.at(RenderPassId::kCollectGBuffers), vert_shader_module, frag_shader_module));
 	}

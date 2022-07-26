@@ -29,7 +29,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 
 		for (auto&& image : gltf_model_.images)
 		{
-			images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, image.image.data()));
+			images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, image.image.data(), {ImageProperty::kShaderInput, ImageProperty::kMipMap }));
 			images_views_.push_back(ImageView(device_cfg, images_.back()));
 		}
 

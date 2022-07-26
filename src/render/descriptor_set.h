@@ -33,6 +33,7 @@ namespace render
 		Count
 	};
 
+	const uint32_t kDescriptorSetTypesCount = static_cast<uint32_t>(DescriptorSetType::Count);
 
 
 
@@ -241,13 +242,43 @@ namespace render
 	template<>
 	struct DescriptorSet<DescriptorSetType::kGBuffers>
 	{
-		static const uint32_t bindings_count = 1;
+		static const uint32_t bindings_count = 3;
 
 		template<int i>
 		struct Binding;
 
 		template<>
 		struct Binding<0>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
+			};
+
+			Data data;
+		};
+
+		template<>
+		struct Binding<1>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
+			};
+
+			Data data;
+		};
+
+		template<>
+		struct Binding<2>
 		{
 			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
 			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
@@ -312,18 +343,37 @@ namespace render
 	};
 
 	
-	struct DescriptorSetsInfos
+	struct DescriptorSetUtil
 	{
-		static std::map<DescriptorSetType, DescriptorSetInfo> Get()
-		{
-			std::map<DescriptorSetType, DescriptorSetInfo> infos;
+		
 
-#define ENUM_OP(x) infos[DescriptorSetType::k##x] = DescriptorSetInfoBuilder<DescriptorSetType::k##x>::BuildInfo();
+		static const std::map<DescriptorSetType, DescriptorSetInfo>& GetTypeToInfoMap()
+		{
+			if (info_map_.size() == 0)
+			{
+#define ENUM_OP(x) info_map_[DescriptorSetType::k##x] = DescriptorSetInfoBuilder<DescriptorSetType::k##x>::BuildInfo();
 #include "descriptor_types.inl"
 #undef ENUM_OP
-
-			return infos;
+			}
+			return info_map_;
 		}
+
+		static const std::map<std::string, DescriptorSetType>& GetNameToTypeMap()
+		{
+			if (name_map_.size() == 0)
+			{
+#define ENUM_OP(x) name_map_[#x] = DescriptorSetType::k##x;
+#include "descriptor_types.inl"
+#undef ENUM_OP
+			}
+			return name_map_;
+		}
+
+	private:
+
+		static std::map<DescriptorSetType, DescriptorSetInfo> info_map_;
+		static std::map<std::string, DescriptorSetType> name_map_;
+
 	};
 
 

@@ -1,14 +1,14 @@
 #version 450
 #define M_PI 3.1415926535897932384626433832795
 
-layout(set = 2, binding = 0) uniform MaterialParam {
+layout(set = 2, binding = 0) uniform Material_0 {
 	int emit;
 } material;
 
-layout(set = 2, binding = 1) uniform sampler2D texSampler;
+layout(set = 2, binding = 1) uniform sampler2D Material_texSampler;
 
 
-layout(set = 3, binding = 0) uniform CameraUniformBufferObject {
+layout(set = 3, binding = 0) uniform LightPositionAndViewProjMat_0 {
 	vec4 position;
 	mat4 view_mat;
 	mat4 proj_mat;
@@ -16,15 +16,17 @@ layout(set = 3, binding = 0) uniform CameraUniformBufferObject {
 	float far;
 } shadow_light;
 
-layout(set = 4, binding = 0) uniform sampler2D envSampler;
-layout(set = 4, binding = 1) uniform sampler2D shadowSampler;
+layout(set = 4, binding = 0) uniform sampler2D Environement_envSampler;
+layout(set = 4, binding = 1) uniform sampler2D Environement_shadowSampler;
 
 layout(location = 0) in vec3 fragPosition;
 layout(location = 1) in vec3 fragNorm;
 layout(location = 2) in vec3 fragToEyeVec;
 layout(location = 3) in vec2 fragTexCoord;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 GAlbedo;
+layout(location = 1) out vec4 GPosition;
+layout(location = 2) out vec4 GNormal;
 	
 layout( push_constant ) uniform constants
 {
@@ -55,7 +57,7 @@ float GetShadowMapValue(vec2 coords)
 {
 	//return (texture(shadowSampler, coords + vec2(0,0.001)).r + texture(shadowSampler, coords + vec2(-0.001, -0.001)).r + texture(shadowSampler, coords + vec2(0.001, -0.001)).r) / 3;
 	
-	return texture(shadowSampler, coords + 0.01*(rand2(coords) - 0.5)).r;
+	return texture(Environement_shadowSampler, coords + 0.01*(rand2(coords) - 0.5)).r;
 	//return texture(shadowSampler, coords).r;
 }
 
@@ -87,10 +89,10 @@ void main() {
 
 	mirrorTexCoord = mirrorTexCoord + 0.003*(rand2(mirrorTexCoord) - 0.5);
 
-	vec4 mirror_color =vec4(texture(envSampler,mirrorTexCoord).rgb, 1.0);
-	float mirrorMultiplier = (1 - dot(normal, frag_to_eye_unit)) * length(texture(texSampler, fragTexCoord).rgb) / sqrt(3);
+	vec4 mirror_color =vec4(texture(Environement_envSampler,mirrorTexCoord).rgb, 1.0);
+	float mirrorMultiplier = (1 - dot(normal, frag_to_eye_unit)) * length(texture(Material_texSampler, fragTexCoord).rgb) / sqrt(3);
 
-	vec4 diffuse_color = texture(texSampler, fragTexCoord).rgba;
+	vec4 albedo_color = texture(Material_texSampler, fragTexCoord).rgba;
 	
 	float light_multiplier = max(dot(fragNorm, to_light_unit), 0);
 	
@@ -118,10 +120,7 @@ void main() {
 	//float color = ((shadow_map_value+0.01) < shadow_map_coord.z) ? 0.f : 1.f; 
 	//vec4 diffuse = vec4(color,color,color, 1.0) * (0.1 + 0.9 * diffuseMultiplier);
 	
-	if(material.emit == 1)
-		outColor = diffuse_color;
-	else
-		outColor = diffuse_color * (0.1 + 0.9*diffuse_multiplier) + mirror_color * mirrorMultiplier;
-
-		outColor.a = 2;
+	GAlbedo = albedo_color;
+	GPosition = vec4(fragPosition, 1);
+	GNormal = vec4(fragNorm, 1);
 }

@@ -52,7 +52,7 @@ render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surfac
 
 				for (auto&& image_handle : image_handles)
 				{
-					images_.emplace_back(device_cfg, surface_format.format, image_handle);
+					images_.push_back(Image(device_cfg, surface_format.format, image_handle, {ImageProperty::kShouldNotFreeHandle}));
 					image_views_.emplace_back(device_cfg, images_.back());
 				}
 			}

@@ -23,10 +23,10 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 		vert_shader_stage_info.module = vertex_shader_module.GetHandle();
 		vert_shader_stage_info.pName = "main"; // entry point in shader
 
-		if (!vertex_shader_module.GetVertexBindingsDescs().empty())
+		if (!vertex_shader_module.GetInputBindingsDescs().empty())
 		{
-			vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(vertex_shader_module.GetVertexBindingsDescs());
-			vertex_input_attr_descs = BuildVertexAttributeDescription(vertex_shader_module.GetVertexBindingsDescs());
+			vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(vertex_shader_module.GetInputBindingsDescs());
+			vertex_input_attr_descs = BuildVertexAttributeDescription(vertex_shader_module.GetInputBindingsDescs());
 			vertex_bindings_count_ = vertex_input_bindings_descs.size();
 		}
 		else
@@ -266,37 +266,39 @@ render::GraphicsPipeline::~GraphicsPipeline()
 	}
 }
 
-std::vector<VkVertexInputBindingDescription> render::GraphicsPipeline::BuildVertexInputBindingDescriptions(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs)
+std::vector<VkVertexInputBindingDescription> render::GraphicsPipeline::BuildVertexInputBindingDescriptions(const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs)
 {
 	std::vector<VkVertexInputBindingDescription> result(vertex_bindings_descs.size());
+	int res_index = 0;
 
-	for (uint32_t i = 0; i < vertex_bindings_descs.size(); i++)
+	for (auto&& [binding_index, binding_desc] : vertex_bindings_descs)
 	{
-		result[i].binding = i;
-		result[i].stride = vertex_bindings_descs[i].stride;
-		result[i].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		result[res_index].binding = binding_index;
+		result[res_index].stride = binding_desc.stride;
+		result[res_index].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		res_index++;
 	}
 
 	return result;
 }
 
-std::vector<VkVertexInputAttributeDescription> render::GraphicsPipeline::BuildVertexAttributeDescription(const std::vector<render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs)
+std::vector<VkVertexInputAttributeDescription> render::GraphicsPipeline::BuildVertexAttributeDescription(const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs)
 {
 	std::vector<VkVertexInputAttributeDescription> result;
 
-	uint32_t location_index = 0;
-
-	for (uint32_t binding_index = 0; binding_index < vertex_bindings_descs.size(); binding_index++)
+	for (auto&& [binding_index, binding_desc] : vertex_bindings_descs)
 	{
-		for (uint32_t attr_index = 0; attr_index < vertex_bindings_descs[binding_index].attributes.size(); attr_index++)
+		for (auto&& [location, attr_desc] : binding_desc.attributes)
 		{
-			result.push_back({});
-			result.back().binding = binding_index;
-			result.back().format = static_cast<VkFormat>(vertex_bindings_descs[binding_index].attributes[attr_index].format);
-			result.back().location = location_index;
-			result.back().offset = vertex_bindings_descs[binding_index].attributes[attr_index].offset;
+			VkVertexInputAttributeDescription vk_attr_desc;
 
-			location_index++;
+			vk_attr_desc.binding = binding_index;
+			vk_attr_desc.format = static_cast<VkFormat>(attr_desc.format);
+			vk_attr_desc.location = location;
+			vk_attr_desc.offset = attr_desc.offset;
+
+			result.push_back(vk_attr_desc);
 		}
 	}
 

@@ -1,16 +1,16 @@
 #version 450
 
-layout(set = 0, binding = 0) uniform CameraUniformBufferObject {
+layout(set = 0, binding = 0) uniform CameraPositionAndViewProjMat {
     vec4 position;
     mat4 projViewMatrix;
 } camera;
 
-layout(set = 1, binding = 0) uniform ObjectUniformBufferObject {
+layout(set = 1, binding = 0) uniform ModelMatrix {
     mat4 modelMatrix;
 } object;
 
 
-layout(set = 5, binding = 0) uniform SceletonUniformBufferObject {
+layout(set = 5, binding = 0) uniform Skeleton {
     mat4 matrices[32];
 } skeleton;
 

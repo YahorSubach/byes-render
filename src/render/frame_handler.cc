@@ -95,27 +95,27 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 			}
 		},
 
-		{
-			RenderPassId::kSimpleRenderToScreen,
-			FramebufferId::kScreen,
-			{
-				{
-					PipelineId::kColor,
-					RenderModelType::kStatic,
-					model_scene_.GetRenderNode()
-				},
-				{
-					PipelineId::kColorSkinned,
-					RenderModelType::kSkinned,
-					model_scene_.GetRenderNode()
-				},
-				{
-					PipelineId::kUI,
-					RenderModelType::kStatic,
-					ui_scene_.GetRenderNode()
-				},
-			}
-		},
+		//{
+		//	RenderPassId::kSimpleRenderToScreen,
+		//	FramebufferId::kScreen,
+		//	{
+		//		{
+		//			PipelineId::kColor,
+		//			RenderModelType::kStatic,
+		//			model_scene_.GetRenderNode()
+		//		},
+		//		{
+		//			PipelineId::kColorSkinned,
+		//			RenderModelType::kSkinned,
+		//			model_scene_.GetRenderNode()
+		//		},
+		//		{
+		//			PipelineId::kUI,
+		//			RenderModelType::kStatic,
+		//			ui_scene_.GetRenderNode()
+		//		},
+		//	}
+		//},
 
 		{
 			RenderPassId::kBuildGBuffers,
@@ -140,6 +140,18 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 				}
 			}
 		},
+
+		{
+	RenderPassId::kSimpleRenderToScreen,
+	FramebufferId::kScreen,
+	{
+		{
+			PipelineId::kUI,
+			RenderModelType::kStatic,
+			ui_scene_.GetRenderNode()
+		}
+	}
+},
 	};
 
 	

@@ -1,9 +1,12 @@
 #include "descriptor_set_layout.h"
 
+std::map<render::DescriptorSetType, render::DescriptorSetInfo> render::DescriptorSetUtil::info_map_;
+std::map<std::string, render::DescriptorSetType> render::DescriptorSetUtil::name_map_;
+
 render::DescriptorSetLayout::DescriptorSetLayout(const DeviceConfiguration& device_cfg, DescriptorSetType type): RenderObjBase(device_cfg), type_(type)
 {
 
-	std::map<DescriptorSetType, DescriptorSetInfo> infos = DescriptorSetsInfos::Get();
+	std::map<DescriptorSetType, DescriptorSetInfo> infos = DescriptorSetUtil::GetTypeToInfoMap();
 
 	DescriptorSetInfo info = infos[type];
 

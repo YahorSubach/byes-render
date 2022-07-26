@@ -212,7 +212,7 @@ namespace render
 
 			uint32_t current_frame_index = -1;
 
-			Image def_image = Image::FromFile(device_cfg_, "../images/test.jpg");
+			Image def_image = Image::FromFile(device_cfg_, "../images/test.jpg", { ImageProperty::kShaderInput });
 			device_cfg_.default_image = def_image;
 
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
@@ -237,7 +237,7 @@ namespace render
 
 				std::vector<Framebuffer> swapchain_framebuffers;
 
-				Image depth_image(device_cfg_, device_cfg_.depth_map_format, swapchain.GetExtent().width, swapchain.GetExtent().height, ImageType::kDepthMapImage);
+				Image depth_image(device_cfg_, device_cfg_.depth_map_format, swapchain.GetExtent().width, swapchain.GetExtent().height, { ImageProperty::kDepthAttachment });
 				ImageView depth_image_view(device_cfg_, depth_image);
 
 				for (int i = 0; i < swapchain.GetImagesCount(); i++)
