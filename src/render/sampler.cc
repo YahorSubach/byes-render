@@ -1,8 +1,8 @@
 #include "sampler.h"
 
-render::Sampler::Sampler(const DeviceConfiguration& device_cfg, uint32_t mipmap_cnt, AddressMode address_mode): RenderObjBase(device_cfg)
+render::Sampler::Sampler(const DeviceConfiguration& device_cfg, uint32_t mipmap_cnt, AddressMode address_mode, bool use_nearest_filtering): RenderObjBase(device_cfg)
 {
-	Init(mipmap_cnt, address_mode);
+	Init(mipmap_cnt, address_mode, use_nearest_filtering);
 
 }
 
@@ -19,12 +19,12 @@ render::Sampler::Sampler(const DeviceConfiguration& device_cfg, stl_util::Nullab
 	Init(mipmap_cnt, address_mode);
 }
 
-void render::Sampler::Init(uint32_t mipmap_cnt, AddressMode address_mode)
+void render::Sampler::Init(uint32_t mipmap_cnt, AddressMode address_mode, bool use_nearest_filtering)
 {
 	VkSamplerCreateInfo sampler_info{};
 	sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	sampler_info.magFilter = VK_FILTER_LINEAR;
-	sampler_info.minFilter = VK_FILTER_LINEAR;
+	sampler_info.magFilter = use_nearest_filtering ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
+	sampler_info.minFilter = use_nearest_filtering ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
 
 	VkSamplerAddressMode vk_address_mode;
 

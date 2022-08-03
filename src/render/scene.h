@@ -114,6 +114,7 @@ namespace render
 		const FramebufferCollection& framebuffer_collection_;
 
 		Sampler diffuse_sampler_;
+		Sampler nearest_sampler_;
 		Sampler shadow_sampler_;
 	};
 

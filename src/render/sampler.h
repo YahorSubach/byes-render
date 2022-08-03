@@ -20,7 +20,7 @@ namespace render
 			kClampToBorder,
 		};
 
-		Sampler(const DeviceConfiguration& device_cfg, uint32_t mipmap_cnt = 0, AddressMode address_mode = AddressMode::kRepeat);
+		Sampler(const DeviceConfiguration& device_cfg, uint32_t mipmap_cnt = 0, AddressMode address_mode = AddressMode::kRepeat, bool use_nearest_filtering = false);
 		Sampler(const DeviceConfiguration& device_cfg, stl_util::NullableRef<const Image> image);
 
 		Sampler(const Sampler&) = delete;
@@ -33,7 +33,7 @@ namespace render
 
 	private:
 
-		void Init(uint32_t mipmap_cnt, AddressMode address_mode);
+		void Init(uint32_t mipmap_cnt, AddressMode address_mode, bool use_nearest_filtering = false);
 
 
 	};

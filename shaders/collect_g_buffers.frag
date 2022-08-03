@@ -11,6 +11,8 @@ layout(set = 1, binding = 0) uniform CameraPositionAndViewProjMat_0 {
     mat4 projViewMatrix;
 } camera;
 
+layout(set = 2, binding = 0) uniform sampler2D Environement_envSampler;
+
 
 layout(location = 0) in vec3 fragPosition;
 
@@ -32,7 +34,7 @@ void main() {
 	if(fragPosition.x > 0 && fragPosition.y > 0)
 	{
 		
-		vec3 light_pos = vec3(1,3,4);
+		vec3 light_pos = vec3(1,3,1);
 		
 		vec3 unit_normal = normalize(texture(GBuffers_Normal, (fragPosition.xy)).xyz); 
 		
@@ -42,16 +44,50 @@ void main() {
 		vec3 unit_view_direction = normalize(camera.position.xyz - position);
 		vec3 unit_light_direction = normalize(light_pos - position);
 
-		float roughness = 0.5;
-		vec3 R0 = vec3(0.1,0.1,0.1);
+		float roughness = 0.01;
+		vec3 R0 = vec3(1.0, 0.71, 0.29);
 
 		
+		float light_distance = length(light_pos - position);
+		float attenuation = 1 / (0.001 + light_distance * light_distance);
 
-		vec3 Reflected = F(unit_light_direction, unit_normal, R0);
-		vec3 Spek = CookTorrance_GGX(unit_view_direction, unit_light_direction, unit_normal, roughness, R0);
-		vec3 Diffused = 1 - Reflected;
 
-		texColor = vec4(albedo * Diffused * clamp(dot(unit_normal, unit_light_direction),0,1) / M_PI + Spek, 1); 
+		vec3 mirror_dir = 2 * dot(unit_normal, unit_view_direction) * unit_normal - unit_view_direction;
+	
+		float mirror_tex_y = -asin(mirror_dir.z) / M_PI + 0.5;
+		vec2 mirrorNormalizeFlatDir = normalize(mirror_dir.xy);
+		float mirror_tex_x = (mirrorNormalizeFlatDir.x > 0 ? acos(mirrorNormalizeFlatDir.y) : (2*M_PI - acos(mirrorNormalizeFlatDir.y))) / (2 * M_PI);
+	
+		vec2 mirrorTexCoord = vec2(mirror_tex_x, mirror_tex_y);
+
+		//mirrorTexCoord = mirrorTexCoord + 0.003*(rand2(mirrorTexCoord) - 0.5);
+
+		vec4 mirror_color =vec4(texture(Environement_envSampler,mirrorTexCoord).rgb, 1.0);
+
+		texColor = vec4(0);
+
+		float metal_diffuse_factor = 0;
+		{
+		vec3 kr = F(unit_light_direction, unit_normal, R0);
+		vec3 kd = 1- kr;
+		vec3 krfr = attenuation * CookTorrance_GGX(unit_view_direction, unit_light_direction, unit_normal, roughness, R0);
+
+		vec3 fd = metal_diffuse_factor * attenuation * albedo * clamp(dot(unit_normal, unit_light_direction),0,1);
+
+		texColor += vec4(kd*fd + krfr, 1);
+		}
+
+		vec3 unit_env_light_direction = normalize(mirror_dir);
+
+		{
+		vec3 kr = F(unit_env_light_direction, unit_normal, R0);
+		vec3 kd = 1- kr;
+		vec3 krfr = attenuation *length(mirror_color.xyz) * CookTorrance_GGX(unit_view_direction, unit_env_light_direction, unit_normal, roughness, R0);
+
+		vec3 fd = metal_diffuse_factor * albedo * clamp(dot(unit_normal, unit_env_light_direction),0,1);
+
+		texColor += vec4(kd*fd + krfr, 1);
+		}
 
 	}
 
