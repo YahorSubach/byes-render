@@ -30,9 +30,15 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, con
 	if (image_properties_.Check(ImageProperty::kRead) || image_properties_.Check(ImageProperty::kMipMap)) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	if (image_properties_.Check(ImageProperty::kWrite) || image_properties_.Check(ImageProperty::kMipMap)) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-	image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
+	image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	const std::vector<uint32_t> sharing_queues_indices = { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index };
+	std::vector<uint32_t> sharing_queues_indices;
+	sharing_queues_indices.push_back(device_cfg.graphics_queue_index);
+	if (device_cfg.graphics_queue_index != device_cfg.transfer_queue_index)
+	{
+		sharing_queues_indices.push_back(device_cfg.transfer_queue_index);
+		image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
+	}
 
 	image_info.queueFamilyIndexCount = static_cast<uint32_t>(sharing_queues_indices.size());
 	image_info.pQueueFamilyIndices = sharing_queues_indices.data();

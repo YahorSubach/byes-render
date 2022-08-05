@@ -50,6 +50,25 @@ VkSurfaceFormatKHR render::Surface::GetSurfaceFormat(const VkPhysicalDevice& phy
 VkPresentModeKHR render::Surface::GetSurfacePresentMode(const VkPhysicalDevice& physical_device) const
 {
 	auto presentat_modes = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfacePresentModesKHR, physical_device, handle_);
+	
+	for (auto mode : presentat_modes)
+	{
+		if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
+			return mode;
+	}
+
+	for (auto mode : presentat_modes)
+	{
+		if (mode == VK_PRESENT_MODE_FIFO_KHR)
+			return mode;
+	}
+
+	for (auto mode : presentat_modes)
+	{
+		return mode;
+	}
+	
+	
 	return presentat_modes[2]; //TODO fuck
 }
 

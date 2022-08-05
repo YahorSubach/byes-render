@@ -156,9 +156,20 @@ namespace render
 
 
 			device_cfg_.graphics_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_GRAPHICS_BIT);
-			device_cfg_.transfer_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_TRANSFER_BIT | VK_QUEUE_GRAPHICS_BIT);
+			device_cfg_.transfer_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT);
+			if (device_cfg_.transfer_queue_index == -1)
+			{
+				device_cfg_.transfer_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_TRANSFER_BIT);
+			}
 
-			if (!InitLogicalDevice(device_cfg_.physical_device, { device_cfg_.graphics_queue_index , device_cfg_.transfer_queue_index }))
+			std::vector<uint32_t> queue_indices;
+			queue_indices.push_back(device_cfg_.graphics_queue_index);
+			if (device_cfg_.graphics_queue_index != device_cfg_.transfer_queue_index)
+			{
+				queue_indices.push_back(device_cfg_.transfer_queue_index);
+			}
+
+			if (!InitLogicalDevice(device_cfg_.physical_device, queue_indices))
 			{
 				LOG(err, "InitLogicalDevices error");
 				return;
@@ -167,8 +178,15 @@ namespace render
 			device_cfg_.logical_device = vk_logical_devices_[0];
 
 			vkGetDeviceQueue(device_cfg_.logical_device, device_cfg_.graphics_queue_index, 0, &device_cfg_.graphics_queue);
-			vkGetDeviceQueue(device_cfg_.logical_device, device_cfg_.transfer_queue_index, 0, &device_cfg_.transfer_queue);
-
+			if (device_cfg_.graphics_queue_index != device_cfg_.transfer_queue_index)
+			{
+				vkGetDeviceQueue(device_cfg_.logical_device, device_cfg_.transfer_queue_index, 0, &device_cfg_.transfer_queue);
+			}
+			else
+			{
+				device_cfg_.transfer_queue = device_cfg_.graphics_queue;
+			}
+			
 			platform::Window window = platform::CreatePlatformWindow(param);
 
 			surface_ptr_ = std::make_unique<Surface>(window, vk_instance_, device_cfg_);
@@ -413,6 +431,7 @@ namespace render
 			for (size_t i = 0; i < physical_devices_count; i++)
 			{
 				InitPhysicalDeviceProperties(vk_physical_devices_[i]);
+				InitPhysicalDeviceMemoryProperties(vk_physical_devices_[i]);
 				InitPhysicalDeviceQueueFamaliesProperties(vk_physical_devices_[i]);
 				InitPhysicalDeviceFeatures(vk_physical_devices_[i]);
 				if (!(InitPhysicalDeviceLayers(vk_physical_devices_[i]) &&
@@ -449,18 +468,15 @@ namespace render
 		}
 
 
-		uint32_t FindDeviceQueueFamalyWithFlag(const VkPhysicalDevice& physical_deivce, VkQueueFlags flags, VkQueueFlags flags_to_check_mask = 0)
+		uint32_t FindDeviceQueueFamalyWithFlag(const VkPhysicalDevice& physical_deivce, VkQueueFlags enabled_flags, VkQueueFlags disabled_flags = 0)
 		{
 			auto&& queue_famalies_properties = vk_physical_devices_to_queues_[physical_deivce];
 
-			if (flags_to_check_mask == 0)
-			{
-				flags_to_check_mask = flags;
-			}
 
 			for (uint32_t i = 0; i < queue_famalies_properties.size(); i++)
 			{
-				if ((queue_famalies_properties[i].queueFlags & flags_to_check_mask) == flags)
+				if ((queue_famalies_properties[i].queueFlags & enabled_flags) == enabled_flags 
+					&& (queue_famalies_properties[i].queueFlags & disabled_flags) == 0)
 				{
 					return i;
 				}
@@ -473,20 +489,19 @@ namespace render
 		{
 			VkPhysicalDevice physical_device_out = nullptr;
 
-
 			for (auto&& [physical_device, queues_properties] : vk_physical_devices_to_queues_)
 			{
 				for (uint32_t i = 0; i < queues_properties.size(); i++)
 				{
 					if (platform::GetPhysicalDevicePresentationSupport(physical_device, i) && (queues_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
 					{
+						if(physical_device_out == nullptr || 
+							vk_physical_devices_propeties_[physical_device].deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+							)
+
 						physical_device_out = physical_device;
-						break;
 					}
 				}
-
-				if (physical_device_out != nullptr)
-					break;
 			}
 
 			auto physical_device_out_it = std::find(vk_physical_devices_.begin(), vk_physical_devices_.end(), physical_device_out);
@@ -500,6 +515,20 @@ namespace render
 		}
 
 
+		void InitPhysicalDeviceMemoryProperties(VkPhysicalDevice physical_device)
+		{
+			using PhDevPropMapType = std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties>;
+
+			auto it = vk_physical_devices_memory_propeties_.lower_bound(physical_device);
+
+			if (it == vk_physical_devices_memory_propeties_.end() || it->first != physical_device)
+			{
+				it = vk_physical_devices_memory_propeties_.emplace_hint(it,
+					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
+				vkGetPhysicalDeviceMemoryProperties(physical_device, &it->second);
+			}
+		}
+
 		void InitPhysicalDeviceProperties(VkPhysicalDevice physical_device)
 		{
 			using PhDevPropMapType = std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties>;
@@ -510,8 +539,7 @@ namespace render
 			{
 				it = vk_physical_devices_propeties_.emplace_hint(it,
 					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
-				vkGetPhysicalDeviceMemoryProperties(physical_device, &it->second);
-
+				vkGetPhysicalDeviceProperties(physical_device, &it->second);
 			}
 		}
 
@@ -684,7 +712,8 @@ namespace render
 
 
 		std::vector<VkPhysicalDevice> vk_physical_devices_;
-		std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties> vk_physical_devices_propeties_;
+		std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties> vk_physical_devices_memory_propeties_;
+		std::map<VkPhysicalDevice, VkPhysicalDeviceProperties> vk_physical_devices_propeties_;
 		std::map<VkPhysicalDevice, std::vector<VkQueueFamilyProperties>> vk_physical_devices_to_queues_;
 		std::map<VkPhysicalDevice, VkPhysicalDeviceFeatures> vk_physical_devices_features_;
 		std::vector<VkLayerProperties > vk_instance_layers_;
