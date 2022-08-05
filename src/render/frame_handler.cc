@@ -129,17 +129,17 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 			}
 		},
 
-		{
-			RenderPassId::kCollectGBuffers,
-			FramebufferId::kScreen,
-			{
-				{
-					PipelineId::kCollectGBuffers,
-					RenderModelType::kStatic,
-					model_scene_.GetRenderNode()
-				}
-			}
-		},
+		//{
+		//	RenderPassId::kCollectGBuffers,
+		//	FramebufferId::kScreen,
+		//	{
+		//		{
+		//			PipelineId::kCollectGBuffers,
+		//			RenderModelType::kStatic,
+		//			model_scene_.GetRenderNode()
+		//		}
+		//	}
+		//},
 
 //		{
 //	RenderPassId::kSimpleRenderToScreen,

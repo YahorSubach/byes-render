@@ -266,13 +266,13 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_SFLOAT, 0}}} });
 						else
 						if (token == "uvec2")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 2, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32_UINT, 0}}} });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 2, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32_UINT, 0}}} });
 						else
 						if (token == "uvec3")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 3, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32_UINT, 0}}} });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 3, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32_UINT, 0}}} });
 						else
 						if (token == "uvec4")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_UINT, 0}}} });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_UINT, 0}}} });
 						else throw std::runtime_error("Unsupported input type");
 
 					}

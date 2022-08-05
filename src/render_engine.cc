@@ -496,7 +496,7 @@ namespace render
 					if (platform::GetPhysicalDevicePresentationSupport(physical_device, i) && (queues_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
 					{
 						if(physical_device_out == nullptr || 
-							vk_physical_devices_propeties_[physical_device].deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+							vk_physical_devices_propeties_[physical_device].deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
 							)
 
 						physical_device_out = physical_device;

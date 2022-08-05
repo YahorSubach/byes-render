@@ -35,6 +35,11 @@ void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::Descript
 {
 	int ind = 0;
 
+	for (auto&& mat : data.matrices)
+	{
+		mat = glm::identity<glm::mat4>();
+	}
+
 	for (auto&& joint : mesh_.joints)
 	{
 		glm::mat4 joint_transform = glm::inverse(mesh_.node.GetGlobalTransformMatrix()) * joint.node.GetGlobalTransformMatrix() * joint.inverse_bind_matrix;
