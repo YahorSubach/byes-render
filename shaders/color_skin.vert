@@ -36,7 +36,7 @@ void main() {
 
 	vec4 offset = vec4(0,0,0,0);
 
-	mat4 joint_transform = skeleton.matrices[inJoints.x] * inWeights.x + skeleton.matrices[inJoints.y] * inWeights.y + skeleton.matrices[inJoints.z] * inWeights.z + skeleton.matrices[inJoints.a] * inWeights.a;
+	mat4 joint_transform = skeleton.matrices[0] * inWeights.x + skeleton.matrices[1] * inWeights.y + skeleton.matrices[2] * inWeights.z + skeleton.matrices[3] * inWeights.a;
 
 
     gl_Position = camera.projViewMatrix * object.modelMatrix * joint_transform * vec4(inPosition, 1.0); 
