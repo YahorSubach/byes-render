@@ -46,7 +46,7 @@ void main() {
 		vec3 unit_view_direction = normalize(camera.position.xyz - position);
 
 
-		float roughness = 0.1;
+		float roughness = 0.05;
 		vec3 R0 = vec3(0.2, 0.2, 0.2);
 
 		
@@ -63,29 +63,32 @@ void main() {
 
 		//mirrorTexCoord = mirrorTexCoord + 0.003*(rand2(mirrorTexCoord) - 0.5);
 
-		vec4 mirror_color = vec4(texture(Environement_envSampler,mirrorTexCoord).rgb, 1.0);
+		vec4 mirror_color = 0.3 * vec4(texture(Environement_envSampler,mirrorTexCoord).rgb, 1.0);
 
 		texColor = vec4(0);
 
-		float metal_diffuse_factor = 1;
-
+		float metalness = 0.5;
 		vec3 unit_env_light_direction = normalize(mirror_dir);
+		float mirror_brigthness = length(mirror_color.xyz);
+		vec3 env_color = metalness * mirror_color.xyz * albedo + (1 - metalness) * vec3(mirror_brigthness);
+
 
 		{
+
 		vec3 kr = F(unit_env_light_direction, unit_normal, R0);
-		vec3 kd = 1- kr;
 
-		vec3 albedo_to_metal = vec3(metal_diffuse_factor) + (1 - metal_diffuse_factor) * albedo;
+		vec3 krfr = env_color * CookTorrance_GGX(unit_view_direction, unit_env_light_direction, unit_normal, roughness, R0);
+		krfr = env_color * CookTorrance_GGX(unit_view_direction, unit_env_light_direction, unit_normal, roughness, R0);
 
+		texColor += vec4(krfr, 1);
 
-		vec3 krfr = length(mirror_color.xyz) * albedo_to_metal * length(mirror_color.xyz) * CookTorrance_GGX(unit_view_direction, unit_env_light_direction, unit_normal, roughness, R0);
-
-		vec3 fd = metal_diffuse_factor * albedo * clamp(dot(unit_normal, unit_env_light_direction),0,1);
-
-		texColor += vec4(kd*fd + krfr, 1);
+		if(texColor.x > 2 || texColor.y > 2 || texColor.z > 2)
+		{
+			texColor = vec4(1, 0, 0, 1);
 		}
 
-		texColor = vec4(0);
+		}
+
 
 		{
 		vec3 unit_light_direction = normalize(light_pos_1 - position);
@@ -97,40 +100,40 @@ void main() {
 		vec3 kd = 1- kr;
 		vec3 krfr = attenuation * albedo * CookTorrance_GGX(unit_view_direction, unit_light_direction, unit_normal, roughness, R0);
 
-		vec3 fd = metal_diffuse_factor * attenuation * albedo * clamp(dot(unit_normal, unit_light_direction),0,1);
+		vec3 fd = (1 - metalness) * attenuation * albedo * clamp(dot(unit_normal, unit_light_direction),0,1);
 
 		texColor += vec4(kd*fd + krfr, 1);
 		}
-
-				{
-		vec3 unit_light_direction = normalize(light_pos_2 - position);
-
-		float light_distance = length(light_pos_2 - position);
-		float attenuation = 1 / (0.001 + light_distance * light_distance);
-
-		vec3 kr = F(unit_light_direction, unit_normal, R0);
-		vec3 kd = 1- kr;
-		vec3 krfr = attenuation * albedo * CookTorrance_GGX(unit_view_direction, unit_light_direction, unit_normal, roughness, R0);
-
-		vec3 fd = metal_diffuse_factor * attenuation * albedo * clamp(dot(unit_normal, unit_light_direction),0,1);
-
-		texColor += vec4(kd*fd + krfr, 1);
-		}
-
-				{
-		vec3 unit_light_direction = normalize(light_pos_3 - position);
-
-		float light_distance = length(light_pos_3 - position);
-		float attenuation = 1 / (0.001 + light_distance * light_distance);
-
-		vec3 kr = F(unit_light_direction, unit_normal, R0);
-		vec3 kd = 1- kr;
-		vec3 krfr = attenuation * albedo * CookTorrance_GGX(unit_view_direction, unit_light_direction, unit_normal, roughness, R0);
-
-		vec3 fd = metal_diffuse_factor * attenuation * albedo * clamp(dot(unit_normal, unit_light_direction),0,1);
-
-		texColor += vec4(kd*fd + krfr, 1);
-		}
+//
+//				{
+//		vec3 unit_light_direction = normalize(light_pos_2 - position);
+//
+//		float light_distance = length(light_pos_2 - position);
+//		float attenuation = 1 / (0.001 + light_distance * light_distance);
+//
+//		vec3 kr = F(unit_light_direction, unit_normal, R0);
+//		vec3 kd = 1- kr;
+//		vec3 krfr = attenuation * albedo * CookTorrance_GGX(unit_view_direction, unit_light_direction, unit_normal, roughness, R0);
+//
+//		vec3 fd = (1 - metalness) * attenuation * albedo * clamp(dot(unit_normal, unit_light_direction),0,1);
+//
+//		texColor += vec4(kd*fd + krfr, 1);
+//		}
+//
+//				{
+//		vec3 unit_light_direction = normalize(light_pos_3 - position);
+//
+//		float light_distance = length(light_pos_3 - position);
+//		float attenuation = 1 / (0.001 + light_distance * light_distance);
+//
+//		vec3 kr = F(unit_light_direction, unit_normal, R0);
+//		vec3 kd = 1- kr;
+//		vec3 krfr = attenuation * albedo * CookTorrance_GGX(unit_view_direction, unit_light_direction, unit_normal, roughness, R0);
+//
+//		vec3 fd = (1 - metalness) * attenuation * albedo * clamp(dot(unit_normal, unit_light_direction),0,1);
+//
+//		texColor += vec4(kd*fd + krfr, 1);
+//		}
 
 		
 

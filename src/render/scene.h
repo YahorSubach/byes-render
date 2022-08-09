@@ -67,7 +67,6 @@ namespace render
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 
-		const std::vector<Primitive>& GetPrimitives() const;
 
 		PrimitivesHolderRenderNode GetRenderNode();
 

@@ -1,6 +1,7 @@
 
 #define M_PI 3.1415926535897932384626433832795
 #define M_EPS5 0.00001
+#define M_EPS3 0.001
 
 float Hi(vec3 direction, vec3 normal)
 {
@@ -30,8 +31,8 @@ float D(vec3 unit_view_direction, vec3 unit_light_direction,  vec3 unit_normal, 
 
 	float cos_theta_m = dot(unit_normal, H);
 	float cos2 = cos_theta_m*cos_theta_m;
-	float cos4 = M_EPS5 + cos2*cos2;
-	float tan2 = 1 / (M_EPS5 + cos_theta_m * cos_theta_m) - 1;
+	float cos4 = cos2*cos2;
+	float tan2 = 1 / (M_EPS5 + cos2) - 1;
 
 	float res = roughness4 / (M_PI * cos4 * (roughness4 + tan2) * (roughness4 + tan2));
 
@@ -51,5 +52,7 @@ vec3 CookTorrance_GGX(vec3 unit_view_direction, vec3 unit_light_direction,  vec3
 	vec3 F = F(unit_light_direction, unit_normal, Fresnel_R0);
 	float G = G(unit_view_direction, unit_light_direction, unit_normal, roughness);
 
-	return D * F * G / vec3(M_EPS5 + 4 * dot(unit_view_direction, unit_normal));
+	return clamp(vec3(D * G * F) / (M_EPS5 + 4 * dot(unit_view_direction, unit_normal)), 0, 10);
+
+	return D * G * F / (M_EPS3 + 4 * dot(unit_view_direction, unit_normal));
 }

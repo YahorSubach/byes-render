@@ -222,7 +222,7 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 	while (!file.eof())
 	{
 		character = file.get();
-		if (character == '=' || character == ';' || character == '(' || character == ')' || character == ';' || character == '_' || character == ',')
+		if (character == '=' || character == ';' || character == '(' || character == ')' || character == ';' || character == '_' || character == ',' || character == '/' || character == '*')
 			character = ' ';
 
 		processed_text << character;
@@ -252,27 +252,40 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 					if (token == "in" && !processed_text.eof())
 					{
 						processed_text >> token;
+						std::string type = token;
+						std::string component;
+						if (!processed_text.eof())
+						{
+							processed_text >> token;
+							component = token;
+						}
 
-						if (token == "float")
+
+						if (type == "float")
 							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 1, { {location, VertexBindingAttributeDesc{VK_FORMAT_R32_SFLOAT, 0} } } });
 						else
-						if (token == "vec2")
+						if (type == "vec2")
 							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 2, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32_SFLOAT, 0}}} });
 						else
-						if (token == "vec3")
+						if (type == "vec3")
 							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 3, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32_SFLOAT, 0}}} });
 						else
-						if (token == "vec4")
+						if (type == "vec4")
 							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_SFLOAT, 0}}} });
 						else
-						if (token == "uvec2")
+						if (type == "uvec2")
 							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 2, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32_UINT, 0}}} });
 						else
-						if (token == "uvec3")
+						if (type == "uvec3")
 							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 3, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32_UINT, 0}}} });
 						else
-						if (token == "uvec4")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_UINT, 0}}} });
+						if (type == "uvec4")
+						{
+							if(component == "byte")
+								input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint8_t) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R8G8B8A8_UINT, 0}}} });
+							else
+								input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_UINT, 0}}} });
+						}
 						else throw std::runtime_error("Unsupported input type");
 
 					}

@@ -18,7 +18,7 @@ layout(set = 5, binding = 0) uniform Skeleton {
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTexCoord;
-layout(location = 3) in uvec4 inJoints;
+layout(location = 3) in uvec4 /*byte*/ inJoints; 
 layout(location = 4) in vec4 inWeights;
 
 layout(location = 0) out vec3 fragPosition;
