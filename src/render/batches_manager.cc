@@ -71,6 +71,19 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, ui
 
 	{
 
+		gltf_wrappers_.push_back(GLTFWrapper(device_cfg, "../blender/room/room.glb"));
+
+		auto&& wrapper = gltf_wrappers_.back();
+
+
+		for (auto&& mesh : wrapper.meshes)
+		{
+			meshes_.push_back(mesh);
+		}
+	}
+
+	{
+
 		gltf_wrappers_.push_back(GLTFWrapper(device_cfg, "../blender/sky/sky.glb"));
 
 		auto&& wrapper = gltf_wrappers_.back();

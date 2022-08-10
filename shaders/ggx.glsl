@@ -52,7 +52,7 @@ vec3 CookTorrance_GGX(vec3 unit_view_direction, vec3 unit_light_direction,  vec3
 	vec3 F = F(unit_light_direction, unit_normal, Fresnel_R0);
 	float G = G(unit_view_direction, unit_light_direction, unit_normal, roughness);
 
-	return clamp(vec3(D * G * F) / (M_EPS5 + 4 * dot(unit_view_direction, unit_normal)), 0, 10);
+	return clamp(vec3(1 * 1 * F) / (M_EPS5 + 4 * dot(unit_view_direction, unit_normal)), 0, 1);
 
 	return D * G * F / (M_EPS3 + 4 * dot(unit_view_direction, unit_normal));
 }
