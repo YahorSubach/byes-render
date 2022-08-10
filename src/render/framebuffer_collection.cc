@@ -7,6 +7,7 @@ images_{
 	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
 	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
 	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
+	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
 	Image(device_cfg_, device_cfg_.depth_map_format, device_cfg_.presentation_extent, {ImageProperty::kDepthAttachment}),
 
 	Image(device_cfg_, device_cfg_.depth_map_format, device_cfg_.depth_map_extent, {ImageProperty::kDepthAttachment, ImageProperty::kShaderInput}),
@@ -16,6 +17,7 @@ image_views_{
 	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGAlbedo)]),
 	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGPosition)]),
 	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGNormal)]),
+	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGMetallicRoughness)]),
 
 	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGDepth)]),
 	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kDepthMap)]),
@@ -24,7 +26,7 @@ image_views_{
 
 framebuffers_{
 	Framebuffer(device_cfg, device_cfg_.presentation_extent, 
-		{ image_views_[u32(AttachmentId::kGAlbedo)], image_views_[u32(AttachmentId::kGPosition)], image_views_[u32(AttachmentId::kGNormal)], image_views_[u32(AttachmentId::kGDepth)] },
+		{ image_views_[u32(AttachmentId::kGAlbedo)], image_views_[u32(AttachmentId::kGPosition)], image_views_[u32(AttachmentId::kGNormal)], image_views_[u32(AttachmentId::kGMetallicRoughness)], image_views_[u32(AttachmentId::kGDepth)] },
 		render_setup.GetRenderPass(RenderPassId::kBuildGBuffers)),
 	Framebuffer(device_cfg, device_cfg_.depth_map_extent, { image_views_[u32(AttachmentId::kDepthMap)] }, render_setup.GetRenderPass(RenderPassId::kBuildDepthmap)),
 }

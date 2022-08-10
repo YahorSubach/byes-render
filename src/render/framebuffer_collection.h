@@ -25,6 +25,7 @@ namespace render
 		kGAlbedo,
 		kGPosition,
 		kGNormal,
+		kGMetallicRoughness,
 		kGDepth,
 
 		kDepthMap,

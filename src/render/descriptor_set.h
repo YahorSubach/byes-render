@@ -242,7 +242,7 @@ namespace render
 	template<>
 	struct DescriptorSet<DescriptorSetType::kGBuffers>
 	{
-		static const uint32_t bindings_count = 3;
+		static const uint32_t bindings_count = 4;
 
 		template<int i>
 		struct Binding;
@@ -279,6 +279,21 @@ namespace render
 
 		template<>
 		struct Binding<2>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
+			};
+
+			Data data;
+		};
+
+		template<>
+		struct Binding<3>
 		{
 			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
 			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;

@@ -2,9 +2,10 @@
 
 #include "ggx.glsl"
 
-layout(set = 0, binding = 0) uniform sampler2D GBuffers_Albedo;
-layout(set = 0, binding = 1) uniform sampler2D GBuffers_Position;
-layout(set = 0, binding = 2) uniform sampler2D GBuffers_Normal;
+layout(set = 0, binding = 0) uniform sampler2D GBuffers_albedo;
+layout(set = 0, binding = 1) uniform sampler2D GBuffers_position;
+layout(set = 0, binding = 2) uniform sampler2D GBuffers_normal;
+layout(set = 0, binding = 3) uniform sampler2D GBuffers_metallic_roughness;
 
 layout(set = 1, binding = 0) uniform CameraPositionAndViewProjMat_0 {
     vec4 position;
@@ -20,13 +21,13 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
 
-	vec4 texColor = texture(GBuffers_Albedo, (fragPosition.xy + 1));
+	vec4 texColor = texture(GBuffers_albedo, (fragPosition.xy + 1));
 
 	if(fragPosition.x > 0)
-		texColor = texture(GBuffers_Position, (fragPosition.xy ));
+		texColor = texture(GBuffers_position, (fragPosition.xy ));
 
 	if(fragPosition.y > 0)
-		texColor = texture(GBuffers_Normal, (fragPosition.xy));
+		texColor = texture(GBuffers_normal, (fragPosition.xy));
 
 	float delta;
 	int delta_ind;
@@ -38,15 +39,16 @@ void main() {
 		vec3 light_pos_2 = vec3(-2,1,2);
 		vec3 light_pos_3 = vec3(0,-2,1.5);
 		
-		vec3 unit_normal = normalize(texture(GBuffers_Normal, (fragPosition.xy)).xyz); 
+		vec3 unit_normal = normalize(texture(GBuffers_normal, (fragPosition.xy)).xyz); 
 		
-		vec3 position = texture(GBuffers_Position, (fragPosition.xy)).xyz;
-		vec3 albedo = texture(GBuffers_Albedo, (fragPosition.xy)).xyz;
+		vec3 position = texture(GBuffers_position, (fragPosition.xy)).xyz;
+		vec3 albedo = texture(GBuffers_albedo, (fragPosition.xy)).xyz;
+		vec3 metallic_roughness = texture(GBuffers_metallic_roughness, (fragPosition.xy)).xyz;
 		
 		vec3 unit_view_direction = normalize(camera.position.xyz - position);
 
 
-		float roughness = 0.3;
+		float roughness = metallic_roughness.g;
 		vec3 R0 = vec3(0.05, 0.05, 0.05);
 
 		
@@ -67,10 +69,10 @@ void main() {
 
 		texColor = vec4(0);
 
-		float metalness = 0.05;
+		float metallic = metallic_roughness.r;
 		vec3 unit_env_light_direction = normalize(mirror_dir);
 		float mirror_brigthness = length(mirror_color.xyz);
-		vec3 env_color = metalness * mirror_color.xyz * albedo + (1 - metalness) * vec3(mirror_brigthness);
+		vec3 env_color = metallic * mirror_color.xyz * albedo + (1 - metallic) * vec3(mirror_brigthness);
 
 
 		{

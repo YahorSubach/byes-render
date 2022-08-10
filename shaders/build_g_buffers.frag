@@ -5,7 +5,9 @@ layout(set = 2, binding = 0) uniform Material_0 {
 	int emit;
 } material;
 
-layout(set = 2, binding = 1) uniform sampler2D Material_texSampler;
+layout(set = 2, binding = 1) uniform sampler2D Material_albedo;
+layout(set = 2, binding = 2) uniform sampler2D Material_metallic_roughness;
+layout(set = 2, binding = 3) uniform sampler2D Material_normal_map;
 
 
 layout(set = 3, binding = 0) uniform LightPositionAndViewProjMat_0 {
@@ -24,9 +26,10 @@ layout(location = 1) in vec3 fragNorm;
 layout(location = 2) in vec3 fragToEyeVec;
 layout(location = 3) in vec2 fragTexCoord;
 
-layout(location = 0) out vec4 GAlbedo;
-layout(location = 1) out vec4 GPosition;
-layout(location = 2) out vec4 GNormal;
+layout(location = 0) out vec4 G_albedo;
+layout(location = 1) out vec4 G_position;
+layout(location = 2) out vec4 G_normal;
+layout(location = 3) out vec4 G_metallic_roughness;
 	
 layout( push_constant ) uniform constants
 {
@@ -90,9 +93,10 @@ void main() {
 	mirrorTexCoord = mirrorTexCoord + 0.003*(rand2(mirrorTexCoord) - 0.5);
 
 	vec4 mirror_color =vec4(texture(Environement_envSampler,mirrorTexCoord).rgb, 1.0);
-	float mirrorMultiplier = (1 - dot(normal, frag_to_eye_unit)) * length(texture(Material_texSampler, fragTexCoord).rgb) / sqrt(3);
 
-	vec4 albedo_color = texture(Material_texSampler, fragTexCoord).rgba;
+	vec4 albedo = texture(Material_albedo, fragTexCoord).rgba;
+	vec4 metallic_roughness = texture(Material_metallic_roughness, fragTexCoord).rgba;
+	vec4 normal_map = texture(Material_normal_map, fragTexCoord).rgba;
 	
 	float light_multiplier = max(dot(fragNorm, to_light_unit), 0);
 	
@@ -120,7 +124,8 @@ void main() {
 	//float color = ((shadow_map_value+0.01) < shadow_map_coord.z) ? 0.f : 1.f; 
 	//vec4 diffuse = vec4(color,color,color, 1.0) * (0.1 + 0.9 * diffuseMultiplier);
 	
-	GAlbedo = albedo_color;
-	GPosition = vec4(fragPosition, 1);
-	GNormal = vec4(fragNorm, 1);
+	G_albedo = albedo;
+	G_position = vec4(fragPosition, 1);
+	G_normal = vec4(fragNorm, 1);
+	G_metallic_roughness = metallic_roughness;
 }
