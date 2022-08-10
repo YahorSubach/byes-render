@@ -24,6 +24,13 @@ namespace render
 		kSkinned
 	};
 
+	struct Material
+	{
+		stl_util::NullableRef<const Image> albedo;
+		stl_util::NullableRef<const Image> metallic_roughness;
+		stl_util::NullableRef<const Image> normal_map;
+	};
+
 	struct Primitive
 	{
 		BufferAccessor indices;
@@ -34,7 +41,7 @@ namespace render
 		BufferAccessor joints;
 		BufferAccessor weights;
 
-		stl_util::NullableRef<const Image> color_tex;
+		Material material;
 
 		std::vector<BufferAccessor> vertex_buffers;
 
@@ -56,6 +63,8 @@ namespace render
 
 		glm::mat4 GetGlobalTransformMatrix() const;
 	};
+
+
 
 	struct Bone
 	{

@@ -37,16 +37,34 @@ namespace render
 
 
 
+	template<class T, int n = 16, class BindingType = void>
+	struct BindingCounter
+	{
+		static const int count = n;
+	};
+
+	template<class T>
+	struct BindingCounter<T, 0, void>
+	{
+		static const int count = 0;
+	};
+
+	template<class T, int n>
+	struct BindingCounter<T, n, typename std::void_t< typename T::template Binding<n - 1>::NotBinded > > : BindingCounter<T, n - 1, void>
+	{};
+
+
+
+
+
 	template<DescriptorSetType Type>
-	struct DescriptorSet;
+	struct DescriptorSetBindings;
 
 	template<>
-	struct DescriptorSet<DescriptorSetType::kCameraPositionAndViewProjMat>
+	struct DescriptorSetBindings<DescriptorSetType::kCameraPositionAndViewProjMat>
 	{
-		static const uint32_t bindings_count = 1;
-
 		template<int i>
-		struct Binding;
+		struct Binding {using NotBinded = void;};
 
 		template<>
 		struct Binding<0>
@@ -65,12 +83,10 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSet<DescriptorSetType::kLightPositionAndViewProjMat>
+	struct DescriptorSetBindings<DescriptorSetType::kLightPositionAndViewProjMat>
 	{
-		static const uint32_t bindings_count = 1;
-
 		template<int i>
-		struct Binding;
+		struct Binding {using NotBinded = void;};
 
 		template<>
 		struct Binding<0>
@@ -92,12 +108,10 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSet<DescriptorSetType::kModelMatrix>
+	struct DescriptorSetBindings<DescriptorSetType::kModelMatrix>
 	{
-		static const uint32_t bindings_count = 1;
-
 		template<int i>
-		struct Binding;
+		struct Binding {using NotBinded = void;};
 
 		template<>
 		struct Binding<0>
@@ -115,12 +129,10 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSet<DescriptorSetType::kSkeleton>
+	struct DescriptorSetBindings<DescriptorSetType::kSkeleton>
 	{
-		static const uint32_t bindings_count = 1;
-
 		template<int i>
-		struct Binding;
+		struct Binding {using NotBinded = void;};
 
 		template<>
 		struct Binding<0>
@@ -138,12 +150,10 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSet<DescriptorSetType::kMaterial>
+	struct DescriptorSetBindings<DescriptorSetType::kMaterial>
 	{
-		static const uint32_t bindings_count = 2;
-
 		template<int i>
-		struct Binding;
+		struct Binding {using NotBinded = void;};
 
 		template<>
 		struct Binding<0>
@@ -173,16 +183,44 @@ namespace render
 
 			Data data;
 		};
+
+		template<>
+		struct Binding<2>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
+			};
+
+			Data data;
+		};
+
+		template<>
+		struct Binding<3>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
+			};
+
+			Data data;
+		};
 	};
 
 
 	template<>
-	struct DescriptorSet<DescriptorSetType::kEnvironement>
+	struct DescriptorSetBindings<DescriptorSetType::kEnvironement>
 	{
-		static const uint32_t bindings_count = 2;
-
 		template<int i>
-		struct Binding;
+		struct Binding {using NotBinded = void;};
 
 		template<>
 		struct Binding<0>
@@ -216,12 +254,10 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSet<DescriptorSetType::kTexture>
+	struct DescriptorSetBindings<DescriptorSetType::kTexture>
 	{
-		static const uint32_t bindings_count = 1;
-
 		template<int i>
-		struct Binding;
+		struct Binding {using NotBinded = void;};
 
 		template<>
 		struct Binding<0>
@@ -240,12 +276,10 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSet<DescriptorSetType::kGBuffers>
+	struct DescriptorSetBindings<DescriptorSetType::kGBuffers>
 	{
-		static const uint32_t bindings_count = 3;
-
 		template<int i>
-		struct Binding;
+		struct Binding {using NotBinded = void;};
 
 		template<>
 		struct Binding<0>
@@ -291,8 +325,28 @@ namespace render
 
 			Data data;
 		};
+
+		template<>
+		struct Binding<3>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				stl_util::NullableRef<const Image> image;
+				stl_util::NullableRef<const Sampler> sampler;
+			};
+
+			Data data;
+		};
 	};
 
+	template<DescriptorSetType Type>
+	struct DescriptorSet : DescriptorSetBindings<Type>
+	{
+		static const uint32_t binding_count = BindingCounter<DescriptorSetBindings<Type>>::count;
+	};
 
 	struct DescriptorSetInfo
 	{
@@ -331,12 +385,12 @@ namespace render
 
 		static DescriptorSetInfo BuildInfo()
 		{
-			const int bindings_count = DescriptorSet<Type>::bindings_count;
+			const int binding_count = DescriptorSet<Type>::binding_count;
 			
 			DescriptorSetInfo info;
-			info.bindings.reserve(bindings_count);
+			info.bindings.reserve(binding_count);
 
-			BindingStaticIter<bindings_count - 1>::UpdateInfo(info);
+			BindingStaticIter<binding_count - 1>::UpdateInfo(info);
 
 			return info;
 		}

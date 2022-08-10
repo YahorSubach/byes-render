@@ -137,18 +137,18 @@ namespace render
 	};
 
 	template<DescriptorSetType Type>
-	struct DescriptorSetBindingsCollection : public DescriptorSetBinding<Type, DescriptorSet<Type>::bindings_count - 1>
+	struct DescriptorSetBindingsCollection : public DescriptorSetBinding<Type, DescriptorSet<Type>::binding_count - 1>
 	{
 	public:
 
-		DescriptorSetBindingsCollection(const DeviceConfiguration& device_cfg) : DescriptorSetBinding<Type, DescriptorSet<Type>::bindings_count - 1>(device_cfg) {}
+		DescriptorSetBindingsCollection(const DeviceConfiguration& device_cfg) : DescriptorSetBinding<Type, DescriptorSet<Type>::binding_count - 1>(device_cfg) {}
 
 		VkDescriptorSet AttachDescriptorSetsInternal(const DeviceConfiguration& device_cfg, DescriptorSetsManager& manager)
 		{
 			VkDescriptorSet desc_set = manager.GetFreeDescriptor(Type);
-			std::vector<VkWriteDescriptorSet> writes(DescriptorSet<Type>::bindings_count);
+			std::vector<VkWriteDescriptorSet> writes(DescriptorSet<Type>::binding_count);
 
-			DescriptorSetBinding<Type, DescriptorSet<Type>::bindings_count - 1>::FillWriteDescriptorSets(desc_set, writes);
+			DescriptorSetBinding<Type, DescriptorSet<Type>::binding_count - 1>::FillWriteDescriptorSets(desc_set, writes);
 
 			vkUpdateDescriptorSets(device_cfg.logical_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 
@@ -157,7 +157,7 @@ namespace render
 
 		void UpdateDataInternal()
 		{
-			DescriptorSetBinding<Type, DescriptorSet<Type>::bindings_count - 1>::UpdateDataInternal();
+			DescriptorSetBinding<Type, DescriptorSet<Type>::binding_count - 1>::UpdateDataInternal();
 		}
 	};
 

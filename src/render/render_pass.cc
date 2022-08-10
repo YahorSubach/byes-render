@@ -211,6 +211,23 @@ render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(rende
 
 		{
 			RenderPassDesc::Attachment attachment{};
+			attachment.name = "metallic_roughness";
+			attachment.is_depth_attachment = false;
+
+			attachment.desc.format = color_format;
+			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
+			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			result.attachments.push_back(attachment);
+		}
+
+		{
+			RenderPassDesc::Attachment attachment{};
 			attachment.name = "depth";
 			attachment.is_depth_attachment = true;
 
@@ -234,6 +251,7 @@ render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(rende
 		subpass.attachment_refs.push_back({ "albedo", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 		subpass.attachment_refs.push_back({ "position", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 		subpass.attachment_refs.push_back({ "normal", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+		subpass.attachment_refs.push_back({ "metallic_roughness", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 		subpass.attachment_refs.push_back({ "depth", VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
 
 		result.subpasses.push_back(subpass);

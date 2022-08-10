@@ -104,15 +104,27 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 
 					if (gltf_primitive.material >= 0)
 					{
+						tinygltf::Material gltf_material = gltf_model_.materials[gltf_primitive.material];
 
-						int diffuse_tex_index = gltf_model_.materials[gltf_primitive.material].pbrMetallicRoughness.baseColorTexture.index;
-						int emit_tex_index = gltf_model_.materials[gltf_primitive.material].emissiveTexture.index;
+						if (gltf_material.pbrMetallicRoughness.baseColorTexture.index >= 0)
+						{
+							primitive.material.albedo = images_[gltf_model_.textures[gltf_material.pbrMetallicRoughness.baseColorTexture.index].source];
+						}
 
-						primitive.emit = emit_tex_index >= 0;
-						primitive.color_tex = images_[
-							gltf_model_.textures[
-								diffuse_tex_index >= 0 ? diffuse_tex_index : emit_tex_index
-							].source];
+						if (gltf_material.emissiveTexture.index >= 0)
+						{
+							primitive.material.albedo = images_[gltf_model_.textures[gltf_material.emissiveTexture.index].source];
+						}
+
+						if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+						{
+							primitive.material.metallic_roughness = images_[gltf_model_.textures[gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
+						}
+
+						if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+						{
+							primitive.material.normal_map = images_[gltf_model_.textures[gltf_material.normalTexture.index].source];
+						}
 					}
 
 					auto&& tmp = *(primitive.positions.buffer);

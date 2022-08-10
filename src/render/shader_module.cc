@@ -206,6 +206,7 @@ render::ShaderType render::ShaderModule::GetShaderType() const
 void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_path, const std::array<DescriptorSetLayout, kDescriptorSetTypesCount>& descriptor_sets_layouts)
 {
 	auto& name_to_desc_type = DescriptorSetUtil::GetNameToTypeMap();
+	auto& type_to_desc_info = DescriptorSetUtil::GetTypeToInfoMap();
 	std::map<uint32_t, DescriptorSetType> parsed_sets;
 
 
@@ -344,6 +345,14 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 									{
 										parsed_sets.emplace(set_index, desc_set_type);
 										descriptor_sets_.emplace(set_index, descriptor_sets_layouts[static_cast<int>(desc_set_type)]);
+
+										if (binding_index >= type_to_desc_info.at(desc_set_type).bindings.size())
+										{
+											throw std::runtime_error("Out of bindings range");
+										}
+
+										assert(binding_index < type_to_desc_info.at(desc_set_type).bindings.size(), "Out of bindings range");
+
 									}
 								}
 							}

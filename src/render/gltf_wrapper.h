@@ -27,6 +27,7 @@ namespace render
 
 		std::vector<Node> nodes;
 		std::vector<Mesh> meshes;
+
 		std::map<std::string, Animation> animations;
 		
 	private:

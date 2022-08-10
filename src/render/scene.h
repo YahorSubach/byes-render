@@ -62,6 +62,8 @@ namespace render
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
 
@@ -93,6 +95,7 @@ namespace render
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data) override;
 
 		SceneRenderNode GetRenderNode();
 

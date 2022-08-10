@@ -4,7 +4,7 @@
 #include <glm/glm/gtc/matrix_transform.hpp>
 
 render::ModelDescSetHolder::ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Mesh& mesh): 
-	DescriptorSetHolder(device_cfg), mesh_(mesh), diffuse_sampler_(Sampler(device_cfg, mesh_.primitives[0].color_tex))
+	DescriptorSetHolder(device_cfg), mesh_(mesh), diffuse_sampler_(Sampler(device_cfg, mesh_.primitives[0].material.albedo))
 {}
 
 const render::Mesh& render::ModelDescSetHolder::GetMesh() const
@@ -19,13 +19,29 @@ void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::Descript
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
 {
-	if (mesh_.primitives[0].color_tex)
+	if (mesh_.primitives[0].material.albedo)
 	{
-		data.image = mesh_.primitives[0].color_tex;
+		data.image = mesh_.primitives[0].material.albedo;
 	}
-	else
+
+	data.sampler = diffuse_sampler_;
+}
+
+void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
+{
+	if (mesh_.primitives[0].material.albedo)
 	{
-		data.image = GetDeviceCfg().default_image;
+		data.image = mesh_.primitives[0].material.metallic_roughness;
+	}
+
+	data.sampler = diffuse_sampler_;
+}
+
+void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
+{
+	if (mesh_.primitives[0].material.albedo)
+	{
+		data.image = mesh_.primitives[0].material.normal_map;
 	}
 
 	data.sampler = diffuse_sampler_;
@@ -138,6 +154,12 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data)
 {
 	data.image = framebuffer_collection_.GetImage(AttachmentId::kGNormal);
+	data.sampler = nearest_sampler_;
+}
+
+void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data)
+{
+	data.image = framebuffer_collection_.GetImage(AttachmentId::kGMetallicRoughness);
 	data.sampler = nearest_sampler_;
 }
 
