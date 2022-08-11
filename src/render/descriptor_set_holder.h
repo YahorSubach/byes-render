@@ -66,12 +66,8 @@ namespace render
 
 		void Update(const DataType& new_data)
 		{
-			if (new_data.image)
-			{
-				image_view_.Assign(*new_data.image);
-			}
-
-			sampler_ = new_data.sampler;
+			image_view_.Assign(*(new_data.GetImage()));
+			sampler_ = new_data.GetSampler();
 		}
 
 		void FillWriteDescriptorSet(VkWriteDescriptorSet& write_desc_set)

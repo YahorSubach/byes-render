@@ -21,30 +21,42 @@ void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::Descript
 {
 	if (mesh_.primitives[0].material.albedo)
 	{
-		data.image = mesh_.primitives[0].material.albedo;
+		data.albedo = mesh_.primitives[0].material.albedo;
+	}
+	else
+	{
+		data.albedo = device_cfg_.default_image;
 	}
 
-	data.sampler = diffuse_sampler_;
+	data.albedo_sampler = diffuse_sampler_;
 }
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
 {
-	if (mesh_.primitives[0].material.albedo)
+	if (mesh_.primitives[0].material.metallic_roughness)
 	{
-		data.image = mesh_.primitives[0].material.metallic_roughness;
+		data.metallic_roughness = mesh_.primitives[0].material.metallic_roughness;
+	}
+	else
+	{
+		data.metallic_roughness = device_cfg_.default_image;
 	}
 
-	data.sampler = diffuse_sampler_;
+	data.metallic_roughness_sampler = diffuse_sampler_;
 }
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
 {
-	if (mesh_.primitives[0].material.albedo)
+	if (mesh_.primitives[0].material.normal_map)
 	{
-		data.image = mesh_.primitives[0].material.normal_map;
+		data.normal_map = mesh_.primitives[0].material.normal_map;
+	}
+	else
+	{
+		data.normal_map = device_cfg_.default_image;
 	}
 
-	data.sampler = diffuse_sampler_;
+	data.normal_map_sampler = diffuse_sampler_;
 }
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
@@ -129,38 +141,38 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
 {
-	data.image = env_image_;
-	data.sampler = diffuse_sampler_;
+	data.environement = env_image_;
+	data.environement_sampler = diffuse_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
 {
-	data.image = framebuffer_collection_.GetImage(AttachmentId::kDepthMap);
-	data.sampler = shadow_sampler_;
+	data.shadow_map = framebuffer_collection_.GetImage(AttachmentId::kDepthMap);
+	data.shadow_map_sampler = shadow_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data)
 {
-	data.image = framebuffer_collection_.GetImage(AttachmentId::kGAlbedo);
-	data.sampler = nearest_sampler_;
+	data.albedo = framebuffer_collection_.GetImage(AttachmentId::kGAlbedo);
+	data.albedo_sampler = nearest_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data)
 {
-	data.image = framebuffer_collection_.GetImage(AttachmentId::kGPosition);
-	data.sampler = nearest_sampler_;
+	data.position = framebuffer_collection_.GetImage(AttachmentId::kGPosition);
+	data.position_sampler = nearest_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data)
 {
-	data.image = framebuffer_collection_.GetImage(AttachmentId::kGNormal);
-	data.sampler = nearest_sampler_;
+	data.normal = framebuffer_collection_.GetImage(AttachmentId::kGNormal);
+	data.normal_sampler = nearest_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data)
 {
-	data.image = framebuffer_collection_.GetImage(AttachmentId::kGMetallicRoughness);
-	data.sampler = nearest_sampler_;
+	data.metallic_roughness = framebuffer_collection_.GetImage(AttachmentId::kGMetallicRoughness);
+	data.metallic_roughness_sampler = nearest_sampler_;
 }
 
 render::SceneRenderNode render::ModelSceneDescSetHolder::GetRenderNode()
@@ -254,8 +266,8 @@ void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::k
 
 void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
 {
-	data.image = image_;
-	data.sampler = ui_.GetUISampler();
+	data.texture = image_;
+	data.texture_sampler = ui_.GetUISampler();
 }
 
 render::PrimitivesHolderRenderNode render::UIPoly::GetRenderNode()
