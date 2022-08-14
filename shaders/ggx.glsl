@@ -76,3 +76,11 @@ vec3 CookTorrance_GGX(vec3 unit_view_direction, vec3 unit_light_direction,  vec3
 
 	return D * G * F / (4 * dot(unit_view_direction, unit_normal));
 }
+
+float CookTorrance_GGX_NoFresnel(vec3 unit_view_direction, vec3 unit_light_direction,  vec3 unit_normal, float roughness)
+{
+	float D = D(unit_view_direction,  unit_light_direction, unit_normal, roughness);
+	float G = G(unit_view_direction,  unit_light_direction, unit_normal, roughness);
+
+	return D * G / (4 * dot(unit_view_direction, unit_normal));
+}

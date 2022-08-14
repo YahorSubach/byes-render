@@ -83,8 +83,10 @@ void main() {
 
 		vec3 kr = F(unit_view_direction, unit_env_light_direction, R0);
 
-		vec3 krfr = env_color * clamp(CookTorrance_GGX(unit_view_direction, unit_env_light_direction, unit_normal, roughness, R0), 0,1);
-		texColor += vec4(env_color * krfr, 1);
+		float cook_torrance_no_fresnel = clamp(CookTorrance_GGX_NoFresnel(unit_view_direction, unit_env_light_direction, unit_normal, roughness), 0, 1);
+
+		vec3 fr = env_color * cook_torrance_no_fresnel;
+		texColor += vec4(kr * fr , 1);
 
 		}
 
