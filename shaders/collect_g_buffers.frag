@@ -50,8 +50,9 @@ void main() {
 		vec3 unit_view_direction = normalize(camera.position.xyz - position);
 
 
-		float roughness = metallic_roughness.g;
-		vec3 R0 = vec3(0.05, 0.05, 0.05);
+		float roughness = 0.01 + metallic_roughness.g * 0.99;
+		//roughness = 0.01;
+		vec3 R0 = vec3(0.001, 0.001, 0.001);
 		
 
 
@@ -66,13 +67,15 @@ void main() {
 
 		//mirrorTexCoord = mirrorTexCoord + 0.003*(rand2(mirrorTexCoord) - 0.5);
 
-		vec4 mirror_color = 0.3 * vec4(textureLod(Environement_envSampler,mirrorTexCoord, 6).rgb, 1.0);
+		vec4 mirror_color = vec4(textureLod(Environement_envSampler,mirrorTexCoord, 6).rgb, 1.0);
 
 		texColor = vec4(0);
 
-		float metallic = metallic_roughness.r;
+		float metallic = metallic_roughness.b;
+		//metallic = 1;
+
 		vec3 unit_env_light_direction = normalize(mirror_dir);
-		float mirror_brigthness = pow(length(mirror_color.xyz), 5);
+		float mirror_brigthness = pow(length(mirror_color.xyz), 5) / 10;
 		vec3 env_color = metallic * mirror_color.xyz * albedo + (1 - metallic) * vec3(mirror_brigthness);
 
 
@@ -131,8 +134,8 @@ void main() {
 //		texColor += vec4(kd*fd + krfr, 1);
 //		}
 
-			outColor =  vec4(metallic_roughness / 2, 1);
-
+			outColor =  vec4(roughness,roughness,roughness, 1);
+			outColor = texColor;
 	}
 
 

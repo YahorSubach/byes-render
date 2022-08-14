@@ -44,6 +44,11 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 					char g = image.image[4 * (i * image.width + j) + 1];
 					char b = image.image[4 * (i * image.width + j) + 2];
 					char a = image.image[4 * (i * image.width + j) + 3];
+
+					if (r != -1 || g != -1 || b != -1)
+					{
+						int a = 1;
+					}
 				}
 			}
 
@@ -140,7 +145,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 							primitive.material.metallic_roughness = images_[gltf_model_.textures[gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
 						}
 
-						if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+						if (gltf_material.normalTexture.index >= 0)
 						{
 							primitive.material.normal_map = images_[gltf_model_.textures[gltf_material.normalTexture.index].source];
 						}
