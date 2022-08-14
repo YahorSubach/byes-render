@@ -28,13 +28,17 @@ namespace render
 		DescriptorSetsManager& operator=(DescriptorSetsManager&&) = default;
 
 		VkDescriptorSet GetFreeDescriptor(DescriptorSetType);
+		void FreeDescriptorSet(VkDescriptorSet);
 
 		virtual ~DescriptorSetsManager();
 
 	private:
 
+		const RenderSetup& render_setup_;
+
 		std::map<DescriptorSetType, std::vector<VkDescriptorSet>> descriptor_sets_;
-		std::map<DescriptorSetType, uint32_t> descriptor_sets_free_indices;
+		std::map<DescriptorSetType, std::vector<VkDescriptorSet>> free_descriptor_sets_;
+		std::map<VkDescriptorSet, DescriptorSetType> descriptor_set_to_type_;
 
 		std::map<DescriptorSetType, std::vector<UniformBuffer>> uniform_buffers_;
 		std::map<DescriptorSetType, std::vector<ImageView>> image_views_;

@@ -2,25 +2,37 @@
 #include "render/descriptor_pool.h"
 
 
-render::DescriptorSetsManager::DescriptorSetsManager(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup) : RenderObjBase(device_cfg)
+render::DescriptorSetsManager::DescriptorSetsManager(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup) : RenderObjBase(device_cfg), render_setup_(render_setup)
 {
-#define ENUM_OP(x) descriptor_sets_[DescriptorSetType::k##x].resize(64); device_cfg_.descriptor_pool->AllocateSet(render_setup.GetDescriptorSetLayout(DescriptorSetType::k##x).GetHandle(), 64, descriptor_sets_[DescriptorSetType::k##x]);
-#include "descriptor_types.inl"
-#undef ENUM_OP
+//#define ENUM_OP(x) descriptor_sets_[DescriptorSetType::k##x].resize(64); device_cfg_.descriptor_pool->AllocateSet(render_setup.GetDescriptorSetLayout(DescriptorSetType::k##x).GetHandle(), 64, descriptor_sets_[DescriptorSetType::k##x]);
+//#include "descriptor_types.inl"
+//#undef ENUM_OP
 }
 
 VkDescriptorSet render::DescriptorSetsManager::GetFreeDescriptor(DescriptorSetType type)
 {
-	auto&& descriptor_sets_info = DescriptorSetUtil::GetTypeToInfoMap();
+	VkDescriptorSet result;
 
-	if (descriptor_sets_free_indices[type] < descriptor_sets_[type].size())
+	auto&& free_typed_desc_sets = free_descriptor_sets_[type];
+
+	if (free_typed_desc_sets.size() == 0)
 	{
-		return descriptor_sets_[type][descriptor_sets_free_indices[type]++];
+		free_typed_desc_sets.resize(10);
+		device_cfg_.descriptor_pool->AllocateSet(render_setup_.GetDescriptorSetLayout(type).GetHandle(), 10, free_typed_desc_sets);
 	}
 
-	throw std::runtime_error("OVERFLOW!");
+	result = free_typed_desc_sets.back();
+	descriptor_set_to_type_[result] = type;
+	free_typed_desc_sets.pop_back();
 
-	return VkDescriptorSet();
+	return result;
+}
+
+void render::DescriptorSetsManager::FreeDescriptorSet(VkDescriptorSet set)
+{
+	DescriptorSetType set_type = descriptor_set_to_type_.at(set);
+	auto&& free_desc_sets = free_descriptor_sets_.at(set_type);
+	free_desc_sets.push_back(set);
 }
 
 render::DescriptorSetsManager::~DescriptorSetsManager()

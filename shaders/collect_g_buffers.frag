@@ -31,7 +31,9 @@ void main() {
 
 	float delta;
 	int delta_ind;
-
+	
+	outColor =  texColor;
+	
 	if(fragPosition.x > 0 && fragPosition.y > 0)
 	{
 		
@@ -129,9 +131,10 @@ void main() {
 //		texColor += vec4(kd*fd + krfr, 1);
 //		}
 
-		
+			outColor =  vec4(metallic_roughness / 2, 1);
 
 	}
 
-	outColor =  texColor;
+
+
 }

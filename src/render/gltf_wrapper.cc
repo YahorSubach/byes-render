@@ -29,7 +29,26 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 
 		for (auto&& image : gltf_model_.images)
 		{
-			images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, image.image.data(), {ImageProperty::kShaderInput, ImageProperty::kMipMap }));
+			auto&& buffer_view = gltf_model_.bufferViews[image.bufferView];
+			auto&& buffer = gltf_model_.buffers[buffer_view.buffer];
+
+			//images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, buffer.data.data() + buffer_view.byteOffset, {ImageProperty::kShaderInput, ImageProperty::kMipMap }));
+			images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, image.image.data(), {ImageProperty::kShaderInput, ImageProperty::kMipMap}));
+
+
+			for (int i = 0; i < image.height; i++)
+			{
+				for (int j = 0; j < image.width; j++)
+				{
+					char r = image.image[4 * (i * image.width + j)];
+					char g = image.image[4 * (i * image.width + j) + 1];
+					char b = image.image[4 * (i * image.width + j) + 2];
+					char a = image.image[4 * (i * image.width + j) + 3];
+				}
+			}
+
+
+
 			images_views_.push_back(ImageView(device_cfg, images_.back()));
 		}
 

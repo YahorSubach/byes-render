@@ -124,7 +124,7 @@ void main() {
 	//float color = ((shadow_map_value+0.01) < shadow_map_coord.z) ? 0.f : 1.f; 
 	//vec4 diffuse = vec4(color,color,color, 1.0) * (0.1 + 0.9 * diffuseMultiplier);
 	
-	G_albedo = albedo;
+	G_albedo = metallic_roughness;
 	G_position = vec4(fragPosition, 1);
 	G_normal = vec4(fragNorm, 1);
 	G_metallic_roughness = metallic_roughness;
