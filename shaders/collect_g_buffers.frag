@@ -52,7 +52,7 @@ void main() {
 
 		float roughness = 0.01 + metallic_roughness.g * 0.99;
 		//roughness = 0.01;
-		vec3 R0 = vec3(0.001, 0.001, 0.001);
+		vec3 R0 = vec3(0.01, 0.01, 0.01);
 		
 
 
