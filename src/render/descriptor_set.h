@@ -163,7 +163,7 @@ namespace render
 
 			struct Data
 			{
-				uint32_t emit;
+				uint32_t flags;
 			};
 
 			Data data;

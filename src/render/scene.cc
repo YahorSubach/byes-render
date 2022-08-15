@@ -14,7 +14,7 @@ const render::Mesh& render::ModelDescSetHolder::GetMesh() const
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
 {
-	data.emit = mesh_.primitives[0].emit;
+	data.flags = mesh_.primitives[0].material.flags;
 }
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)

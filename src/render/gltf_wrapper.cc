@@ -121,6 +121,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 						BuildBufferAccessor(gltf_primitive.indices),
 						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "POSITION")),
 						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "NORMAL")),
+						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "TANGENT")),
 						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "TEXCOORD_0")),
 						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "JOINTS_0")),
 						BuildBufferAccessor(GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "WEIGHTS_0")),
@@ -138,6 +139,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 						if (gltf_material.emissiveTexture.index >= 0)
 						{
 							primitive.material.albedo = images_[gltf_model_.textures[gltf_material.emissiveTexture.index].source];
+							primitive.material.flags |= (1 << 0);
 						}
 
 						if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
@@ -155,6 +157,12 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 
 					if (primitive.positions.buffer) primitive.vertex_buffers.push_back(primitive.positions);
 					if (primitive.normals.buffer) primitive.vertex_buffers.push_back(primitive.normals);
+					if (primitive.tangents.buffer)
+					{
+						primitive.vertex_buffers.push_back(primitive.tangents);
+						primitive.material.flags |= (1 << 1);
+					}
+					else primitive.vertex_buffers.push_back(primitive.normals);
 					if (primitive.tex_coords.buffer) primitive.vertex_buffers.push_back(primitive.tex_coords);
 					if (primitive.joints.buffer) { primitive.vertex_buffers.push_back(primitive.joints);  primitive.type = RenderModelType::kSkinned; }
 					if (primitive.weights.buffer) primitive.vertex_buffers.push_back(primitive.weights);

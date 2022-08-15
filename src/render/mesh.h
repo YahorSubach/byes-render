@@ -29,6 +29,8 @@ namespace render
 		stl_util::NullableRef<const Image> albedo;
 		stl_util::NullableRef<const Image> metallic_roughness;
 		stl_util::NullableRef<const Image> normal_map;
+
+		uint32_t flags = 0;
 	};
 
 	struct Primitive
@@ -37,6 +39,7 @@ namespace render
 
 		BufferAccessor positions;
 		BufferAccessor normals;
+		BufferAccessor tangents;
 		BufferAccessor tex_coords;
 		BufferAccessor joints;
 		BufferAccessor weights;
@@ -46,8 +49,6 @@ namespace render
 		std::vector<BufferAccessor> vertex_buffers;
 
 		RenderModelType type = RenderModelType::kStatic;
-
-		bool emit = false;
 	};
 
 	struct Node

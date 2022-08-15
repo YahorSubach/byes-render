@@ -2,7 +2,7 @@
 #define M_PI 3.1415926535897932384626433832795
 
 layout(set = 2, binding = 0) uniform Material_0 {
-	int emit;
+	int flags;
 } material;
 
 layout(set = 2, binding = 1) uniform sampler2D Material_albedo;
@@ -23,19 +23,15 @@ layout(set = 4, binding = 1) uniform sampler2D Environement_shadowSampler;
 
 layout(location = 0) in vec3 fragPosition;
 layout(location = 1) in vec3 fragNorm;
-layout(location = 2) in vec3 fragToEyeVec;
+layout(location = 2) in vec3 fragTangent;
 layout(location = 3) in vec2 fragTexCoord;
+layout(location = 4) in vec3 fragToEyeVec;
 
 layout(location = 0) out vec4 G_albedo;
 layout(location = 1) out vec4 G_position;
 layout(location = 2) out vec4 G_normal;
 layout(location = 3) out vec4 G_metallic_roughness;
 	
-layout( push_constant ) uniform constants
-{
-	float metallic;
-	float roughness;
-} PushConstants;
 
 float rand(vec2 co){
     return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
@@ -65,6 +61,12 @@ float GetShadowMapValue(vec2 coords)
 }
 
 void main() {
+
+
+	bool emit = (material.flags & (1 << 0)) != 0;
+	bool contains_normal_map = (material.flags & (1 << 1)) != 0;
+
+
 
 	vec3 lightPos = vec3(5, 5, 10);
 
@@ -96,7 +98,20 @@ void main() {
 
 	vec4 albedo = texture(Material_albedo, fragTexCoord).rgba;
 	vec4 metallic_roughness = texture(Material_metallic_roughness, fragTexCoord).rgba;
-	vec4 normal_map = texture(Material_normal_map, fragTexCoord).rgba;
+	vec4 normal_map_raw = texture(Material_normal_map, fragTexCoord).rgba;
+	vec3 normal_map_value = normalize(2 * (normal_map_raw.xyz - 0.5)); 
+
+
+	if(contains_normal_map)
+	{
+		vec3 N = normal;
+		vec3 T = normalize(fragTangent.xyz);
+		T = normalize(T - dot(T, N) * N);
+		vec3 B = cross(N, T);
+
+		mat3 TBN = mat3(T, B, N);
+		normal = normalize(TBN * normal_map_value);
+	}
 	
 	float light_multiplier = max(dot(fragNorm, to_light_unit), 0);
 	
@@ -126,6 +141,6 @@ void main() {
 	
 	G_albedo = albedo;
 	G_position = vec4(fragPosition, 1);
-	G_normal = vec4(fragNorm, 1);
+	G_normal = vec4(normal, 1);
 	G_metallic_roughness = metallic_roughness;
 }
