@@ -360,3 +360,7 @@ render::RenderPass::~RenderPass()
 		vkDestroyRenderPass(device_cfg_.logical_device, handle_, nullptr);
 	}
 }
+
+render::RenderPass2::RenderPass2(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg)
+{
+}

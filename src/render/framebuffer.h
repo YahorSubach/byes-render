@@ -4,6 +4,7 @@
 
 #include "vulkan/vulkan.h"
 
+#include <variant>
 #include <vector>
 #include <functional>
 
@@ -13,10 +14,24 @@
 
 namespace render
 {
+	struct ColorClearValues
+	{
+		float r;
+		float g;
+		float b;
+		float a;
+	};
+
+	struct DepthStencilClearValues
+	{
+		float depth;
+		uint32_t stencil;
+	};
+
 	class Framebuffer : public RenderObjBase<VkFramebuffer>
 	{
 	public:
-		Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const std::vector<std::reference_wrapper<const ImageView>>& attachments, const RenderPass& render_pass);
+		Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const std::vector<std::reference_wrapper<const ImageView>>& attachments);
 
 		Framebuffer(const Framebuffer&) = delete;
 		Framebuffer(Framebuffer&&) = default;
@@ -28,19 +43,19 @@ namespace render
 	
 		Extent GetExtent() const;
 
-		struct ClearValues
+		void Build(const RenderPass2& render_pass);
+
+		struct AttachmentDesc
 		{
-			float color[4];
-			float depth;
-			uint32_t stencil;
+			const ImageView& image_view;
+			const std::variant<ColorClearValues, DepthStencilClearValues> clear_values;
 		};
 
-		const std::vector<ClearValues>& GetClearValues() const;
+		const std::vector<AttachmentDesc>& GetAttachmentsDescs() const;
 
 	private:
 
-		std::vector<ClearValues> clear_values_;
-
+		std::vector<AttachmentDesc> attachments_descs_;
 		Extent extent_;
 	};
 }

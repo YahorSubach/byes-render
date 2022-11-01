@@ -37,7 +37,7 @@ namespace render
 			return *this;
 		}
 
-		HandleType GetHandle() const { return handle_; }
+		virtual HandleType GetHandle() const { return handle_; }
 
 		const DeviceConfiguration& GetDeviceCfg() { return device_cfg_; };
 		//virtual ~RenderObjBase() override
