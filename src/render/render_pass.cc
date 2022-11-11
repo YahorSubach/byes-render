@@ -119,7 +119,7 @@ render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(rende
 			attachment.name = "depth";
 			attachment.is_depth_attachment = true;
 
-			attachment.desc.format = depth_format; //VK_FORMAT_D32_SFLOAT
+			attachment.desc.format = depth_format;
 			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
 			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -238,7 +238,7 @@ render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(rende
 			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
 			result.attachments.push_back(attachment);
 		}

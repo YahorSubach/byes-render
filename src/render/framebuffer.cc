@@ -39,6 +39,8 @@ render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Ex
 	framebuffer_info.width = extent.width;
 	framebuffer_info.height = extent.height;
 	framebuffer_info.layers = 1;
+		
+	framebuffer_info.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
 
 	if (vkCreateFramebuffer(device_cfg_.logical_device, &framebuffer_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");

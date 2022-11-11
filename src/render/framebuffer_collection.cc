@@ -4,7 +4,7 @@
 render::FramebufferCollection::FramebufferCollection(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup) : RenderObjBase(device_cfg),
 
 images_{
-	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
+	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput, ImageProperty::kMipMap}),
 	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
 	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
 	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),

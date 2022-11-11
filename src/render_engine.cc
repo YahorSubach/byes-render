@@ -109,7 +109,7 @@ namespace render
 				return;
 			}
 
-			application_info_.apiVersion = VK_API_VERSION_1_0; // CHECK WHAT DOES THIS MEAN!
+			application_info_.apiVersion = VK_MAKE_API_VERSION(0, 1, 1, 0); // CHECK WHAT DOES THIS MEAN!
 			application_info_.applicationVersion = 1;
 			application_info_.engineVersion = 1;
 			application_info_.pApplicationName = "vulkan_concepts";
@@ -577,6 +577,15 @@ namespace render
 					std::piecewise_construct, std::forward_as_tuple(physical_device), std::forward_as_tuple());
 				vkGetPhysicalDeviceFeatures(physical_device, &it->second);
 
+				VkPhysicalDeviceFeatures2 features2;
+				VkPhysicalDeviceImagelessFramebufferFeatures imageless_features;
+				imageless_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
+				imageless_features.pNext = nullptr;
+
+				features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				features2.pNext = &imageless_features;
+				vkGetPhysicalDeviceFeatures2(physical_device, &features2);
+				auto next = features2.pNext;
 			}
 		}
 
@@ -659,10 +668,13 @@ namespace render
 			}
 			else return false;
 
-
+			VkPhysicalDeviceImagelessFramebufferFeatures imageless_features;
+			imageless_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
+			imageless_features.pNext = nullptr;
+			imageless_features.imagelessFramebuffer = VK_TRUE;
 
 			logical_device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-			logical_device_create_info.pNext = nullptr;
+			logical_device_create_info.pNext = &imageless_features;
 			logical_device_create_info.flags = 0;
 			logical_device_create_info.enabledLayerCount = 0;
 			logical_device_create_info.ppEnabledLayerNames = nullptr;

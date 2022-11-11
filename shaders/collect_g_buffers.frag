@@ -44,7 +44,9 @@ void main() {
 		vec3 unit_normal = normalize(texture(GBuffers_normal, (fragPosition.xy)).xyz); 
 		
 		vec3 position = texture(GBuffers_position, (fragPosition.xy)).xyz;
-		vec3 albedo = texture(GBuffers_albedo, (fragPosition.xy)).xyz;
+		//vec3 albedo = texture(GBuffers_albedo, (fragPosition.xy)).xyz;
+		vec3 albedo = textureLod(GBuffers_albedo, (fragPosition.xy), 7).xyz;
+
 		vec3 metallic_roughness = texture(GBuffers_metallic_roughness, (fragPosition.xy)).xyz;
 		
 		vec3 unit_view_direction = normalize(camera.position.xyz - position);
