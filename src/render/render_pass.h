@@ -67,5 +67,33 @@ namespace render
 
 
 	};
+
+	class RenderPass2 : public RenderObjBase<VkRenderPass>
+	{
+	public:
+
+		RenderPass2(const DeviceConfiguration& device_cfg);
+
+		RenderPass2(const RenderPass2&) = delete;
+		RenderPass2(RenderPass2&&) = default;
+
+		RenderPass2& operator=(const RenderPass2&) = delete;
+		RenderPass2& operator=(RenderPass2&&) = default;
+
+
+		void Attach();
+
+
+		virtual ~RenderPass2() override;
+
+	private:
+
+		struct VkConstructParams
+		{};
+
+		std::unique_ptr<VkConstructParams> params_;
+
+	};
+
 }
 #endif  // RENDER_ENGINE_RENDER_RENDER_PASS_H_

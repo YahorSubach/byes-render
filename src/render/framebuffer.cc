@@ -4,31 +4,27 @@
 
 #include "common.h"
 
-render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const std::vector<std::reference_wrapper<const ImageView>>& attachments, const RenderPass& render_pass):
+render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const std::vector<std::reference_wrapper<const ImageView>>& attachments):
 	RenderObjBase(device_cfg), extent_(extent)
 {
-
-	std::vector<VkImageView> vk_attachments;
-
 	for (auto&& attachment : attachments)
 	{
-		vk_attachments.push_back(attachment.get().GetHandle());
-
-		ClearValues clear_values;
 		if (attachment.get().GetImageProperties().Check(ImageProperty::kDepthAttachment))
 		{
+			DepthStencilClearValues clear_values;
 			clear_values.depth = 1.0f;
 			clear_values.stencil = 0;
+			attachments_descs_.push_back({ attachment, clear_values });
 		}
 		else
 		{
-			clear_values.color[0] = 0.0f;
-			clear_values.color[1] = 0.0f;
-			clear_values.color[2] = 0.0f;
-			clear_values.color[3] = 0.0f;
+			ColorClearValues clear_values;
+			clear_values.r = 0.0f;
+			clear_values.g = 0.0f;
+			clear_values.b = 0.0f;
+			clear_values.a = 0.0f;
+			attachments_descs_.push_back({ attachment, clear_values });
 		}
-
-		clear_values_.push_back(clear_values);
 	}
 
 	VkFramebufferCreateInfo framebuffer_info{};
@@ -61,7 +57,28 @@ render::Extent render::Framebuffer::GetExtent() const
 	return extent_;
 }
 
-const std::vector<render::Framebuffer::ClearValues>& render::Framebuffer::GetClearValues() const
+void render::Framebuffer::Build(const RenderPass2& render_pass)
 {
-	return clear_values_;
+	if (handle_ != VK_NULL_HANDLE)
+		throw std::runtime_error("Framebuffer is already built");
+
+	std::vector<VkImageView> vk_attachments_;
+
+	VkFramebufferCreateInfo framebuffer_info{};
+	framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebuffer_info.renderPass = render_pass.GetHandle();
+	framebuffer_info.attachmentCount = u32(attachments_descs_.size());
+	framebuffer_info.pAttachments = vk_attachments_.data();
+	framebuffer_info.width = extent_.width;
+	framebuffer_info.height = extent_.height;
+	framebuffer_info.layers = 1;
+
+	if (vkCreateFramebuffer(device_cfg_.logical_device, &framebuffer_info, nullptr, &handle_) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create framebuffer!");
+	}
+}
+
+const std::vector<render::Framebuffer::AttachmentDesc>& render::Framebuffer::GetAttachmentsDescs() const
+{
+	return attachments_descs_;
 }

@@ -33,7 +33,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 			auto&& buffer = gltf_model_.buffers[buffer_view.buffer];
 
 			//images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, buffer.data.data() + buffer_view.byteOffset, {ImageProperty::kShaderInput, ImageProperty::kMipMap }));
-			images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, image.image.data(), {ImageProperty::kShaderInput, ImageProperty::kMipMap}));
+			images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_UNORM, image.width, image.height, image.image.data(), {ImageProperty::kShaderInput, ImageProperty::kMipMap}));
 
 
 			for (int i = 0; i < image.height; i++)
