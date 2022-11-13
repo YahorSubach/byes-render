@@ -51,6 +51,8 @@ target_sources(render_engine
 		${CMAKE_CURRENT_LIST_DIR}/render/mesh.h
 		${CMAKE_CURRENT_LIST_DIR}/render/mesh.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/object_base.h
+		${CMAKE_CURRENT_LIST_DIR}/render/render_graph.h
+		${CMAKE_CURRENT_LIST_DIR}/render/render_graph.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/render_setup.h
 		${CMAKE_CURRENT_LIST_DIR}/render/render_setup.cc
 		${CMAKE_CURRENT_LIST_DIR}/render/render_pass.h
