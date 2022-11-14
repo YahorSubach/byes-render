@@ -5,52 +5,64 @@
 #include "vulkan/vulkan.h"
 
 #include "render/object_base.h"
-#include "render/object_base.h"
+#include "render/image_view.h"
 
 namespace render
 {
 	
 
-	class RenderPass : public RenderObjBase<VkRenderPass>
+	class RenderPass : public LazyRenderObj<VkRenderPass>
 	{
 	public:
 
-		struct RenderPassDesc
+		//struct RenderPassDesc
+		//{
+		//	struct Attachment
+		//	{
+		//		std::string name;
+		//		bool is_depth_attachment;
+		//		VkAttachmentDescription desc;
+		//	};
+
+		//	struct Subpass
+		//	{
+		//		struct AttachmentRef
+		//		{
+		//			std::string name;
+		//			VkImageLayout layout;
+		//		};
+
+		//		std::string name;
+		//		std::vector<AttachmentRef> attachment_refs;
+		//	};
+
+		//	struct Dependency
+		//	{
+		//		std::string from_name;
+		//		std::string to_name;
+
+		//		VkSubpassDependency dependency;
+		//	};
+
+		//	std::vector<Attachment> attachments;
+		//	std::vector<Subpass> subpasses;
+		//	std::vector<Dependency> dependencies;
+		//};
+
+		struct Attachment
 		{
-			struct Attachment
-			{
-				std::string name;
-				bool is_depth_attachment;
-				VkAttachmentDescription desc;
-			};
-
-			struct Subpass
-			{
-				struct AttachmentRef
-				{
-					std::string name;
-					VkImageLayout layout;
-				};
-
-				std::string name;
-				std::vector<AttachmentRef> attachment_refs;
-			};
-
-			struct Dependency
-			{
-				std::string from_name;
-				std::string to_name;
-
-				VkSubpassDependency dependency;
-			};
-
-			std::vector<Attachment> attachments;
-			std::vector<Subpass> subpasses;
-			std::vector<Dependency> dependencies;
+			const std::string name;
+			bool is_depth_attachment;
+			VkAttachmentDescription desc;
 		};
 
-		RenderPass(const DeviceConfiguration& device_cfg, RenderPassDesc render_pass_desc);
-		static RenderPassDesc BuildRenderPassDesc(RenderPassId type, VkFormat color_format, VkFormat depth_format);
+
+		RenderPass(const DeviceConfiguration& device_cfg, bool use_swapchain_image = false);
+
+		int AddColorAttachment(const std::string& name);
+		int AddDepthAttachment(const std::string& name);
+
+		//static RenderPassDesc BuildRenderPassDesc(RenderPassId type, VkFormat color_format, VkFormat depth_format);
 
 		RenderPass(const RenderPass&) = delete;
 		RenderPass(RenderPass&&) = default;
@@ -58,14 +70,17 @@ namespace render
 		RenderPass& operator=(const RenderPass&) = delete;
 		RenderPass& operator=(RenderPass&&) = default;
 
-		int attachments_cnt = 0;
 
 		virtual ~RenderPass() override;
 
 	private:
 
+		std::vector<Attachment> attachments_;
+		std::vector<Attachment> depth_attachments_;
+		std::optional<Attachment> depth_attachment_;
 
-
+		virtual bool InitHandle() const;
+		bool use_swapchain_image_;
 	};
 
 	class RenderPass2 : public RenderObjBase<VkRenderPass>

@@ -17,26 +17,23 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	Extent output_extent = device_cfg_.presentation_extent;
 	VkFormat output_format = device_cfg_.presentation_format;
 
-	{
-		auto render_pass_desc = RenderPass::BuildRenderPassDesc(RenderPassId::kSimpleRenderToScreen, device_cfg.presentation_format, device_cfg.depth_map_format);
-		render_passes_.emplace(RenderPassId::kSimpleRenderToScreen, RenderPass(device_cfg_, render_pass_desc));
-	}
+	render_passes_.emplace(RenderPassId::kSimpleRenderToScreen, RenderPass(device_cfg_, true));
+	render_passes_[RenderPassId::kSimpleRenderToScreen].AddColorAttachment("swapchain_image");
+	render_passes_[RenderPassId::kSimpleRenderToScreen].AddDepthAttachment("depth_image");
 
-	{
-		auto depth_render_pass_desc = RenderPass::BuildRenderPassDesc(RenderPassId::kBuildDepthmap, device_cfg.presentation_format, device_cfg.depth_map_format);
-		render_passes_.emplace(RenderPassId::kBuildDepthmap, RenderPass(device_cfg_, depth_render_pass_desc));
-	}
 
-	{
-		auto depth_render_pass_desc = RenderPass::BuildRenderPassDesc(RenderPassId::kBuildGBuffers, device_cfg.g_buffer_format, device_cfg.depth_map_format);
-		render_passes_.emplace(RenderPassId::kBuildGBuffers, RenderPass(device_cfg_, depth_render_pass_desc));
-	}
+	render_passes_.emplace(RenderPassId::kBuildDepthmap, RenderPass(device_cfg_));
+	render_passes_[RenderPassId::kBuildDepthmap].AddDepthAttachment("depth_image");
 
-	{
-		auto depth_render_pass_desc = RenderPass::BuildRenderPassDesc(RenderPassId::kSimpleRenderToScreen, device_cfg.presentation_format, device_cfg.depth_map_format);
-		render_passes_.emplace(RenderPassId::kCollectGBuffers, RenderPass(device_cfg_, depth_render_pass_desc));
-	}
+	render_passes_.emplace(RenderPassId::kBuildGBuffers, RenderPass(device_cfg_));
+	render_passes_[RenderPassId::kBuildGBuffers].AddColorAttachment("g_albedo");
+	render_passes_[RenderPassId::kBuildGBuffers].AddColorAttachment("g_position");
+	render_passes_[RenderPassId::kBuildGBuffers].AddColorAttachment("g_normal");
+	render_passes_[RenderPassId::kBuildGBuffers].AddColorAttachment("g_metal_rough");
+	render_passes_[RenderPassId::kBuildGBuffers].AddDepthAttachment("g_depth");
 
+	render_passes_.emplace(RenderPassId::kCollectGBuffers, RenderPass(device_cfg_));
+	render_passes_[RenderPassId::kCollectGBuffers].AddColorAttachment("swapchain_image");
 
 
 	{
