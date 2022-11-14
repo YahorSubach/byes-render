@@ -45,10 +45,47 @@ namespace render
 		//	int a = 1;
 		//}
 		
-	protected:
 		const DeviceConfiguration& device_cfg_;
-		HandleType handle_;
+		mutable HandleType handle_;
 	};
+
+	template<typename HandleType>
+	class LazyRenderObj : public RenderObjBase<HandleType>
+	{
+	public:
+		LazyRenderObj(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg), constructed_(false) {}
+
+		RenderObjBase(const RenderObjBase&) = delete;
+		RenderObjBase(RenderObjBase&& rhs) = default;
+
+		RenderObjBase& operator=(const RenderObjBase&) = delete;
+		RenderObjBase& operator=(RenderObjBase&& rhs) = default;
+
+		[[nodiscard]] bool Construct() const
+		{
+			assert(handle_ == VK_NULL_HANDLE);
+
+			constructed_ = InitHandle();
+			return constructed_;
+		}
+
+		virtual HandleType GetHandle() const 
+		{
+			if (handle_ == VK_NULL_HANDLE)
+			{
+				Construct();
+			}
+
+			return handle_; 
+		}
+
+	protected:
+
+		virtual bool InitHandle() const = 0;
+
+	};
+
+
 }
 
 #endif  // RENDER_ENGINE_RENDER_VALIDATION_BASE_H_

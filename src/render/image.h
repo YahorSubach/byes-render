@@ -27,60 +27,60 @@ namespace render
 	//	kBitmapImage,
 	//};
 
-	enum class ImageProperty
-	{
-		kShouldNotFreeHandle,
+	//enum class ImageProperty
+	//{
+	//	kShouldNotFreeHandle,
 
-		kShaderInput,
+	//	kShaderInput,
 
-		kColorAttachment,
-		kDepthAttachment,
+	//	kColorAttachment,
+	//	kDepthAttachment,
 
-		kMipMap,
-		kRead,
-		kWrite,
-
-
-		kLoad = kWrite,
-	};
+	//	kMipMap,
+	//	kRead,
+	//	kWrite,
 
 
-	class ImagePropertiesStorage
-	{
-	private:
-		uint32_t flags_;
-	
-	public:
-		ImagePropertiesStorage(std::initializer_list<ImageProperty> properties_list): flags_(0) {
-			
-			for (auto&& prop : properties_list)
-			{
-				flags_ |= (1 << static_cast<uint32_t>(prop));
-			}
-		}
-
-		bool Check(ImageProperty prop) const
-		{
-			return flags_ & (1 << static_cast<uint32_t>(prop));
-		}
-
-		const ImagePropertiesStorage& Set(ImageProperty prop)
-		{
-			flags_ |= (1 << static_cast<uint32_t>(prop));
-			return *this;
-		}
-
-		const ImagePropertiesStorage& Unset(ImageProperty prop)
-		{
-			flags_ &= ~(1 << static_cast<uint32_t>(prop));
-			return *this;
-		}
-
-	};
+	//	kLoad = kWrite,
+	//};
 
 
+	//class ImagePropertiesStorage
+	//{
+	//private:
+	//	uint32_t flags_;
+	//
+	//public:
+	//	ImagePropertiesStorage(std::initializer_list<ImageProperty> properties_list): flags_(0) {
+	//		
+	//		for (auto&& prop : properties_list)
+	//		{
+	//			flags_ |= (1 << static_cast<uint32_t>(prop));
+	//		}
+	//	}
 
-	class Image : public RenderObjBase<VkImage>
+	//	bool Check(ImageProperty prop) const
+	//	{
+	//		return flags_ & (1 << static_cast<uint32_t>(prop));
+	//	}
+
+	//	const ImagePropertiesStorage& Set(ImageProperty prop)
+	//	{
+	//		flags_ |= (1 << static_cast<uint32_t>(prop));
+	//		return *this;
+	//	}
+
+	//	const ImagePropertiesStorage& Unset(ImageProperty prop)
+	//	{
+	//		flags_ &= ~(1 << static_cast<uint32_t>(prop));
+	//		return *this;
+	//	}
+
+	//};
+
+
+
+	class Image : public LazyRenderObj<VkImage>
 	{
 	public:
 		
@@ -91,12 +91,11 @@ namespace render
 			kFragmentRead,
 		};
 
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImagePropertiesStorage properties);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const ImagePropertiesStorage& properties);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, const Extent& extent, const ImagePropertiesStorage& properties);
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle, const ImagePropertiesStorage& properties);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const void* pixels);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle);
 
-		static Image FromFile(const DeviceConfiguration& device_cfg, const std::string& path, ImagePropertiesStorage properties);
+		static Image FromFile(const DeviceConfiguration& device_cfg, const std::string_view& path);
 
 		Image(const Image&) = delete;
 		Image(Image&&) = default;
@@ -106,28 +105,32 @@ namespace render
 
 		VkFormat GetFormat() const;
 
-		void TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type);
-		void CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, uint32_t width, uint32_t height);
+		void TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type) const;
+		void CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, Extent extent) const;
 
 		virtual ~Image() override;
 
-		const ImagePropertiesStorage& GetImageProperties() const;
-
 		uint32_t GetMipMapLevelsCount() const;
+
+		uint32_t AddUsageFlag(uint32_t flag);
 
 	private:
 
-		uint32_t width_;
-		uint32_t height_;
+		virtual bool InitHandle() const override;
 
-		void GenerateMipMaps();
+		Extent extent_;
 
-		ImagePropertiesStorage image_properties_;
+		void GenerateMipMaps() const;
 
-		std::unique_ptr<Memory> memory_;
+		mutable std::unique_ptr<Buffer> data_;
+		mutable std::unique_ptr<Memory> memory_;
+
 		VkFormat format_;
 
 		uint32_t mipmap_levels_count_;
+		uint32_t usage_;
+
+		bool holds_external_handle_;
 
 	};
 }

@@ -19,6 +19,7 @@ namespace render
 	{
 	public:
 		Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indices);
+		Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags);
 
 		Buffer(const Buffer&) = delete;
 		Buffer(Buffer&&) = default;

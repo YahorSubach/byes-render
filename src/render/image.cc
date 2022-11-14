@@ -5,93 +5,39 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const ImagePropertiesStorage& properties) : RenderObjBase(device_cfg), image_properties_(properties), width_(width), height_(height)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent) : LazyRenderObj(device_cfg), format_(format), extent_(extent), holds_external_handle_(false)
 {
-	mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
+	//mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
 
-	format_ = format;
-	VkImageCreateInfo image_info{};
-	image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	image_info.imageType = VK_IMAGE_TYPE_2D;
-	image_info.extent.width = static_cast<uint32_t>(width);
-	image_info.extent.height = static_cast<uint32_t>(height);
-	image_info.extent.depth = 1;
-	image_info.mipLevels = mipmap_levels_count_;
-	image_info.arrayLayers = 1;
-	image_info.format = format;
-	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-	image_info.usage = 0;
-
-	if (image_properties_.Check(ImageProperty::kShaderInput)) image_info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-	if (image_properties_.Check(ImageProperty::kColorAttachment)) image_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	if (image_properties_.Check(ImageProperty::kDepthAttachment)) image_info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	if (image_properties_.Check(ImageProperty::kRead) || image_properties_.Check(ImageProperty::kMipMap)) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	if (image_properties_.Check(ImageProperty::kWrite) || image_properties_.Check(ImageProperty::kMipMap)) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-	image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	std::vector<uint32_t> sharing_queues_indices;
-	sharing_queues_indices.push_back(device_cfg.graphics_queue_index);
-	if (device_cfg.graphics_queue_index != device_cfg.transfer_queue_index)
-	{
-		sharing_queues_indices.push_back(device_cfg.transfer_queue_index);
-		image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
-	}
-
-	image_info.queueFamilyIndexCount = static_cast<uint32_t>(sharing_queues_indices.size());
-	image_info.pQueueFamilyIndices = sharing_queues_indices.data();
-
-	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-	image_info.flags = 0; // Optional
-
-	if (vkCreateImage(device_cfg_.logical_device, &image_info, nullptr, &handle_) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create image!");
-	}
-
-	VkMemoryRequirements mem_requirements;
-	vkGetImageMemoryRequirements(device_cfg_.logical_device, handle_, &mem_requirements);
-
-	memory_ = std::make_unique<Memory>(device_cfg_, mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	vkBindImageMemory(device_cfg_.logical_device, handle_, memory_->GetMemoryHandle(), 0);
+	
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const Extent& extent, const ImagePropertiesStorage& properties) : Image(device_cfg, format, extent.width, extent.height, properties)
-{
-}
-
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle, const ImagePropertiesStorage& properties) : RenderObjBase(device_cfg), image_properties_(properties), format_(format), mipmap_levels_count_(1)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : LazyRenderObj(device_cfg), format_(format), mipmap_levels_count_(1), holds_external_handle_(true)
 {
 	handle_ = image_handle;
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, const uint32_t& width, const uint32_t& height, const void* pixels, ImagePropertiesStorage properties): Image(device_cfg, format, width, height, properties.Set(ImageProperty::kLoad))
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const void* pixels): Image(device_cfg, format, extent)
 {
-	VkDeviceSize image_size = width * height * 4;
-	Buffer staging_buffer(device_cfg, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {});
+	VkDeviceSize image_size = extent.width * extent.height * 4;
 
-	staging_buffer.LoadData(pixels, image_size);
-	TransitionImageLayout(*device_cfg.graphics_cmd_pool, TransitionType::kTransferDst);
-	CopyBuffer(*device_cfg.transfer_cmd_pool, staging_buffer, width, height);
-	GenerateMipMaps();
+	data_ = std::make_unique<Buffer>(device_cfg, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	data_->LoadData(pixels, image_size);
 }
 
-render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, const std::string& path, ImagePropertiesStorage properties)
+render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, const std::string_view& path)
 {
 	int width = 0;
 	int height = 0;
 	int channels;
 	
-	properties.Set(ImageProperty::kLoad);
+	//properties.Set(ImageProperty::kLoad);
 
 	stbi_uc* pixels = stbi_load(path.data(), &width, &height, &channels, STBI_rgb_alpha);
 
-	Image res = Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, width, height, pixels, properties);
+	Image res = Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, {width, height}, pixels);
 
 	stbi_image_free(pixels);
-
 
 	return res;
 }
@@ -101,7 +47,7 @@ VkFormat render::Image::GetFormat() const
 	return format_;
 }
 
-void render::Image::TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type)
+void render::Image::TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type) const
 {
 
 	VkPipelineStageFlags source_stage;
@@ -169,11 +115,12 @@ void render::Image::TransitionImageLayout(const CommandPool& command_pool, Trans
 		});
 }
 
-void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, uint32_t width, uint32_t height)
+void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, Extent extent) const
 {
+	assert(handle_ != VK_NULL_HANDLE);
 
 	//Check here image type
-	mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
+	//mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
@@ -187,8 +134,8 @@ void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& bu
 
 	region.imageOffset = { 0, 0, 0 };
 	region.imageExtent = {
-		width,
-		height,
+		extent_.width,
+		extent_.height,
 		1
 	};
 
@@ -207,16 +154,16 @@ void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& bu
 
 render::Image::~Image()
 {
-	if (handle_ != VK_NULL_HANDLE && !image_properties_.Check(ImageProperty::kShouldNotFreeHandle))
+	if (handle_ != VK_NULL_HANDLE && !holds_external_handle_)
 	{
 		vkDestroyImage(device_cfg_.logical_device, handle_, nullptr);
 	}
 }
 
-const render::ImagePropertiesStorage& render::Image::GetImageProperties() const
-{
-	return image_properties_;
-}
+//const render::ImagePropertiesStorage& render::Image::GetImageProperties() const
+//{
+//	return image_properties_;
+//}
 
 
 uint32_t render::Image::GetMipMapLevelsCount() const
@@ -224,7 +171,71 @@ uint32_t render::Image::GetMipMapLevelsCount() const
 	return mipmap_levels_count_;
 }
 
-void render::Image::GenerateMipMaps()
+uint32_t render::Image::AddUsageFlag(uint32_t flag)
+{
+	usage_ = usage_ | flag;
+	return usage_;
+}
+
+bool render::Image::InitHandle() const
+{
+	VkImageCreateInfo image_info{};
+	image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	image_info.imageType = VK_IMAGE_TYPE_2D;
+	image_info.extent.width = static_cast<uint32_t>(extent_.width);
+	image_info.extent.height = static_cast<uint32_t>(extent_.height);
+	image_info.extent.depth = 1;
+	image_info.mipLevels = mipmap_levels_count_;
+	image_info.arrayLayers = 1;
+	image_info.format = format_;
+	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	image_info.usage = 0;
+
+	//if (image_properties_.Check(ImageProperty::kShaderInput)) image_info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+	//if (image_properties_.Check(ImageProperty::kColorAttachment)) image_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	//if (image_properties_.Check(ImageProperty::kDepthAttachment)) image_info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	//if (image_properties_.Check(ImageProperty::kRead) || image_properties_.Check(ImageProperty::kMipMap)) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	//if (image_properties_.Check(ImageProperty::kWrite) || image_properties_.Check(ImageProperty::kMipMap)) image_info.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+	image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	std::vector<uint32_t> sharing_queues_indices;
+	sharing_queues_indices.push_back(device_cfg_.graphics_queue_index);
+	if (device_cfg_.graphics_queue_index != device_cfg_.transfer_queue_index)
+	{
+		sharing_queues_indices.push_back(device_cfg_.transfer_queue_index);
+		image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
+	}
+
+	image_info.queueFamilyIndexCount = static_cast<uint32_t>(sharing_queues_indices.size());
+	image_info.pQueueFamilyIndices = sharing_queues_indices.data();
+
+	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+	image_info.flags = 0; // Optional
+
+	if (vkCreateImage(device_cfg_.logical_device, &image_info, nullptr, &handle_) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create image!");
+	}
+
+	VkMemoryRequirements mem_requirements;
+	vkGetImageMemoryRequirements(device_cfg_.logical_device, handle_, &mem_requirements);
+
+	memory_ = std::make_unique<Memory>(device_cfg_, mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	if (data_)
+	{
+		TransitionImageLayout(*device_cfg_.graphics_cmd_pool, TransitionType::kTransferDst);
+		CopyBuffer(*device_cfg_.transfer_cmd_pool, *data_, extent_);
+		GenerateMipMaps();
+		data_.reset();
+	}
+
+	return true;
+}
+
+void render::Image::GenerateMipMaps() const
 {
 
 	VkImageMemoryBarrier barrier{};
@@ -240,8 +251,8 @@ void render::Image::GenerateMipMaps()
 
 		device_cfg_.graphics_cmd_pool->ExecuteOneTimeCommand([this, &barrier/*barrier, source_stage, destination_stage, image = handle_*/](VkCommandBuffer buffer)
 			{
-			int32_t mip_width = width_;
-			int32_t mip_height = height_;
+			int32_t mip_width = extent_.width;
+			int32_t mip_height = extent_.height;
 
 			for (uint32_t i = 1; i < mipmap_levels_count_; i++)
 			{
