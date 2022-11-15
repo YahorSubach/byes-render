@@ -28,10 +28,10 @@ namespace render
 		uint32_t stencil;
 	};
 
-	class Framebuffer : public RenderObjBase<VkFramebuffer>
+	class Framebuffer : public LazyRenderObj<VkFramebuffer>
 	{
 	public:
-		Framebuffer(const DeviceConfiguration& device_cfg, const Extent& extent, const std::vector<std::reference_wrapper<const ImageView>>& attachments);
+		Framebuffer(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass);
 
 		Framebuffer(const Framebuffer&) = delete;
 		Framebuffer(Framebuffer&&) = default;
@@ -39,24 +39,30 @@ namespace render
 		Framebuffer& operator=(const Framebuffer&) = delete;
 		Framebuffer& operator=(Framebuffer&&) = default;
 
+		int AddAttachment(const std::string_view& name, ImageView& image_view);
+
 		virtual ~Framebuffer() override;
 	
 		Extent GetExtent() const;
 
-		void Build(const RenderPass2& render_pass);
+		//void Build(const RenderPass2& render_pass);
 
-		struct AttachmentDesc
-		{
-			const ImageView& image_view;
-			const std::variant<ColorClearValues, DepthStencilClearValues> clear_values;
-		};
+		//struct AttachmentDesc
+		//{
+		//	const ImageView& image_view;
+		//	const std::variant<ColorClearValues, DepthStencilClearValues> clear_values;
+		//};
 
-		const std::vector<AttachmentDesc>& GetAttachmentsDescs() const;
+		//const std::vector<AttachmentDesc>& GetAttachmentsDescs() const;
 
 	private:
 
-		std::vector<AttachmentDesc> attachments_descs_;
+		virtual bool InitHandle() const override;
+
 		Extent extent_;
+		const RenderPass& render_pass_;
+
+		std::vector<std::reference_wrapper<const ImageView>> image_views_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_FRAMEBUFFER_H_

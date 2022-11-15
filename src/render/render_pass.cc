@@ -1,5 +1,6 @@
 #include "render_pass.h"
 
+#include <algorithm>
 #include <array>
 #include <map>
 
@@ -11,9 +12,9 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, bool use_s
 
 }
 
-int render::RenderPass::AddColorAttachment(const std::string& name)
+int render::RenderPass::AddColorAttachment(const std::string_view& name)
 {
-	attachments_.push_back({ name, false });
+	attachments_.push_back({ name.data(), false});
 
 	attachments_.back().desc.format = device_cfg_.g_buffer_format;
 	attachments_.back().desc.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -27,10 +28,10 @@ int render::RenderPass::AddColorAttachment(const std::string& name)
 	return attachments_.size() - 1;
 }
 
-int render::RenderPass::AddDepthAttachment(const std::string& name)
+int render::RenderPass::AddDepthAttachment(const std::string_view& name)
 {
 	assert(!depth_attachment_);
-	attachments_.push_back({ name, true });
+	attachments_.push_back({ name.data(), true});
 
 	attachments_.back().desc.format = device_cfg_.depth_map_format;
 	attachments_.back().desc.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -42,6 +43,21 @@ int render::RenderPass::AddDepthAttachment(const std::string& name)
 	attachments_.back().desc.finalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	return attachments_.size() - 1;
+}
+
+int render::RenderPass::GetAttachmentIndex(const std::string_view& name) const
+{
+	auto&& it = std::find(attachments_.begin(), attachments_.begin(), [&name](const Attachment& a) {return a.name == name; });
+
+	if (it != attachments_.end())
+		return (it - attachments_.begin());
+
+	return -1;
+}
+
+const render::RenderPass::Attachment& render::RenderPass::GetAttachmentByIndex(int index) const
+{
+	return attachments_[index];
 }
 
 //render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(render::RenderPassId type, VkFormat color_format, VkFormat depth_format)

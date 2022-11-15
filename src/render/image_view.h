@@ -13,7 +13,7 @@
 
 namespace render
 {
-	class ImageView : public RenderObjBase<VkImageView>
+	class ImageView : public LazyRenderObj<VkImageView>
 	{
 	public:
 
@@ -27,13 +27,15 @@ namespace render
 		ImageView& operator=(ImageView&&) = default;
 
 		void Assign(const Image& image);
-		const ImagePropertiesStorage& GetImageProperties() const;
+		uint32_t AddUsageFlag(uint32_t flag);
 
 		virtual ~ImageView() override;
 
 	protected:
 		
-		ImagePropertiesStorage image_properties_;
+		virtual bool InitHandle() const override;
+
+		stl_util::NullableRef<Image> image_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_IMAGE_VIEW_H_

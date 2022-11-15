@@ -113,6 +113,7 @@ namespace render
 		uint32_t GetMipMapLevelsCount() const;
 
 		uint32_t AddUsageFlag(uint32_t flag);
+		uint32_t CheckUsageFlag(uint32_t flag) const;
 
 	private:
 

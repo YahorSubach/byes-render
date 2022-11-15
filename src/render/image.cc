@@ -177,6 +177,11 @@ uint32_t render::Image::AddUsageFlag(uint32_t flag)
 	return usage_;
 }
 
+uint32_t render::Image::CheckUsageFlag(uint32_t flag) const
+{
+	return usage_ & flag;
+}
+
 bool render::Image::InitHandle() const
 {
 	VkImageCreateInfo image_info{};
