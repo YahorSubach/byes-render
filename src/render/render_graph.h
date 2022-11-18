@@ -17,10 +17,10 @@
 
 namespace render
 {
-	class RenderGraph : public RenderObjBase<int>
+	class RenderGraph : public RenderObjBase<int*>
 	{
 	public:
-		RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, const Image& presentation_image);
+		RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene);
 
 		RenderGraph(const RenderGraph&) = delete;
 		RenderGraph(RenderGraph&&) = default;
@@ -29,7 +29,7 @@ namespace render
 		RenderGraph& operator=(RenderGraph&&) = default;
 
 
-		bool FillCommandBuffer(VkCommandBuffer command_buffer, const SceneRenderNode& scene) const;
+		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const SceneRenderNode& scene) const;
 
 
 		virtual ~RenderGraph() override;
@@ -44,7 +44,7 @@ namespace render
 		struct RenderPassNode
 		{
 			const RenderPass& render_pass;
-			const Framebuffer& framebuffer;
+			stl_util::NullableRef<const Framebuffer> framebuffer;
 			std::vector<std::reference_wrapper<const GraphicsPipeline>> pipelines;
 		};
 
@@ -66,7 +66,6 @@ namespace render
 			std::vector<RenderBatch> render_batches;
 		};
 
-		ImageView presentation_image_view_;
 		RenderCollection collection_;
 	};
 }

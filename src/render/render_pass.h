@@ -62,6 +62,7 @@ namespace render
 		int AddColorAttachment(const std::string_view& name);
 		int AddDepthAttachment(const std::string_view& name);
 		int GetAttachmentIndex(const std::string_view& name) const;
+		int GetAttachmentsCnt() const;
 		const Attachment& GetAttachmentByIndex(int index) const;
 
 		//static RenderPassDesc BuildRenderPassDesc(RenderPassId type, VkFormat color_format, VkFormat depth_format);
@@ -85,7 +86,7 @@ namespace render
 		bool use_swapchain_image_;
 	};
 
-	class RenderPass2 : public RenderObjBase<VkRenderPass>
+	/*class RenderPass2 : public RenderObjBase<VkRenderPass>
 	{
 	public:
 
@@ -110,7 +111,7 @@ namespace render
 
 		std::unique_ptr<VkConstructParams> params_;
 
-	};
+	};*/
 
 }
 #endif  // RENDER_ENGINE_RENDER_RENDER_PASS_H_

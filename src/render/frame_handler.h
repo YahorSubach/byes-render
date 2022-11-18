@@ -53,10 +53,9 @@ namespace render
 		DescriptorSetsManager descriptor_sets_manager_;
 
 		const ui::UI& ui_;
-		
-		RenderGraph render_graph_;
 
 		ModelSceneDescSetHolder model_scene_;
+		RenderGraph render_graph_;
 		UIScene ui_scene_;
 	};
 }

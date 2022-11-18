@@ -112,7 +112,7 @@ namespace render
 
 		uint32_t GetMipMapLevelsCount() const;
 
-		uint32_t AddUsageFlag(uint32_t flag);
+		uint32_t AddUsageFlag(uint32_t flag) const;
 		uint32_t CheckUsageFlag(uint32_t flag) const;
 
 	private:
@@ -129,7 +129,7 @@ namespace render
 		VkFormat format_;
 
 		uint32_t mipmap_levels_count_;
-		uint32_t usage_;
+		mutable uint32_t usage_;
 
 		bool holds_external_handle_;
 

@@ -47,12 +47,17 @@ int render::RenderPass::AddDepthAttachment(const std::string_view& name)
 
 int render::RenderPass::GetAttachmentIndex(const std::string_view& name) const
 {
-	auto&& it = std::find(attachments_.begin(), attachments_.begin(), [&name](const Attachment& a) {return a.name == name; });
+	auto&& it = std::find_if(attachments_.begin(), attachments_.begin(), [&name](const Attachment& a) {return a.name == name; });
 
 	if (it != attachments_.end())
 		return (it - attachments_.begin());
 
 	return -1;
+}
+
+int render::RenderPass::GetAttachmentsCnt() const
+{
+	return attachments_.size();
 }
 
 const render::RenderPass::Attachment& render::RenderPass::GetAttachmentByIndex(int index) const
@@ -441,6 +446,6 @@ bool render::RenderPass::InitHandle() const
 	return true;
 }
 
-render::RenderPass2::RenderPass2(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg)
-{
-}
+//render::RenderPass2::RenderPass2(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg)
+//{
+//}

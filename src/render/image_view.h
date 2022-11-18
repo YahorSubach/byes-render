@@ -28,7 +28,7 @@ namespace render
 
 		void Assign(const Image& image);
 		
-		uint32_t AddUsageFlag(uint32_t flag);
+		uint32_t AddUsageFlag(uint32_t flag) const;
 		uint32_t CheckUsageFlag(uint32_t flag) const;
 
 		virtual ~ImageView() override;
@@ -37,7 +37,7 @@ namespace render
 		
 		virtual bool InitHandle() const override;
 
-		stl_util::NullableRef<Image> image_;
+		stl_util::NullableRef<const Image> image_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_IMAGE_VIEW_H_

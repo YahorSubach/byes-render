@@ -47,7 +47,7 @@
 //},
 
 
-render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, const Image& presentation_image) : RenderObjBase(device_cfg), presentation_image_view_(device_cfg, presentation_image)
+render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene) : RenderObjBase(device_cfg)
 {
 	auto&& [g_albedo_image, g_albedo_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent);
 	auto&& [g_position_image, g_position_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent);
@@ -57,7 +57,7 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 	auto&& [g_depth_image, g_depth_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.depth_map_format, device_cfg_.depth_map_extent);
 
 	auto&& g_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kBuildGBuffers));
-	auto&& presentation_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen));
+	//auto&& presentation_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen));
 
 	g_framebuffer.AddAttachment("g_albedo", g_albedo_image_view);
 	g_framebuffer.AddAttachment("g_position", g_position_image_view);
@@ -65,7 +65,7 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 	g_framebuffer.AddAttachment("g_metal_rough", g_metallic_roughness_image_view);
 	g_framebuffer.AddAttachment("g_depth", g_depth_image_view);
 
-	presentation_framebuffer.AddAttachment("swapchain_image", presentation_image_view_);
+	//presentation_framebuffer.AddAttachment("swapchain_image", presentation_image_view_);
 
 
 	auto&& g_fill_batch = collection_.CreateBatch();
@@ -73,12 +73,17 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 
 	g_fill_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kBuildGBuffers), g_framebuffer, {render_setup.GetPipeline(PipelineId::kBuildGBuffers)} });
 
-	g_collect_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kCollectGBuffers), presentation_framebuffer, {render_setup.GetPipeline(PipelineId::kCollectGBuffers)} });
+	g_collect_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kCollectGBuffers), {}, {render_setup.GetPipeline(PipelineId::kCollectGBuffers)} });
 
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_albedo_image });
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_position_image });
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_normal_image });
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_metallic_roughness_image });
+
+	scene.g_albedo_image = g_albedo_image;
+	scene.g_position_image = g_position_image;
+	scene.g_normal_image = g_normal_image;
+	scene.g_metal_rough_image = g_metallic_roughness_image;
 }
 
 render::RenderGraph::~RenderGraph()
@@ -104,7 +109,7 @@ render::RenderGraph::RenderBatch& render::RenderGraph::RenderCollection::CreateB
 	return render_batches.back();
 }
 
-bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, const SceneRenderNode& scene) const
+bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const SceneRenderNode& scene) const
 {
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -132,17 +137,23 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 		bool final_pass = false;
 		for (auto&& render_pass_node : current_batch.render_passes)
 		{
+			auto frambuffer = render_pass_node.framebuffer;
+			if (!frambuffer)
+			{
+				frambuffer = swapchain_framebuffer;
+			}
+
 			VkRenderPassBeginInfo render_pass_begin_info{};
 			render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			render_pass_begin_info.renderPass = render_pass_node.render_pass.GetHandle();
-			render_pass_begin_info.framebuffer = render_pass_node.framebuffer.GetHandle();
+			render_pass_begin_info.framebuffer = render_pass_node.framebuffer->GetHandle();
 
 			render_pass_begin_info.renderArea.offset = { 0, 0 };
-			render_pass_begin_info.renderArea.extent = render_pass_node.framebuffer.GetExtent();
+			render_pass_begin_info.renderArea.extent = render_pass_node.framebuffer->GetExtent();
 
-			std::vector<VkClearValue> clear_values(render_pass_node.framebuffer.GetAttachments().size());
+			std::vector<VkClearValue> clear_values(render_pass_node.framebuffer->GetAttachments().size());
 			int index = 0;
-			for (auto&& attachment : render_pass_node.framebuffer.GetAttachments())
+			for (auto&& attachment : render_pass_node.framebuffer->GetAttachments())
 			{
 				if (attachment.get().CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
 				{

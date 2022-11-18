@@ -89,10 +89,9 @@ render::PrimitivesHolderRenderNode render::ModelDescSetHolder::GetRenderNode()
 }
 
 
-render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const FramebufferCollection& framebuffer_collection):
-	DescriptorSetHolder(device_cfg), env_image_(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png", { ImageProperty::kShaderInput })),
-	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), nearest_sampler_(device_cfg, 10, Sampler::AddressMode::kRepeat, true), shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder),
-	framebuffer_collection_(framebuffer_collection)
+render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager):
+	DescriptorSetHolder(device_cfg), env_image_(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png")),
+	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), nearest_sampler_(device_cfg, 10, Sampler::AddressMode::kRepeat, true), shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder)
 
 {
 
@@ -147,31 +146,31 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
 {
-	data.shadow_map = framebuffer_collection_.GetImage(AttachmentId::kDepthMap);
+	//data.shadow_map = framebuffer_collection_.GetImage(AttachmentId::kDepthMap);
 	data.shadow_map_sampler = shadow_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data)
 {
-	data.albedo = framebuffer_collection_.GetImage(AttachmentId::kGAlbedo);
+	data.albedo = g_albedo_image;
 	data.albedo_sampler = nearest_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data)
 {
-	data.position = framebuffer_collection_.GetImage(AttachmentId::kGPosition);
+	data.position = g_position_image;
 	data.position_sampler = nearest_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data)
 {
-	data.normal = framebuffer_collection_.GetImage(AttachmentId::kGNormal);
+	data.normal = g_normal_image;
 	data.normal_sampler = nearest_sampler_;
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data)
 {
-	data.metallic_roughness = framebuffer_collection_.GetImage(AttachmentId::kGMetallicRoughness);
+	data.metallic_roughness = g_metal_rough_image;
 	data.metallic_roughness_sampler = nearest_sampler_;
 }
 

@@ -56,7 +56,7 @@ const std::vector<std::reference_wrapper<const render::ImageView>>& render::Fram
 //}
 //
 
-int render::Framebuffer::AddAttachment(const std::string_view& name, ImageView& image_view)
+int render::Framebuffer::AddAttachment(const std::string_view& name, const ImageView& image_view)
 {
 	int framebuffer_index = render_pass_.GetAttachmentIndex(name);
 	assert(framebuffer_index >= 0);
@@ -73,6 +73,8 @@ int render::Framebuffer::AddAttachment(const std::string_view& name, ImageView& 
 	}
 
 	image_views_.push_back(image_view);
+
+	return image_views_.size() - 1;
 }
 
 bool render::Framebuffer::InitHandle() const

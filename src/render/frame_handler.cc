@@ -19,8 +19,8 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	render_finished_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-	framebuffer_collection(device_cfg_, render_setup),
-	model_scene_(device_cfg, batches_manager, framebuffer_collection),
+	model_scene_(device_cfg, batches_manager),
+	render_graph_(device_cfg, render_setup, model_scene_),
 	ui_scene_(device_cfg, ui),
 	descriptor_sets_manager_(device_cfg, render_setup),
 	ui_(ui)
@@ -38,7 +38,7 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 
 bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32_t image_index, const RenderSetup& render_setup, glm::vec3 pos, glm::vec3 look)
 {
-	CommandBufferFiller command_filler(render_setup, framebuffer_collection);
+	//CommandBufferFiller command_filler(render_setup, framebuffer_collection);
 
 	submit_info_.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -76,86 +76,86 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 	ui_scene_.UpdateData();
 
 
-	std::vector<RenderPassInfo> render_info =
-	{
-		{
-			RenderPassId::kBuildDepthmap,
-			FramebufferId::kDepth,
-			{
-				{
-					PipelineId::kDepth,
-					RenderModelType::kStatic,
-					model_scene_.GetRenderNode()
-				},
-				{
-					PipelineId::kDepthSkinned,
-					RenderModelType::kSkinned,
-					model_scene_.GetRenderNode()
-				}
-			}
-		},
-
-		//{
-		//	RenderPassId::kSimpleRenderToScreen,
-		//	FramebufferId::kScreen,
-		//	{
-		//		{
-		//			PipelineId::kColor,
-		//			RenderModelType::kStatic,
-		//			model_scene_.GetRenderNode()
-		//		},
-		//		{
-		//			PipelineId::kColorSkinned,
-		//			RenderModelType::kSkinned,
-		//			model_scene_.GetRenderNode()
-		//		},
-		//		{
-		//			PipelineId::kUI,
-		//			RenderModelType::kStatic,
-		//			ui_scene_.GetRenderNode()
-		//		},
-		//	}
-		//},
-
-		{
-			RenderPassId::kBuildGBuffers,
-			FramebufferId::kGBuffers,
-			{
-				{
-					PipelineId::kBuildGBuffers,
-					RenderModelType::kStatic,
-					model_scene_.GetRenderNode()
-				}
-			}
-		},
-
-		{
-			RenderPassId::kCollectGBuffers,
-			FramebufferId::kScreen,
-			{
-				{
-					PipelineId::kCollectGBuffers,
-					RenderModelType::kStatic,
-					model_scene_.GetRenderNode()
-				}
-			}
-		},
-//
-//		{
-//	RenderPassId::kSimpleRenderToScreen,
-//	FramebufferId::kScreen,
+//	std::vector<RenderPassInfo> render_info =
 //	{
 //		{
-//			PipelineId::kUI,
-//			RenderModelType::kStatic,
-//			ui_scene_.GetRenderNode()
-//		}
-//	}
-//},
-	};
+//			RenderPassId::kBuildDepthmap,
+//			FramebufferId::kDepth,
+//			{
+//				{
+//					PipelineId::kDepth,
+//					RenderModelType::kStatic,
+//					model_scene_.GetRenderNode()
+//				},
+//				{
+//					PipelineId::kDepthSkinned,
+//					RenderModelType::kSkinned,
+//					model_scene_.GetRenderNode()
+//				}
+//			}
+//		},
+//
+//		//{
+//		//	RenderPassId::kSimpleRenderToScreen,
+//		//	FramebufferId::kScreen,
+//		//	{
+//		//		{
+//		//			PipelineId::kColor,
+//		//			RenderModelType::kStatic,
+//		//			model_scene_.GetRenderNode()
+//		//		},
+//		//		{
+//		//			PipelineId::kColorSkinned,
+//		//			RenderModelType::kSkinned,
+//		//			model_scene_.GetRenderNode()
+//		//		},
+//		//		{
+//		//			PipelineId::kUI,
+//		//			RenderModelType::kStatic,
+//		//			ui_scene_.GetRenderNode()
+//		//		},
+//		//	}
+//		//},
+//
+//		{
+//			RenderPassId::kBuildGBuffers,
+//			FramebufferId::kGBuffers,
+//			{
+//				{
+//					PipelineId::kBuildGBuffers,
+//					RenderModelType::kStatic,
+//					model_scene_.GetRenderNode()
+//				}
+//			}
+//		},
+//
+//		{
+//			RenderPassId::kCollectGBuffers,
+//			FramebufferId::kScreen,
+//			{
+//				{
+//					PipelineId::kCollectGBuffers,
+//					RenderModelType::kStatic,
+//					model_scene_.GetRenderNode()
+//				}
+//			}
+//		},
+////
+////		{
+////	RenderPassId::kSimpleRenderToScreen,
+////	FramebufferId::kScreen,
+////	{
+////		{
+////			PipelineId::kUI,
+////			RenderModelType::kStatic,
+////			ui_scene_.GetRenderNode()
+////		}
+////	}
+////},
+//	};
 
 	
-	command_filler.Fill(command_buffer_, render_info, swapchain_framebuffer);
+	render_graph_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, model_scene_.GetRenderNode());
 
 	present_info_.pImageIndices = &image_index;
 

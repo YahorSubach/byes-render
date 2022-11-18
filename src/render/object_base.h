@@ -53,19 +53,19 @@ namespace render
 	class LazyRenderObj : public RenderObjBase<HandleType>
 	{
 	public:
-		LazyRenderObj(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg), constructed_(false) {}
+		LazyRenderObj(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg) {}
 
-		RenderObjBase(const RenderObjBase&) = delete;
-		RenderObjBase(RenderObjBase&& rhs) = default;
+		LazyRenderObj(const LazyRenderObj&) = delete;
+		LazyRenderObj(LazyRenderObj&& rhs) = default;
 
-		RenderObjBase& operator=(const RenderObjBase&) = delete;
-		RenderObjBase& operator=(RenderObjBase&& rhs) = default;
+		LazyRenderObj& operator=(const LazyRenderObj&) = delete;
+		LazyRenderObj& operator=(LazyRenderObj&& rhs) = default;
 
 		[[nodiscard]] bool Construct() const
 		{
 			assert(handle_ == VK_NULL_HANDLE);
 
-			constructed_ = InitHandle();
+			bool constructed_ = InitHandle();
 			return constructed_;
 		}
 

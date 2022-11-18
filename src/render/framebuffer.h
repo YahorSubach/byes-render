@@ -39,7 +39,7 @@ namespace render
 		Framebuffer& operator=(const Framebuffer&) = delete;
 		Framebuffer& operator=(Framebuffer&&) = default;
 
-		int AddAttachment(const std::string_view& name, ImageView& image_view);
+		int AddAttachment(const std::string_view& name, const ImageView& image_view);
 
 		virtual ~Framebuffer() override;
 	

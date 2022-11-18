@@ -35,7 +35,7 @@ render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, con
 
 	stbi_uc* pixels = stbi_load(path.data(), &width, &height, &channels, STBI_rgb_alpha);
 
-	Image res = Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, {width, height}, pixels);
+	Image res = Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, {u32(width), u32(height)}, pixels);
 
 	stbi_image_free(pixels);
 
@@ -171,7 +171,7 @@ uint32_t render::Image::GetMipMapLevelsCount() const
 	return mipmap_levels_count_;
 }
 
-uint32_t render::Image::AddUsageFlag(uint32_t flag)
+uint32_t render::Image::AddUsageFlag(uint32_t flag) const
 {
 	usage_ = usage_ | flag;
 	return usage_;

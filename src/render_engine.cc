@@ -230,7 +230,7 @@ namespace render
 
 			uint32_t current_frame_index = -1;
 
-			Image def_image = Image::FromFile(device_cfg_, "../images/test.jpg", { ImageProperty::kShaderInput });
+			Image def_image = Image::FromFile(device_cfg_, "../images/test.jpg");
 			device_cfg_.default_image = def_image;
 
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
@@ -255,17 +255,19 @@ namespace render
 
 				std::vector<Framebuffer> swapchain_framebuffers;
 
-				Image depth_image(device_cfg_, device_cfg_.depth_map_format, swapchain.GetExtent().width, swapchain.GetExtent().height, { ImageProperty::kDepthAttachment });
+				Image depth_image(device_cfg_, device_cfg_.depth_map_format, swapchain.GetExtent());
 				ImageView depth_image_view(device_cfg_, depth_image);
 
 				for (int i = 0; i < swapchain.GetImagesCount(); i++)
 				{
-					std::vector<std::reference_wrapper<const ImageView>> attachments;
-					
-					attachments.push_back(swapchain.GetImageView(i));
-					attachments.push_back(depth_image_view);
+					//std::vector<std::reference_wrapper<const ImageView>> attachments;
+					//
+					//attachments.push_back(swapchain.GetImageView(i));
+					//attachments.push_back(depth_image_view);
 
-					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), attachments, render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen)));
+					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen)));
+					swapchain_framebuffers.back().AddAttachment("swapchain_image", swapchain.GetImageView(i));
+					swapchain_framebuffers.back().AddAttachment("swapchain_image", depth_image_view);
 				}
 
 				BatchesManager batches_manager(device_cfg_, kFramesCount, swapchain, descriptor_pool);

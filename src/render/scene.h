@@ -82,7 +82,7 @@ namespace render
 	{
 	public:
 
-		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const FramebufferCollection& framebuffer_collection);
+		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager);
 
 		const std::vector<ModelDescSetHolder>& GetModels() const;
 
@@ -103,6 +103,11 @@ namespace render
 
 		void AttachDescriptorSets(DescriptorSetsManager& manager);
 
+		stl_util::NullableRef<const Image> g_albedo_image;
+		stl_util::NullableRef<const Image> g_position_image;
+		stl_util::NullableRef<const Image> g_normal_image;
+		stl_util::NullableRef<const Image> g_metal_rough_image;
+
 	private:
 		
 		std::vector<ModelDescSetHolder> models_;
@@ -113,7 +118,7 @@ namespace render
 
 		Image env_image_;
 
-		const FramebufferCollection& framebuffer_collection_;
+		
 
 		Sampler diffuse_sampler_;
 		Sampler nearest_sampler_;
