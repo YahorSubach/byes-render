@@ -29,6 +29,13 @@ uint32_t render::ImageView::AddUsageFlag(uint32_t flag)
 	image_->AddUsageFlag(flag);
 }
 
+uint32_t render::ImageView::CheckUsageFlag(uint32_t flag) const
+{
+	assert(image_);
+
+	return image_->CheckUsageFlag(flag);
+}
+
 bool render::ImageView::InitHandle() const
 {
 	assert(image_);

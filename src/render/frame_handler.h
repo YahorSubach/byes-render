@@ -6,10 +6,10 @@
 #include "object_base.h"
 
 #include "render/buffer.h"
-#include "render/framebuffer_collection.h"
 #include "render/swapchain.h"
 #include "render/render_setup.h"
 #include "render/batches_manager.h"
+#include "render/render_graph.h"
 #include "render/sampler.h"
 #include "render/scene.h"
 
@@ -54,7 +54,7 @@ namespace render
 
 		const ui::UI& ui_;
 		
-		FramebufferCollection framebuffer_collection;
+		RenderGraph render_graph_;
 
 		ModelSceneDescSetHolder model_scene_;
 		UIScene ui_scene_;

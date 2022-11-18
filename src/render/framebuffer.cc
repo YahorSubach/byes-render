@@ -24,6 +24,11 @@ render::Extent render::Framebuffer::GetExtent() const
 	return extent_;
 }
 
+const std::vector<std::reference_wrapper<const render::ImageView>>& render::Framebuffer::GetAttachments() const
+{
+	return image_views_;
+}
+
 //void render::Framebuffer::Build(const RenderPass2& render_pass)
 //{
 //	if (handle_ != VK_NULL_HANDLE)

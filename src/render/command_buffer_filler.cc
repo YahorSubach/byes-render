@@ -106,11 +106,10 @@ void render::CommandBufferFiller::Fill(VkCommandBuffer command_buffer, std::vect
 	}
 }
 
-void render::CommandBufferFiller::ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets)
+void render::CommandBufferFiller::ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const
 {
 	uint32_t sequence_begin = 0;
 	std::vector<VkDescriptorSet> desc_sets_to_bind;
-
 
 	for (auto&& [set_id, set_layout] : pipeline_desc_sets)
 	{

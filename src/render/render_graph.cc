@@ -1,5 +1,8 @@
 #include "render_graph.h"
 
+#include <stack>
+#include <queue>
+
 //enum class FramebufferId
 //{
 //	kGBuffers,
@@ -44,7 +47,7 @@
 //},
 
 
-render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, const Image& presentation_image): RenderObjBase(device_cfg), presentation_image_view_(device_cfg, presentation_image)
+render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, const Image& presentation_image) : RenderObjBase(device_cfg), presentation_image_view_(device_cfg, presentation_image)
 {
 	auto&& [g_albedo_image, g_albedo_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent);
 	auto&& [g_position_image, g_position_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent);
@@ -64,6 +67,18 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 
 	presentation_framebuffer.AddAttachment("swapchain_image", presentation_image_view_);
 
+
+	auto&& g_fill_batch = collection_.CreateBatch();
+	auto&& g_collect_batch = collection_.CreateBatch();
+
+	g_fill_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kBuildGBuffers), g_framebuffer, {render_setup.GetPipeline(PipelineId::kBuildGBuffers)} });
+
+	g_collect_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kCollectGBuffers), presentation_framebuffer, {render_setup.GetPipeline(PipelineId::kCollectGBuffers)} });
+
+	g_fill_batch.dependencies.push_back({ g_collect_batch, g_albedo_image });
+	g_fill_batch.dependencies.push_back({ g_collect_batch, g_position_image });
+	g_fill_batch.dependencies.push_back({ g_collect_batch, g_normal_image });
+	g_fill_batch.dependencies.push_back({ g_collect_batch, g_metallic_roughness_image });
 }
 
 render::RenderGraph::~RenderGraph()
@@ -83,7 +98,13 @@ render::Framebuffer& render::RenderGraph::RenderCollection::CreateFramebuffer(co
 	return frambuffers.back();
 }
 
-bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer) const
+render::RenderGraph::RenderBatch& render::RenderGraph::RenderCollection::CreateBatch()
+{
+	render_batches.push_back({});
+	return render_batches.back();
+}
+
+bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, const SceneRenderNode& scene) const
 {
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -94,91 +115,266 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer) cons
 		throw std::runtime_error("failed to begin recording command buffer!");
 	}
 
-	for (auto&& render_pass_info : render_info)
+
+	for (auto&& batch : collection_.render_batches)
 	{
-		const Framebuffer& framebuffer = render_pass_info.framebuffer_id == FramebufferId::kScreen ? screen_buffer : framebuffer_collection_.GetFramebuffer(render_pass_info.framebuffer_id);
+		batch.processed = false;
+	}
 
-		VkRenderPassBeginInfo render_pass_begin_info{};
-		render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		render_pass_begin_info.renderPass = render_setup_.GetRenderPass(render_pass_info.render_pass_id).GetHandle();
-		render_pass_begin_info.framebuffer = framebuffer.GetHandle();
+	std::queue<std::reference_wrapper<const RenderBatch>> batches_to_process;
+	batches_to_process.push(collection_.render_batches.front());
 
-		render_pass_begin_info.renderArea.offset = { 0, 0 };
-		render_pass_begin_info.renderArea.extent = framebuffer.GetExtent();
+	while (!batches_to_process.empty())
+	{
+		auto&& current_batch = batches_to_process.front().get();
+		batches_to_process.pop();
 
-		std::vector<VkClearValue> clear_value(framebuffer.GetClearValues().size());
-
-		for (int i = 0; i < framebuffer.GetClearValues().size(); i++)
+		bool final_pass = false;
+		for (auto&& render_pass_node : current_batch.render_passes)
 		{
-			clear_value[i].color.float32[0] = framebuffer.GetClearValues()[i].color[0];
-			clear_value[i].color.float32[1] = framebuffer.GetClearValues()[i].color[1];
-			clear_value[i].color.float32[2] = framebuffer.GetClearValues()[i].color[2];
-			clear_value[i].color.float32[3] = framebuffer.GetClearValues()[i].color[3];
+			VkRenderPassBeginInfo render_pass_begin_info{};
+			render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			render_pass_begin_info.renderPass = render_pass_node.render_pass.GetHandle();
+			render_pass_begin_info.framebuffer = render_pass_node.framebuffer.GetHandle();
 
-			clear_value[i].depthStencil.depth = framebuffer.GetClearValues()[i].depth;
-			clear_value[i].depthStencil.stencil = framebuffer.GetClearValues()[i].stencil;
-		}
+			render_pass_begin_info.renderArea.offset = { 0, 0 };
+			render_pass_begin_info.renderArea.extent = render_pass_node.framebuffer.GetExtent();
 
-		render_pass_begin_info.clearValueCount = static_cast<uint32_t>(clear_value.size());
-		render_pass_begin_info.pClearValues = clear_value.data();
-
-		vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-		int set_ind = 0;
-
-
-
-		for (auto&& pipeline_info : render_pass_info.pipelines)
-		{
-			auto&& pipeline = render_setup_.GetPipeline(pipeline_info.id);
-			auto&& pipeline_layout = pipeline.GetLayout();
-
-			vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
-
-			const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = pipeline.GetDescriptorSets();
-
-			ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, pipeline_info.scene.GetDescriptorSets());
-
-			for (auto&& child : pipeline_info.scene.GetChildren())
+			std::vector<VkClearValue> clear_values(render_pass_node.framebuffer.GetAttachments().size());
+			int index = 0;
+			for (auto&& attachment : render_pass_node.framebuffer.GetAttachments())
 			{
-				if (child.GetPrimitives().begin()->type != pipeline_info.primitive_type)
-					continue;
-
-				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.GetDescriptorSets());
-
-				std::vector<VkBuffer> vert_bufs;
-				std::vector<VkDeviceSize> offsetes;
-
-				stl_util::size<uint32_t>(offsetes);
-
-				for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
+				if (attachment.get().CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
 				{
-					if (buf.buffer)
-					{
-						vert_bufs.push_back(buf.buffer->GetHandle());
-						offsetes.push_back(buf.offset);
-					}
-				}
-
-
-				vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
-				vkCmdBindIndexBuffer(command_buffer, child.GetPrimitives().begin()->indices.buffer->GetHandle(), child.GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
-
-				if (pipeline_info.id == PipelineId::kCollectGBuffers)
-				{
-					vkCmdDraw(command_buffer, 6, 1, 0, 0);
+					clear_values[index].color = VkClearColorValue{ {0.0f, 0.0f, 0.0f, 1.0f} };
 				}
 				else
 				{
-					vkCmdDrawIndexed(command_buffer, u32(child.GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
+					clear_values[index].depthStencil = { 1.0f, 0 };
+				}
+				index++;
+			}
+
+			render_pass_begin_info.clearValueCount = static_cast<uint32_t>(clear_values.size());
+			render_pass_begin_info.pClearValues = clear_values.data();
+
+			vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+			for (auto&& pipeline : render_pass_node.pipelines)
+			{
+				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get().GetHandle());
+
+				const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = pipeline.get().GetDescriptorSets();
+
+				auto&& pipeline_layout = pipeline.get().GetLayout();
+
+				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene.GetDescriptorSets());
+
+				for (auto&& child : scene.GetChildren())
+				{
+					//if (child.GetPrimitives().begin()->type != pipeline_info.primitive_type)
+					//	continue;
+
+					ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.GetDescriptorSets());
+
+					std::vector<VkBuffer> vert_bufs;
+					std::vector<VkDeviceSize> offsetes;
+
+					stl_util::size<uint32_t>(offsetes);
+
+					for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
+					{
+						if (buf.buffer)
+						{
+							vert_bufs.push_back(buf.buffer->GetHandle());
+							offsetes.push_back(buf.offset);
+						}
+					}
+
+
+					vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
+					vkCmdBindIndexBuffer(command_buffer, child.GetPrimitives().begin()->indices.buffer->GetHandle(), child.GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
+
+					if (final_pass)
+					{
+						vkCmdDraw(command_buffer, 6, 1, 0, 0);
+					}
+					else
+					{
+						vkCmdDrawIndexed(command_buffer, u32(child.GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
+					}
 				}
 			}
+
+			vkCmdEndRenderPass(command_buffer);
+
+			final_pass = true;
 		}
 
-		vkCmdEndRenderPass(command_buffer);
-	}
+		std::vector<VkImageMemoryBarrier2> vk_barriers;
+		for (auto&& dependency : current_batch.dependencies)
+		{
+			if (!dependency.first.processed)
+			{
+				dependency.first.processed = true;
+				batches_to_process.push(dependency.first);
+			}
 
+			VkStructureType            sType;
+			const void* pNext;
+			VkPipelineStageFlags2      srcStageMask;
+			VkAccessFlags2             srcAccessMask;
+			VkPipelineStageFlags2      dstStageMask;
+			VkAccessFlags2             dstAccessMask;
+			VkImageLayout              oldLayout;
+			VkImageLayout              newLayout;
+			uint32_t                   srcQueueFamilyIndex;
+			uint32_t                   dstQueueFamilyIndex;
+			VkImage                    image;
+			VkImageSubresourceRange    subresourceRange;
+
+			VkImageMemoryBarrier2 barrier;
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			barrier.pNext = nullptr;
+			barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+			barrier.srcStageMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+			barrier.srcStageMask = VK_ACCESS_2_SHADER_READ_BIT;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcQueueFamilyIndex = device_cfg_.graphics_queue_index;
+			barrier.dstQueueFamilyIndex = device_cfg_.graphics_queue_index;
+			barrier.image = dependency.second.GetHandle();
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.baseArrayLayer = 0;
+
+			vk_barriers.push_back(barrier);
+		}
+
+		if (vk_barriers.size() > 0)
+		{
+			VkDependencyInfo vk_dependency_info;
+			vk_dependency_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			vk_dependency_info.pNext = nullptr;
+			vk_dependency_info.dependencyFlags = 0;
+			vk_dependency_info.memoryBarrierCount = 0;
+			vk_dependency_info.pMemoryBarriers = nullptr;
+			vk_dependency_info.bufferMemoryBarrierCount = 0;
+			vk_dependency_info.pBufferMemoryBarriers = nullptr;
+			vk_dependency_info.imageMemoryBarrierCount = vk_barriers.size();
+			vk_dependency_info.pImageMemoryBarriers = vk_barriers.data();
+
+			vkCmdPipelineBarrier2(command_buffer, &vk_dependency_info);
+		}
+	}
 	if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
 		throw std::runtime_error("failed to record command buffer!");
+	}
+}
+
+
+
+
+
+
+
+//for (auto&& render_pass_info : render_info)
+//{
+//	const Framebuffer& framebuffer = render_pass_info.framebuffer_id == FramebufferId::kScreen ? screen_buffer : framebuffer_collection_.GetFramebuffer(render_pass_info.framebuffer_id);
+
+//	
+
+//	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+//	int set_ind = 0;
+
+
+
+//	for (auto&& pipeline_info : render_pass_info.pipelines)
+//	{
+//		auto&& pipeline = render_setup_.GetPipeline(pipeline_info.id);
+//		auto&& pipeline_layout = pipeline.GetLayout();
+
+//		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
+
+//		const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = pipeline.GetDescriptorSets();
+
+//		ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, pipeline_info.scene.GetDescriptorSets());
+
+//		for (auto&& child : pipeline_info.scene.GetChildren())
+//		{
+//			if (child.GetPrimitives().begin()->type != pipeline_info.primitive_type)
+//				continue;
+
+//			ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.GetDescriptorSets());
+
+//			std::vector<VkBuffer> vert_bufs;
+//			std::vector<VkDeviceSize> offsetes;
+
+//			stl_util::size<uint32_t>(offsetes);
+
+//			for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
+//			{
+//				if (buf.buffer)
+//				{
+//					vert_bufs.push_back(buf.buffer->GetHandle());
+//					offsetes.push_back(buf.offset);
+//				}
+//			}
+
+
+//			vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
+//			vkCmdBindIndexBuffer(command_buffer, child.GetPrimitives().begin()->indices.buffer->GetHandle(), child.GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
+
+//			if (pipeline_info.id == PipelineId::kCollectGBuffers)
+//			{
+//				vkCmdDraw(command_buffer, 6, 1, 0, 0);
+//			}
+//			else
+//			{
+//				vkCmdDrawIndexed(command_buffer, u32(child.GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
+//			}
+//		}
+//	}
+
+//	vkCmdEndRenderPass(command_buffer);
+//}
+
+
+
+
+void render::RenderGraph::ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const
+{
+	uint32_t sequence_begin = 0;
+	std::vector<VkDescriptorSet> desc_sets_to_bind;
+
+
+	for (auto&& [set_id, set_layout] : pipeline_desc_sets)
+	{
+		if (auto&& holder_set = holder_desc_sets.find(set_layout.GetType()); holder_set != holder_desc_sets.end())
+		{
+			if (desc_sets_to_bind.size() == 0)
+			{
+				sequence_begin = set_id;
+			}
+
+			desc_sets_to_bind.push_back(holder_set->second);
+		}
+		else
+		{
+			if (desc_sets_to_bind.size() != 0)
+			{
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, sequence_begin, u32(desc_sets_to_bind.size()), desc_sets_to_bind.data(), 0, nullptr);
+				desc_sets_to_bind.clear();
+			}
+		}
+	}
+
+	if (desc_sets_to_bind.size() != 0)
+	{
+		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, sequence_begin, u32(desc_sets_to_bind.size()), desc_sets_to_bind.data(), 0, nullptr);
+		desc_sets_to_bind.clear();
 	}
 }

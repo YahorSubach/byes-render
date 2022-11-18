@@ -12,6 +12,7 @@
 #include "render/object_base.h"
 #include "render/graphics_pipeline.h"
 #include "render/render_setup.h"
+#include "render/scene.h"
 
 
 namespace render
@@ -28,42 +29,42 @@ namespace render
 		RenderGraph& operator=(RenderGraph&&) = default;
 
 
-		bool FillCommandBuffer(VkCommandBuffer command_buffer) const;
+		bool FillCommandBuffer(VkCommandBuffer command_buffer, const SceneRenderNode& scene) const;
 
 
 		virtual ~RenderGraph() override;
 	
-		struct RenderCollection
-		{
-			std::pair<Image&, ImageView&> CreateImage(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent);
-			Framebuffer& CreateFramebuffer(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass);
-			std::vector<Image> images;
-			std::vector<ImageView> image_views;
-			std::vector<Framebuffer> frambuffers;
-		};
+
 
 
 	private:
 
+		void ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const;
+
 		struct RenderPassNode
 		{
 			const RenderPass& render_pass;
-			std::vector<std::reference_wrapper<GraphicsPipeline>> pipelines;
+			const Framebuffer& framebuffer;
+			std::vector<std::reference_wrapper<const GraphicsPipeline>> pipelines;
 		};
 
-		struct RenderNode
+		struct RenderBatch
 		{
 			std::vector<RenderPassNode> render_passes;
-			std::vector<std::reference_wrapper<GraphicsPipeline>> pipelines;
+			std::vector<std::pair<const RenderBatch&, const Image&>> dependencies;
+			mutable bool processed;
 		};
 
-		struct RenderNodeAttachmetnDependency
+		struct RenderCollection
 		{
-			const ImageView& attachment;
-			const RenderNode& depend_node;
+			std::pair<Image&, ImageView&> CreateImage(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent);
+			Framebuffer& CreateFramebuffer(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass);
+			RenderBatch& CreateBatch();
+			std::vector<Image> images;
+			std::vector<ImageView> image_views;
+			std::vector<Framebuffer> frambuffers;
+			std::vector<RenderBatch> render_batches;
 		};
-
-		
 
 		ImageView presentation_image_view_;
 		RenderCollection collection_;
