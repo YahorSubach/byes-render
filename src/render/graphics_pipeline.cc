@@ -103,7 +103,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	//TODO: configure blend
 
-	std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_states(render_pass.GetAttachmentsCnt());
+	std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_states(render_pass.GetColorAttachmentsCnt());
 
 	for (auto&& color_blend_attachment : blend_attachment_states)
 	{
@@ -123,7 +123,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	color_blending.logicOpEnable = VK_FALSE;
 	color_blending.logicOp = VK_LOGIC_OP_COPY; // Optional
-	color_blending.attachmentCount = render_pass.GetAttachmentsCnt();
+	color_blending.attachmentCount = blend_attachment_states.size();
 	color_blending.pAttachments = blend_attachment_states.data();
 	color_blending.blendConstants[0] = 0.0f; // Optional
 	color_blending.blendConstants[1] = 0.0f; // Optional

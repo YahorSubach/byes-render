@@ -6,6 +6,7 @@
 
 #include <variant>
 #include <vector>
+#include <set>
 #include <functional>
 
 #include "render/object_base.h"
@@ -65,6 +66,7 @@ namespace render
 		const RenderPass& render_pass_;
 
 		std::vector<std::reference_wrapper<const ImageView>> image_views_;
+		std::set<std::string> attached_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_FRAMEBUFFER_H_

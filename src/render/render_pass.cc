@@ -6,7 +6,7 @@
 
 #include "common.h"
 
-render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, bool use_swapchain_image): LazyRenderObj(device_cfg), use_swapchain_image_(use_swapchain_image)
+render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, bool use_swapchain_image): LazyRenderObj(device_cfg), use_swapchain_image_(use_swapchain_image), contains_depth_attachment_(false)
 {
 	
 
@@ -14,6 +14,8 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, bool use_s
 
 int render::RenderPass::AddColorAttachment(const std::string_view& name)
 {
+	assert(handle_ == VK_NULL_HANDLE);
+
 	attachments_.push_back({ name.data(), false});
 
 	attachments_.back().desc.format = device_cfg_.g_buffer_format;
@@ -30,7 +32,11 @@ int render::RenderPass::AddColorAttachment(const std::string_view& name)
 
 int render::RenderPass::AddDepthAttachment(const std::string_view& name)
 {
+	assert(handle_ == VK_NULL_HANDLE);
 	assert(!depth_attachment_);
+
+	contains_depth_attachment_ = true;
+
 	attachments_.push_back({ name.data(), true});
 
 	attachments_.back().desc.format = device_cfg_.depth_map_format;
@@ -40,14 +46,14 @@ int render::RenderPass::AddDepthAttachment(const std::string_view& name)
 	attachments_.back().desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments_.back().desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 	attachments_.back().desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments_.back().desc.finalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachments_.back().desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	return attachments_.size() - 1;
 }
 
 int render::RenderPass::GetAttachmentIndex(const std::string_view& name) const
 {
-	auto&& it = std::find_if(attachments_.begin(), attachments_.begin(), [&name](const Attachment& a) {return a.name == name; });
+	auto&& it = std::find_if(attachments_.begin(), attachments_.end(), [&name](const Attachment& a) {return a.name == name; });
 
 	if (it != attachments_.end())
 		return (it - attachments_.begin());
@@ -57,6 +63,14 @@ int render::RenderPass::GetAttachmentIndex(const std::string_view& name) const
 
 int render::RenderPass::GetAttachmentsCnt() const
 {
+	return attachments_.size();
+}
+
+int render::RenderPass::GetColorAttachmentsCnt() const
+{
+	if(contains_depth_attachment_)
+		return attachments_.size() - 1;
+
 	return attachments_.size();
 }
 
@@ -381,7 +395,7 @@ bool render::RenderPass::InitHandle() const
 			if (attachments_[att_ref_ind].is_depth_attachment)
 			{
 				subpasses_depth_refs[subpass_ind].attachment = att_ref_ind;
-				subpasses_depth_refs[subpass_ind].layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+				subpasses_depth_refs[subpass_ind].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 				subpasses[subpass_ind].pDepthStencilAttachment = &subpasses_depth_refs[subpass_ind];
 			}
 			else
@@ -412,6 +426,8 @@ bool render::RenderPass::InitHandle() const
 
 			vk_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 			vk_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+			vk_dependency.dependencyFlags = 0;
 
 			dependencies.push_back(vk_dependency);
 		}

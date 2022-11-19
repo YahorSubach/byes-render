@@ -63,6 +63,7 @@ namespace render
 		int AddDepthAttachment(const std::string_view& name);
 		int GetAttachmentIndex(const std::string_view& name) const;
 		int GetAttachmentsCnt() const;
+		int GetColorAttachmentsCnt() const;
 		const Attachment& GetAttachmentByIndex(int index) const;
 
 		//static RenderPassDesc BuildRenderPassDesc(RenderPassId type, VkFormat color_format, VkFormat depth_format);
@@ -77,6 +78,8 @@ namespace render
 		virtual ~RenderPass() override;
 
 	private:
+
+		bool contains_depth_attachment_;
 
 		std::vector<Attachment> attachments_;
 		std::vector<Attachment> depth_attachments_;

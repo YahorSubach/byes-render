@@ -91,7 +91,7 @@ namespace render
 			kFragmentRead,
 		};
 
-		Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const void* pixels);
+		Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const unsigned char* pixels);
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent);
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle);
 
@@ -123,7 +123,7 @@ namespace render
 
 		void GenerateMipMaps() const;
 
-		mutable std::unique_ptr<Buffer> data_;
+		mutable std::unique_ptr<std::vector<unsigned char>> pixels_data_;
 		mutable std::unique_ptr<Memory> memory_;
 
 		VkFormat format_;

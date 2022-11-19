@@ -5,24 +5,24 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent) : LazyRenderObj(device_cfg), format_(format), extent_(extent), holds_external_handle_(false)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent) : LazyRenderObj(device_cfg), format_(format), extent_(extent), holds_external_handle_(false), usage_(0), mipmap_levels_count_(1)
 {
 	//mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
 
 	
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : LazyRenderObj(device_cfg), format_(format), mipmap_levels_count_(1), holds_external_handle_(true)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle) : LazyRenderObj(device_cfg), format_(format), mipmap_levels_count_(1), holds_external_handle_(true), usage_(0), extent_(0,0)
 {
 	handle_ = image_handle;
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const void* pixels): Image(device_cfg, format, extent)
+render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const unsigned char* pixels): Image(device_cfg, format, extent)
 {
 	VkDeviceSize image_size = extent.width * extent.height * 4;
-
-	data_ = std::make_unique<Buffer>(device_cfg, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	data_->LoadData(pixels, image_size);
+	pixels_data_ = std::make_unique<std::vector<unsigned char>>(image_size);
+	pixels_data_->reserve(image_size);
+	pixels_data_->assign(pixels, pixels + image_size);
 }
 
 render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, const std::string_view& path)
@@ -196,8 +196,13 @@ bool render::Image::InitHandle() const
 	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	image_info.usage = 0;
+	if (pixels_data_)
+	{
+		AddUsageFlag(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+	}
 
+	image_info.usage = usage_;
+	
 	//if (image_properties_.Check(ImageProperty::kShaderInput)) image_info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 	//if (image_properties_.Check(ImageProperty::kColorAttachment)) image_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	//if (image_properties_.Check(ImageProperty::kDepthAttachment)) image_info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -228,14 +233,19 @@ bool render::Image::InitHandle() const
 	vkGetImageMemoryRequirements(device_cfg_.logical_device, handle_, &mem_requirements);
 
 	memory_ = std::make_unique<Memory>(device_cfg_, mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	vkBindImageMemory(device_cfg_.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 
-	if (data_)
+	if (pixels_data_)
 	{
+		Buffer staging_buffer(device_cfg_, pixels_data_->size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		staging_buffer.LoadData(pixels_data_->data(), pixels_data_->size());
+		pixels_data_.reset();
+
 		TransitionImageLayout(*device_cfg_.graphics_cmd_pool, TransitionType::kTransferDst);
-		CopyBuffer(*device_cfg_.transfer_cmd_pool, *data_, extent_);
-		GenerateMipMaps();
-		data_.reset();
+		CopyBuffer(*device_cfg_.transfer_cmd_pool, staging_buffer, extent_);
 	}
+	
+	//GenerateMipMaps();
 
 	return true;
 }

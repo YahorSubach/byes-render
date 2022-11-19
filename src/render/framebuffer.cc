@@ -58,6 +58,9 @@ const std::vector<std::reference_wrapper<const render::ImageView>>& render::Fram
 
 int render::Framebuffer::AddAttachment(const std::string_view& name, const ImageView& image_view)
 {
+	assert(attached_.count(std::string(name)) == 0);
+	attached_.insert(std::string(name));
+	
 	int framebuffer_index = render_pass_.GetAttachmentIndex(name);
 	assert(framebuffer_index >= 0);
 
@@ -96,7 +99,7 @@ bool render::Framebuffer::InitHandle() const
 	framebuffer_info.height = extent_.height;
 	framebuffer_info.layers = 1;
 
-	framebuffer_info.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
+	framebuffer_info.flags = 0;
 
 	if (vkCreateFramebuffer(device_cfg_.logical_device, &framebuffer_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");

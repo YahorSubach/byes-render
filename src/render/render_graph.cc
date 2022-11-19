@@ -49,12 +49,19 @@
 
 render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene) : RenderObjBase(device_cfg)
 {
+	//TODO fuck! You really have to change this return of push back logic
+	collection_.images.reserve(16);
+	collection_.image_views.reserve(16);
+	collection_.frambuffers.reserve(16);
+	collection_.render_batches.reserve(16);
+
+
 	auto&& [g_albedo_image, g_albedo_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent);
 	auto&& [g_position_image, g_position_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent);
 	auto&& [g_normal_image, g_normal_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent);
 	auto&& [g_metallic_roughness_image, g_metallic_roughness_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent);
 
-	auto&& [g_depth_image, g_depth_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.depth_map_format, device_cfg_.depth_map_extent);
+	auto&& [g_depth_image, g_depth_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.depth_map_format, device_cfg_.presentation_extent);
 
 	auto&& g_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kBuildGBuffers));
 	//auto&& presentation_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen));
@@ -84,6 +91,7 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 	scene.g_position_image = g_position_image;
 	scene.g_normal_image = g_normal_image;
 	scene.g_metal_rough_image = g_metallic_roughness_image;
+	scene.g_depth_image = g_depth_image;
 }
 
 render::RenderGraph::~RenderGraph()

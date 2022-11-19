@@ -68,6 +68,7 @@ namespace render
 		{
 			image_view_.Assign(*(new_data.GetImage()));
 			sampler_ = new_data.GetSampler();
+			image_view_.AddUsageFlag(VK_IMAGE_USAGE_SAMPLED_BIT);
 		}
 
 		void FillWriteDescriptorSet(VkWriteDescriptorSet& write_desc_set)
