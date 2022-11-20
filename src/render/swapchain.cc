@@ -50,6 +50,9 @@ render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surfac
 			{
 				auto image_handles = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_cfg_.logical_device, handle_);
 
+				images_.reserve(16);
+				image_views_.reserve(16);
+
 				for (auto&& image_handle : image_handles)
 				{
 					images_.push_back(Image(device_cfg, surface_format.format, image_handle/*, {ImageProperty::kShouldNotFreeHandle}*/));

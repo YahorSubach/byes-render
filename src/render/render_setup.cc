@@ -23,7 +23,7 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 
 
 	render_passes_.emplace(RenderPassId::kBuildDepthmap, RenderPass(device_cfg_));
-	render_passes_.at(RenderPassId::kBuildDepthmap).AddDepthAttachment("depth_image");
+	render_passes_.at(RenderPassId::kBuildDepthmap).AddDepthAttachment("shadowmap");
 
 	render_passes_.emplace(RenderPassId::kBuildGBuffers, RenderPass(device_cfg_));
 	render_passes_.at(RenderPassId::kBuildGBuffers).AddColorAttachment("g_albedo");

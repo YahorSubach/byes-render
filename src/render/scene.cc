@@ -146,7 +146,7 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
 {
-	data.shadow_map = g_depth_image;
+	data.shadow_map = shadowmap_image;
 	data.shadow_map_sampler = shadow_sampler_;
 }
 

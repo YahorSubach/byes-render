@@ -25,7 +25,7 @@ namespace render::platform
 
 	bool IsWindowClosed(Window window);
 
-	const std::vector<const char*>& GetRequiredExtensions();
+	const std::vector<const char*>& GetRequiredInstanceExtensions();
 
 	bool GetPhysicalDevicePresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex);
 

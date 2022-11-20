@@ -63,6 +63,13 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 
 	auto&& [g_depth_image, g_depth_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.depth_map_format, device_cfg_.presentation_extent);
 
+	auto&& [g_shadowmap_image, g_shadowmap_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.depth_map_format, device_cfg_.shadowmap_extent);
+
+
+	auto&& shadowmap_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.shadowmap_extent, render_setup.GetRenderPass(RenderPassId::kBuildDepthmap));
+	shadowmap_framebuffer.AddAttachment("shadowmap", g_shadowmap_image_view);
+
+
 	auto&& g_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kBuildGBuffers));
 	//auto&& presentation_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen));
 
@@ -75,23 +82,28 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 	//presentation_framebuffer.AddAttachment("swapchain_image", presentation_image_view_);
 
 
+	auto&& shadowmap_batch = collection_.CreateBatch();
 	auto&& g_fill_batch = collection_.CreateBatch();
 	auto&& g_collect_batch = collection_.CreateBatch();
 
+	shadowmap_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kBuildDepthmap), shadowmap_framebuffer, {render_setup.GetPipeline(PipelineId::kDepth)} });
 	g_fill_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kBuildGBuffers), g_framebuffer, {render_setup.GetPipeline(PipelineId::kBuildGBuffers)} });
-
 	g_collect_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kCollectGBuffers), {}, {render_setup.GetPipeline(PipelineId::kCollectGBuffers)} });
+
+	shadowmap_batch.dependencies.push_back({ g_fill_batch, g_shadowmap_image});
 
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_albedo_image });
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_position_image });
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_normal_image });
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_metallic_roughness_image });
+	g_fill_batch.dependencies.push_back({ g_collect_batch, g_depth_image });
 
 	scene.g_albedo_image = g_albedo_image;
 	scene.g_position_image = g_position_image;
 	scene.g_normal_image = g_normal_image;
 	scene.g_metal_rough_image = g_metallic_roughness_image;
-	scene.g_depth_image = g_depth_image;
+
+	scene.shadowmap_image = g_shadowmap_image;
 }
 
 render::RenderGraph::~RenderGraph()
@@ -124,7 +136,9 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 	begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT; // Optional
 	begin_info.pInheritanceInfo = nullptr; // Optional
 
-	if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
+	VkResult result;
+
+	if (result = vkBeginCommandBuffer(command_buffer, &begin_info); result != VK_SUCCESS) {
 		throw std::runtime_error("failed to begin recording command buffer!");
 	}
 
@@ -154,14 +168,14 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 			VkRenderPassBeginInfo render_pass_begin_info{};
 			render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			render_pass_begin_info.renderPass = render_pass_node.render_pass.GetHandle();
-			render_pass_begin_info.framebuffer = render_pass_node.framebuffer->GetHandle();
+			render_pass_begin_info.framebuffer = frambuffer->GetHandle();
 
 			render_pass_begin_info.renderArea.offset = { 0, 0 };
-			render_pass_begin_info.renderArea.extent = render_pass_node.framebuffer->GetExtent();
+			render_pass_begin_info.renderArea.extent = frambuffer->GetExtent();
 
-			std::vector<VkClearValue> clear_values(render_pass_node.framebuffer->GetAttachments().size());
+			std::vector<VkClearValue> clear_values(frambuffer->GetAttachments().size());
 			int index = 0;
-			for (auto&& attachment : render_pass_node.framebuffer->GetAttachments())
+			for (auto&& attachment : frambuffer->GetAttachments())
 			{
 				if (attachment.get().CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
 				{
@@ -256,18 +270,19 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			barrier.pNext = nullptr;
 			barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-			barrier.srcStageMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-			barrier.srcStageMask = VK_ACCESS_2_SHADER_READ_BIT;
-			barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			barrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT;
+			barrier.oldLayout = dependency.second.CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			barrier.srcQueueFamilyIndex = device_cfg_.graphics_queue_index;
 			barrier.dstQueueFamilyIndex = device_cfg_.graphics_queue_index;
 			barrier.image = dependency.second.GetHandle();
-			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.aspectMask = dependency.second.CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
 			barrier.subresourceRange.baseMipLevel = 0;
 			barrier.subresourceRange.levelCount = 1;
 			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = 1;
 
 			vk_barriers.push_back(barrier);
 		}
@@ -277,7 +292,7 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 			VkDependencyInfo vk_dependency_info;
 			vk_dependency_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
 			vk_dependency_info.pNext = nullptr;
-			vk_dependency_info.dependencyFlags = 0;
+			vk_dependency_info.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 			vk_dependency_info.memoryBarrierCount = 0;
 			vk_dependency_info.pMemoryBarriers = nullptr;
 			vk_dependency_info.bufferMemoryBarrierCount = 0;

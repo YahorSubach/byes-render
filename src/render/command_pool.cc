@@ -83,7 +83,7 @@ void render::CommandPool::ExecuteOneTimeCommand(const std::function<void(VkComma
 	alloc_info.commandBufferCount = 1;
 
 	VkCommandBuffer command_buffer;
-	vkAllocateCommandBuffers(device_cfg_.logical_device, &alloc_info, &command_buffer);
+	VkResult res = vkAllocateCommandBuffers(device_cfg_.logical_device, &alloc_info, &command_buffer);
 
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

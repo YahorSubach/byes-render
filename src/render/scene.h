@@ -107,7 +107,8 @@ namespace render
 		stl_util::NullableRef<const Image> g_position_image;
 		stl_util::NullableRef<const Image> g_normal_image;
 		stl_util::NullableRef<const Image> g_metal_rough_image;
-		stl_util::NullableRef<const Image> g_depth_image;
+
+		stl_util::NullableRef<const Image> shadowmap_image;
 
 	private:
 		

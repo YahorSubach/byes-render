@@ -72,7 +72,7 @@ namespace render
 		stl_util::NullableRef<Image> default_image;
 
 		Extent presentation_extent;
-		Extent depth_map_extent = {512, 512};
+		Extent shadowmap_extent = {512, 512};
 
 		VkFormat presentation_format;
 		VkFormat depth_map_format = VK_FORMAT_D32_SFLOAT;

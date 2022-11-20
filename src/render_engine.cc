@@ -91,7 +91,7 @@ namespace render
 				return;
 			}
 
-			if (!stl_util::All(platform::GetRequiredExtensions(), vk_instance_extensions_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
+			if (!stl_util::All(platform::GetRequiredInstanceExtensions(), vk_instance_extensions_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
 			{
 				LOG(err, "Required platform Extension missing");
 				return;
@@ -109,7 +109,7 @@ namespace render
 				return;
 			}
 
-			application_info_.apiVersion = VK_MAKE_API_VERSION(0, 1, 1, 0); // CHECK WHAT DOES THIS MEAN!
+			application_info_.apiVersion = VK_MAKE_API_VERSION(0, 1, 3, 0); // CHECK WHAT DOES THIS MEAN!
 			application_info_.applicationVersion = 1;
 			application_info_.engineVersion = 1;
 			application_info_.pApplicationName = "vulkan_concepts";
@@ -118,8 +118,8 @@ namespace render
 			application_info_.pNext = nullptr;
 
 			VkInstanceCreateInfo instance_create_info{};
-			instance_create_info.enabledExtensionCount = static_cast<uint32_t>(platform::GetRequiredExtensions().size());
-			instance_create_info.ppEnabledExtensionNames = platform::GetRequiredExtensions().data();
+			instance_create_info.enabledExtensionCount = static_cast<uint32_t>(platform::GetRequiredInstanceExtensions().size());
+			instance_create_info.ppEnabledExtensionNames = platform::GetRequiredInstanceExtensions().data();
 			instance_create_info.enabledLayerCount = static_cast<uint32_t>(GetValidationLayers().size());
 			instance_create_info.ppEnabledLayerNames = GetValidationLayers().data();
 			instance_create_info.pApplicationInfo = &application_info_;
@@ -401,9 +401,9 @@ namespace render
 
 	private:
 
-		const std::vector<const char*>& GetRequiredExtensions()
+		const std::vector<const char*>& GetRequiredDeviceExtensions()
 		{
-			static const std::vector<const char*> extensions{ "VK_KHR_swapchain" };
+			static const std::vector<const char*> extensions{ "VK_KHR_swapchain", "VK_KHR_synchronization2"};
 			return extensions;
 		}
 
@@ -580,14 +580,25 @@ namespace render
 				vkGetPhysicalDeviceFeatures(physical_device, &it->second);
 
 				VkPhysicalDeviceFeatures2 features2;
-				VkPhysicalDeviceImagelessFramebufferFeatures imageless_features;
-				imageless_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
-				imageless_features.pNext = nullptr;
+				//VkPhysicalDeviceImagelessFramebufferFeatures imageless_features;
+				VkPhysicalDeviceSynchronization2Features synchronization2_features;
+				VkPhysicalDeviceVulkan13Features vk13_features;
 
 				features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-				features2.pNext = &imageless_features;
+				features2.pNext = &synchronization2_features;
+
+				//imageless_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
+				//imageless_features.pNext = &synchronization2_features;
+
+				synchronization2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+				synchronization2_features.pNext = &vk13_features;
+
+				vk13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+				vk13_features.pNext = nullptr;
+
+
 				vkGetPhysicalDeviceFeatures2(physical_device, &features2);
-				auto next = features2.pNext;
+				int a = 1;
 			}
 		}
 
@@ -663,20 +674,30 @@ namespace render
 		{
 			VkDeviceCreateInfo logical_device_create_info{};
 
-			if (stl_util::All(GetRequiredExtensions(), vk_physical_devices_extensions_[physical_device], [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
+			if (stl_util::All(GetRequiredDeviceExtensions(), vk_physical_devices_extensions_[physical_device], [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
 			{
-				logical_device_create_info.enabledExtensionCount = static_cast<uint32_t>(GetRequiredExtensions().size());
-				logical_device_create_info.ppEnabledExtensionNames = GetRequiredExtensions().data();
+				logical_device_create_info.enabledExtensionCount = static_cast<uint32_t>(GetRequiredDeviceExtensions().size());
+				logical_device_create_info.ppEnabledExtensionNames = GetRequiredDeviceExtensions().data();
 			}
 			else return false;
 
-			VkPhysicalDeviceImagelessFramebufferFeatures imageless_features;
-			imageless_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
-			imageless_features.pNext = nullptr;
-			imageless_features.imagelessFramebuffer = VK_TRUE;
+			//VkPhysicalDeviceImagelessFramebufferFeatures imageless_features;
+			//imageless_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
+			//imageless_features.pNext = nullptr;
+			//imageless_features.imagelessFramebuffer = VK_TRUE;
+			//VkPhysicalDeviceSynchronization2Features vk_synchronization2_features = {};
+			VkPhysicalDeviceVulkan13Features vk13_features = {};
+
+			//vk_synchronization2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+			//vk_synchronization2_features.synchronization2 = VK_TRUE;
+			//vk_synchronization2_features.pNext = &vk13_features;
+
+			vk13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+			vk13_features.synchronization2 = VK_TRUE;
+			vk13_features.pNext = nullptr;
 
 			logical_device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-			logical_device_create_info.pNext = &imageless_features;
+			logical_device_create_info.pNext = &vk13_features;
 			logical_device_create_info.flags = 0;
 			logical_device_create_info.enabledLayerCount = 0;
 			logical_device_create_info.ppEnabledLayerNames = nullptr;
