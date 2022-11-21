@@ -18,7 +18,7 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	VkFormat output_format = device_cfg_.presentation_format;
 
 	render_passes_.emplace(RenderPassId::kSimpleRenderToScreen, RenderPass(device_cfg_, true));
-	render_passes_.at(RenderPassId::kSimpleRenderToScreen).AddColorAttachment("swapchain_image");
+	render_passes_.at(RenderPassId::kSimpleRenderToScreen).AddColorAttachment("swapchain_image", false);
 	render_passes_.at(RenderPassId::kSimpleRenderToScreen).AddDepthAttachment("depth_image");
 
 

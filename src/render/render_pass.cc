@@ -12,20 +12,20 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, bool use_s
 
 }
 
-int render::RenderPass::AddColorAttachment(const std::string_view& name)
+int render::RenderPass::AddColorAttachment(const std::string_view& name, bool high_range)
 {
 	assert(handle_ == VK_NULL_HANDLE);
 
 	attachments_.push_back({ name.data(), false});
 
-	attachments_.back().desc.format = device_cfg_.g_buffer_format;
+	attachments_.back().desc.format = high_range ? device_cfg_.high_range_color_format : device_cfg_.color_format;
 	attachments_.back().desc.samples = VK_SAMPLE_COUNT_1_BIT;
 	attachments_.back().desc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments_.back().desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	attachments_.back().desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments_.back().desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachments_.back().desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments_.back().desc.finalLayout = use_swapchain_image_ ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	attachments_.back().desc.finalLayout = use_swapchain_image_ ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	return attachments_.size() - 1;
 }

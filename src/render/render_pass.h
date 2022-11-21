@@ -59,7 +59,7 @@ namespace render
 
 		RenderPass(const DeviceConfiguration& device_cfg, bool use_swapchain_image = false);
 
-		int AddColorAttachment(const std::string_view& name);
+		int AddColorAttachment(const std::string_view& name, bool high_range = true);
 		int AddDepthAttachment(const std::string_view& name);
 		int GetAttachmentIndex(const std::string_view& name) const;
 		int GetAttachmentsCnt() const;

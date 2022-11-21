@@ -76,7 +76,8 @@ namespace render
 
 		VkFormat presentation_format;
 		VkFormat depth_map_format = VK_FORMAT_D32_SFLOAT;
-		VkFormat g_buffer_format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		VkFormat high_range_color_format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		VkFormat color_format = VK_FORMAT_B8G8R8A8_SRGB;
 	};
 
 	enum class ShaderType
