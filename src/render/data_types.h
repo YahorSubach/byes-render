@@ -36,6 +36,8 @@ namespace render
 		kBuildDepthmap,
 		kBuildGBuffers,
 		kCollectGBuffers,
+
+		kUI,
 	};
 
 	struct Extent

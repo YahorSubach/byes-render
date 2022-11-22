@@ -57,6 +57,7 @@ namespace render
 		ModelSceneDescSetHolder model_scene_;
 		RenderGraph render_graph_;
 		UIScene ui_scene_;
+		Buffer viewport_vertex_buffer_;
 	};
 }
 

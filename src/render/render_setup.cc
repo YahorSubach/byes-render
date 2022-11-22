@@ -17,9 +17,8 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	Extent output_extent = device_cfg_.presentation_extent;
 	VkFormat output_format = device_cfg_.presentation_format;
 
-	render_passes_.emplace(RenderPassId::kSimpleRenderToScreen, RenderPass(device_cfg_, true));
+	render_passes_.emplace(RenderPassId::kSimpleRenderToScreen, RenderPass(device_cfg_, RenderPass::SwapchainInteraction::kPresent));
 	render_passes_.at(RenderPassId::kSimpleRenderToScreen).AddColorAttachment("swapchain_image", false);
-	render_passes_.at(RenderPassId::kSimpleRenderToScreen).AddDepthAttachment("depth_image");
 
 
 	render_passes_.emplace(RenderPassId::kBuildDepthmap, RenderPass(device_cfg_));
@@ -32,8 +31,11 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	render_passes_.at(RenderPassId::kBuildGBuffers).AddColorAttachment("g_metal_rough");
 	render_passes_.at(RenderPassId::kBuildGBuffers).AddDepthAttachment("g_depth");
 
-	render_passes_.emplace(RenderPassId::kCollectGBuffers, RenderPass(device_cfg_, true));
+	render_passes_.emplace(RenderPassId::kCollectGBuffers, RenderPass(device_cfg_, RenderPass::SwapchainInteraction::kAcquire));
 	render_passes_.at(RenderPassId::kCollectGBuffers).AddColorAttachment("swapchain_image");
+
+	render_passes_.emplace(RenderPassId::kUI, RenderPass(device_cfg_, RenderPass::SwapchainInteraction::kAcquire));
+	render_passes_.at(RenderPassId::kUI).AddColorAttachment("swapchain_image");
 
 
 	{

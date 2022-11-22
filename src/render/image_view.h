@@ -35,6 +35,8 @@ namespace render
 
 		virtual ~ImageView() override;
 
+		stl_util::NullableRef<const Image> GetImage() const;
+
 	protected:
 		
 		virtual bool InitHandle() const override;

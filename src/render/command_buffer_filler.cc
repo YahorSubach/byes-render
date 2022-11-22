@@ -70,21 +70,21 @@
 //				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.GetDescriptorSets());
 //
 //				std::vector<VkBuffer> vert_bufs;
-//				std::vector<VkDeviceSize> offsetes;
+//				std::vector<VkDeviceSize> offsets;
 //
-//				stl_util::size<uint32_t>(offsetes);
+//				stl_util::size<uint32_t>(offsets);
 //
 //				for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
 //				{
 //					if (buf.buffer)
 //					{
 //						vert_bufs.push_back(buf.buffer->GetHandle());
-//						offsetes.push_back(buf.offset);
+//						offsets.push_back(buf.offset);
 //					}
 //				}
 //
 //
-//				vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
+//				vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsets.data());
 //				vkCmdBindIndexBuffer(command_buffer, child.GetPrimitives().begin()->indices.buffer->GetHandle(), child.GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
 //
 //				if (pipeline_info.id == PipelineId::kCollectGBuffers)

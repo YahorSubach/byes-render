@@ -89,3 +89,8 @@ render::ImageView::~ImageView()
 	}
 }
 
+render::stl_util::NullableRef<const render::Image> render::ImageView::GetImage() const
+{
+	return image_;
+}
+

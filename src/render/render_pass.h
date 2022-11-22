@@ -15,6 +15,15 @@ namespace render
 	{
 	public:
 
+		enum class SwapchainInteraction
+		{
+			kNone,
+			kAcquire,
+			kPresent
+		};
+
+		using SwapchainInteractionFlags = stl_util::EnumFlags<SwapchainInteraction>;
+
 		//struct RenderPassDesc
 		//{
 		//	struct Attachment
@@ -57,7 +66,7 @@ namespace render
 		};
 
 
-		RenderPass(const DeviceConfiguration& device_cfg, bool use_swapchain_image = false);
+		RenderPass(const DeviceConfiguration& device_cfg, SwapchainInteractionFlags interaction = {});
 
 		int AddColorAttachment(const std::string_view& name, bool high_range = true);
 		int AddDepthAttachment(const std::string_view& name);
@@ -86,7 +95,7 @@ namespace render
 		std::optional<Attachment> depth_attachment_;
 
 		virtual bool InitHandle() const;
-		bool use_swapchain_image_;
+		SwapchainInteractionFlags swapchain_interaction_flags;
 	};
 
 	/*class RenderPass2 : public RenderObjBase<VkRenderPass>

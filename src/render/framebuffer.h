@@ -6,7 +6,7 @@
 
 #include <variant>
 #include <vector>
-#include <set>
+#include <map>
 #include <functional>
 
 #include "render/object_base.h"
@@ -41,12 +41,12 @@ namespace render
 		Framebuffer& operator=(Framebuffer&&) = default;
 
 		int AddAttachment(const std::string_view& name, const ImageView& image_view);
+		const ImageView& GetAttachment(const std::string_view& name) const;
+		const std::vector<std::reference_wrapper<const ImageView>>& GetAttachmentImageViews() const;
 
 		virtual ~Framebuffer() override;
 	
 		Extent GetExtent() const;
-
-		const std::vector<std::reference_wrapper<const ImageView>>& GetAttachments() const;
 
 		const RenderPass& GetRenderPass() const;
 
@@ -68,7 +68,7 @@ namespace render
 		const RenderPass& render_pass_;
 
 		std::vector<std::reference_wrapper<const ImageView>> image_views_;
-		std::set<std::string> attached_;
+		std::map<std::string, const ImageView&> name_to_image_view_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_FRAMEBUFFER_H_

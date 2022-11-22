@@ -41,10 +41,14 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 	auto&& shadowmap_batch = collection_.CreateBatch();
 	auto&& g_fill_batch = collection_.CreateBatch();
 	auto&& g_collect_batch = collection_.CreateBatch();
+	auto&& ui_batch = collection_.CreateBatch();
+
 
 	shadowmap_batch.render_pass_nodes.push_back(RenderPassNode{ RenderModelCategory::kRenderModel, shadowmap_framebuffer, {render_setup.GetPipeline(PipelineId::kDepth)} });
 	g_fill_batch.render_pass_nodes.push_back(RenderPassNode{ RenderModelCategory::kRenderModel,g_framebuffer, {render_setup.GetPipeline(PipelineId::kBuildGBuffers)} });
 	g_collect_batch.render_pass_nodes.push_back(RenderPassNode{ RenderModelCategory::kViewport,{}, {render_setup.GetPipeline(PipelineId::kCollectGBuffers)} });
+	ui_batch.render_pass_nodes.push_back(RenderPassNode{ RenderModelCategory::kUIShape, {}, {render_setup.GetPipeline(PipelineId::kUI)} });
+
 
 	shadowmap_batch.dependencies.push_back({ g_fill_batch, g_shadowmap_image});
 
@@ -53,6 +57,8 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_normal_image });
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_metallic_roughness_image });
 	g_fill_batch.dependencies.push_back({ g_collect_batch, g_depth_image });
+
+	g_collect_batch.dependencies.push_back({ ui_batch, {} });
 
 	scene.g_albedo_image = g_albedo_image;
 	scene.g_position_image = g_position_image;
@@ -129,9 +135,9 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 			render_pass_begin_info.renderArea.offset = { 0, 0 };
 			render_pass_begin_info.renderArea.extent = frambuffer->GetExtent();
 
-			std::vector<VkClearValue> clear_values(frambuffer->GetAttachments().size());
+			std::vector<VkClearValue> clear_values(frambuffer->GetAttachmentImageViews().size());
 			int index = 0;
-			for (auto&& attachment : frambuffer->GetAttachments())
+			for (auto&& attachment : frambuffer->GetAttachmentImageViews())
 			{
 				if (attachment.get().CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
 				{
@@ -161,36 +167,23 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 
 				for (auto&& render_model : render_models)
 				{
-					//if (child.GetPrimitives().begin()->type != pipeline_info.primitive_type)
-					//	continue;
+					if (/*true || */render_pass_node.category_flags.Check(render_model.category)) {
 
-					ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, render_model.descriptor_sets);
+						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, render_model.descriptor_sets);
 
-					//std::vector<VkBuffer> vert_bufs;
-					//std::vector<VkDeviceSize> offsetes;
+						assert(render_model.vertex_buffers.size() == render_model.vertex_buffers_offsets.size());
 
-					//stl_util::size<uint32_t>(offsetes);
+						vkCmdBindVertexBuffers(command_buffer, 0, u32(render_model.vertex_buffers.size()), render_model.vertex_buffers.data(), render_model.vertex_buffers_offsets.data());
 
-					//for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
-					//{
-					//	if (buf.buffer)
-					//	{
-					//		vert_bufs.push_back(buf.buffer->GetHandle());
-					//		offsetes.push_back(buf.offset);
-					//	}
-					//}
-
-
-					vkCmdBindVertexBuffers(command_buffer, 0, u32(render_model.vertex_buffers.size()), render_model.vertex_buffers.data(), render_model.offsetes.data());
-
-					if (render_model.index_buffer_and_offset)
-					{
-						vkCmdBindIndexBuffer(command_buffer, render_model.index_buffer_and_offset->first, render_model.index_buffer_and_offset->second, VK_INDEX_TYPE_UINT16);
-						vkCmdDrawIndexed(command_buffer, render_model.vertex_count, 1, 0, 0, 0);
-					}
-					else
-					{
-						vkCmdDraw(command_buffer, render_model.vertex_count, 1, 0, 0);
+						if (render_model.index_buffer_and_offset.has_value())
+						{
+							vkCmdBindIndexBuffer(command_buffer, render_model.index_buffer_and_offset->first, render_model.index_buffer_and_offset->second, VK_INDEX_TYPE_UINT16);
+							vkCmdDrawIndexed(command_buffer, render_model.vertex_count, 1, 0, 0, 0);
+						}
+						else
+						{
+							vkCmdDraw(command_buffer, render_model.vertex_count, 1, 0, 0);
+						}
 					}
 				}
 			}
@@ -222,6 +215,13 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 			VkImage                    image;
 			VkImageSubresourceRange    subresourceRange;
 
+			stl_util::NullableRef<const Image> barrier_image = dependency.second;
+
+			if (!barrier_image)
+			{
+				barrier_image = swapchain_framebuffer.GetAttachment("swapchain_image").GetImage();
+			}
+
 			VkImageMemoryBarrier2 barrier;
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			barrier.pNext = nullptr;
@@ -229,12 +229,12 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 			barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 			barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-			barrier.oldLayout = dependency.second.CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			barrier.newLayout = dependency.second.CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			barrier.oldLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			barrier.newLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			barrier.srcQueueFamilyIndex = device_cfg_.graphics_queue_index;
 			barrier.dstQueueFamilyIndex = device_cfg_.graphics_queue_index;
-			barrier.image = dependency.second.GetHandle();
-			barrier.subresourceRange.aspectMask = dependency.second.CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+			barrier.image = barrier_image->GetHandle();
+			barrier.subresourceRange.aspectMask = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
 			barrier.subresourceRange.baseMipLevel = 0;
 			barrier.subresourceRange.levelCount = 1;
 			barrier.subresourceRange.baseArrayLayer = 0;

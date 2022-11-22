@@ -34,7 +34,7 @@ namespace render
 		const std::map<DescriptorSetType, VkDescriptorSet>& descriptor_sets;
 		
 		std::vector<VkBuffer> vertex_buffers;
-		std::vector<VkDeviceSize> offsetes;
+		std::vector<VkDeviceSize> vertex_buffers_offsets;
 
 		std::optional<std::pair<VkBuffer, uint32_t>> index_buffer_and_offset;
 
@@ -74,7 +74,7 @@ namespace render
 		struct RenderBatch
 		{
 			std::vector<RenderPassNode> render_pass_nodes;
-			std::vector<std::pair<const RenderBatch&, const Image&>> dependencies;
+			std::vector<std::pair<const RenderBatch&, stl_util::NullableRef<const Image>>> dependencies;
 			mutable bool processed;
 		};
 

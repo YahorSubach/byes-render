@@ -6,7 +6,7 @@
 
 #include "common.h"
 
-render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, bool use_swapchain_image): LazyRenderObj(device_cfg), use_swapchain_image_(use_swapchain_image), contains_depth_attachment_(false)
+render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, SwapchainInteractionFlags interaction): LazyRenderObj(device_cfg), swapchain_interaction_flags(interaction), contains_depth_attachment_(false)
 {
 	
 
@@ -18,7 +18,7 @@ int render::RenderPass::AddColorAttachment(const std::string_view& name, bool hi
 
 	attachments_.push_back({ name.data(), false});
 
-	if (use_swapchain_image_)
+	if (swapchain_interaction_flags.Check(SwapchainInteraction::kPresent) || swapchain_interaction_flags.Check(SwapchainInteraction::kAcquire))
 	{
 		attachments_.back().desc.format = device_cfg_.presentation_format;
 	}
@@ -34,7 +34,7 @@ int render::RenderPass::AddColorAttachment(const std::string_view& name, bool hi
 	attachments_.back().desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments_.back().desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachments_.back().desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments_.back().desc.finalLayout = use_swapchain_image_ ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	attachments_.back().desc.finalLayout = swapchain_interaction_flags.Check(SwapchainInteraction::kPresent) ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	return attachments_.size() - 1;
 }
@@ -422,7 +422,7 @@ bool render::RenderPass::InitHandle() const
 
 	std::vector<VkSubpassDependency> dependencies;
 
-	if (use_swapchain_image_)
+	if (swapchain_interaction_flags.Check(SwapchainInteraction::kAcquire))
 	{
 		{
 			VkSubpassDependency vk_dependency;

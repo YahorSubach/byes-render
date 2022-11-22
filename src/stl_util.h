@@ -143,15 +143,15 @@ namespace render::stl_util
 		}
 
 		template<typename T1, typename ... Ts>
-		bool Check(T1 first_value, Ts ... values) 
+		bool Check(T1 first_value, Ts ... values) const
 		{
 			return Check(first_value) && Check(values...);
 		}
 
 		template<>
-		bool Check(EnumType check_value)
+		bool Check(EnumType check_value) const
 		{
-			return (value_ & (1 << static_cast<StorageType>(check_value)) != 0);
+			return (value_ & (1 << static_cast<StorageType>(check_value))) != 0;
 		}
 
 		template<typename T1, typename ... Ts>

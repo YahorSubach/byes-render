@@ -23,8 +23,20 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	render_graph_(device_cfg, render_setup, model_scene_),
 	ui_scene_(device_cfg, ui),
 	descriptor_sets_manager_(device_cfg, render_setup),
-	ui_(ui)
+	ui_(ui),
+	viewport_vertex_buffer_(device_cfg_, 6 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 {
+	std::vector<glm::vec3> viewport_vertex_data = {
+	{-1, -1, 0},
+	{-1, 1, 0},
+	{1, 1, 0},
+
+	{1, 1, 0},
+	{1, -1, 0},
+	{-1, -1, 0}
+	};
+
+	viewport_vertex_buffer_.LoadData(viewport_vertex_data.data(), viewport_vertex_data.size() * sizeof(glm::vec3));
 
 	model_scene_.UpdateData();
 	ui_scene_.UpdateData();
@@ -154,8 +166,47 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 ////},
 //	};
 
-	
-	render_graph_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, model_scene_.GetRenderNode());
+	std::vector<render::RenderModel> render_models;
+	render_models.reserve(64);
+	for (auto&& model : model_scene_.GetRenderNode().GetChildren())
+	{
+		for (auto&& primitive : model.GetPrimitives())
+		{
+			render_models.push_back(RenderModel
+				{
+					RenderModelCategory::kRenderModel,
+					model.GetDescriptorSets(),
+				{},
+				{},
+				std::make_pair(primitive.indices.buffer->GetHandle(), primitive.indices.offset),
+				u32(primitive.indices.count)
+				});
+
+			for (auto&& vertex_buffer : primitive.vertex_buffers)
+			{
+				render_models.back().vertex_buffers.push_back(vertex_buffer.buffer->GetHandle());
+				render_models.back().vertex_buffers_offsets.push_back(vertex_buffer.offset);
+			}
+		}
+	}
+
+
+
+	render_models.push_back(RenderModel
+		{
+			RenderModelCategory::kViewport,
+		{},
+		{},
+		{},
+		{},
+		6
+		}
+	);
+
+	render_models.back().vertex_buffers.push_back(viewport_vertex_buffer_.GetHandle());
+	render_models.back().vertex_buffers_offsets.push_back(0);
+
+	render_graph_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, model_scene_.GetRenderNode().GetDescriptorSets(), render_models);
 
 	present_info_.pImageIndices = &image_index;
 
