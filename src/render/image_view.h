@@ -31,6 +31,8 @@ namespace render
 		uint32_t AddUsageFlag(uint32_t flag) const;
 		uint32_t CheckUsageFlag(uint32_t flag) const;
 
+		VkFormat GetFormat() const;
+
 		virtual ~ImageView() override;
 
 	protected:

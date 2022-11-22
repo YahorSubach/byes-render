@@ -32,7 +32,7 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	render_passes_.at(RenderPassId::kBuildGBuffers).AddColorAttachment("g_metal_rough");
 	render_passes_.at(RenderPassId::kBuildGBuffers).AddDepthAttachment("g_depth");
 
-	render_passes_.emplace(RenderPassId::kCollectGBuffers, RenderPass(device_cfg_));
+	render_passes_.emplace(RenderPassId::kCollectGBuffers, RenderPass(device_cfg_, true));
 	render_passes_.at(RenderPassId::kCollectGBuffers).AddColorAttachment("swapchain_image");
 
 

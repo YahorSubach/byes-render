@@ -44,6 +44,7 @@ VkSurfaceFormatKHR render::Surface::GetSurfaceFormat(const VkPhysicalDevice& phy
 			return format;
 	}
 
+	assert(false);
 	return formats[0]; //TODO fuck
 }
 

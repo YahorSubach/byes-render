@@ -29,6 +29,11 @@ const std::vector<std::reference_wrapper<const render::ImageView>>& render::Fram
 	return image_views_;
 }
 
+const render::RenderPass& render::Framebuffer::GetRenderPass() const
+{
+	return render_pass_;
+}
+
 //void render::Framebuffer::Build(const RenderPass2& render_pass)
 //{
 //	if (handle_ != VK_NULL_HANDLE)
@@ -59,13 +64,16 @@ const std::vector<std::reference_wrapper<const render::ImageView>>& render::Fram
 int render::Framebuffer::AddAttachment(const std::string_view& name, const ImageView& image_view)
 {
 	assert(attached_.count(std::string(name)) == 0);
-	attached_.insert(std::string(name));
-	
+
 	int framebuffer_index = render_pass_.GetAttachmentIndex(name);
 	assert(framebuffer_index >= 0);
 
 	auto&& attachment = render_pass_.GetAttachmentByIndex(framebuffer_index);
 
+	assert(image_view.GetFormat() == attachment.desc.format);
+
+	attached_.insert(std::string(name));
+	
 	if (attachment.is_depth_attachment)
 	{
 		image_view.AddUsageFlag(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -88,6 +96,13 @@ bool render::Framebuffer::InitHandle() const
 	for (auto&& image_view : image_views_)
 	{
 		vk_attachments.push_back(image_view.get().GetHandle());
+	}
+
+	int attachments_cnt = render_pass_.GetAttachmentsCnt();
+
+	for (int att_ind = 0; att_ind < attachments_cnt; att_ind++)
+	{
+		assert(attached_.count(render_pass_.GetAttachmentByIndex(att_ind).name) > 0);
 	}
 
 	VkFramebufferCreateInfo framebuffer_info{};

@@ -46,6 +46,8 @@ namespace render
 
 		BufferAccessor() :stride(0), offset(0), count(0) {}
 
+		template<typename T>
+		BufferAccessor(const Buffer& buffer) : BufferAccessor(buffer, sizeof(T), 0, buffer.GetSize() / sizeof(T)) {}
 
 		stl_util::NullableRef<const Buffer> buffer;
 		uint32_t stride;

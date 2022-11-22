@@ -293,7 +293,7 @@ render::BufferAccessor render::GLTFWrapper::BuildBufferAccessor(int acc_ind) con
 
 		auto offset = gltf_model_.bufferViews[gltf_model_.accessors[acc_ind].bufferView].byteOffset + gltf_model_.accessors[acc_ind].byteOffset;
 
-		BufferAccessor buffer_accessor(buffers_[gltf_model_.bufferViews[gltf_model_.accessors[acc_ind].bufferView].buffer], actual_stride, offset, gltf_model_.accessors[acc_ind].count);
+		BufferAccessor buffer_accessor(buffers_[gltf_model_.bufferViews[gltf_model_.accessors[acc_ind].bufferView].buffer], actual_stride, offset, u32(gltf_model_.accessors[acc_ind].count));
 
 		return buffer_accessor;
 	}

@@ -27,7 +27,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 		{
 			vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(vertex_shader_module.GetInputBindingsDescs());
 			vertex_input_attr_descs = BuildVertexAttributeDescription(vertex_shader_module.GetInputBindingsDescs());
-			vertex_bindings_count_ = vertex_input_bindings_descs.size();
+			vertex_bindings_count_ = u32(vertex_input_bindings_descs.size());
 		}
 		else
 		{
@@ -123,7 +123,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	color_blending.logicOpEnable = VK_FALSE;
 	color_blending.logicOp = VK_LOGIC_OP_COPY; // Optional
-	color_blending.attachmentCount = blend_attachment_states.size();
+	color_blending.attachmentCount = u32(blend_attachment_states.size());
 	color_blending.pAttachments = blend_attachment_states.data();
 	color_blending.blendConstants[0] = 0.0f; // Optional
 	color_blending.blendConstants[1] = 0.0f; // Optional
@@ -212,7 +212,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	VkGraphicsPipelineCreateInfo pipeline_info{};
 	pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipeline_info.stageCount = shader_stage_create_infos.size();
+	pipeline_info.stageCount = u32(shader_stage_create_infos.size());
 	pipeline_info.pStages = shader_stage_create_infos.data();
 
 	pipeline_info.pVertexInputState = &vertex_input_info;

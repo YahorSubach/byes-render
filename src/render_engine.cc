@@ -265,9 +265,9 @@ namespace render
 					//attachments.push_back(swapchain.GetImageView(i));
 					//attachments.push_back(depth_image_view);
 
-					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen)));
+					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), render_setup.GetRenderPass(RenderPassId::kCollectGBuffers)));
 					swapchain_framebuffers.back().AddAttachment("swapchain_image", swapchain.GetImageView(i));
-					swapchain_framebuffers.back().AddAttachment("depth_image", depth_image_view);
+					//swapchain_framebuffers.back().AddAttachment("depth_image", depth_image_view);
 				}
 
 				BatchesManager batches_manager(device_cfg_, kFramesCount, swapchain, descriptor_pool);

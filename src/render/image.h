@@ -106,7 +106,7 @@ namespace render
 		VkFormat GetFormat() const;
 
 		void TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type) const;
-		void CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, Extent extent) const;
+		void CopyBuffer(const CommandPool& command_pool, const Buffer& buffer) const;
 
 		virtual ~Image() override;
 

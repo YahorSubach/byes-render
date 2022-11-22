@@ -38,6 +38,13 @@ uint32_t render::ImageView::CheckUsageFlag(uint32_t flag) const
 	return image_->CheckUsageFlag(flag);
 }
 
+VkFormat render::ImageView::GetFormat() const
+{
+	if (image_)
+		return image_->GetFormat();
+	return VK_FORMAT_UNDEFINED;
+}
+
 bool render::ImageView::InitHandle() const
 {
 	assert(image_);

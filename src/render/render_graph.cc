@@ -3,50 +3,6 @@
 #include <stack>
 #include <queue>
 
-//enum class FramebufferId
-//{
-//	kGBuffers,
-//	kDepth,
-//
-//	kCount,
-//
-//	kScreen
-//};
-//
-//enum class AttachmentId
-//{
-//	kGAlbedo,
-//	kGPosition,
-//	kGNormal,
-//	kGMetallicRoughness,
-//	kGDepth,
-//
-//	kDepthMap,
-//
-//	kCount
-//};
-//
-//images_{
-//	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput, ImageProperty::kMipMap}),
-//	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
-//	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
-//	Image(device_cfg_, device_cfg_.g_buffer_format, device_cfg_.presentation_extent, {ImageProperty::kColorAttachment, ImageProperty::kShaderInput}),
-//	Image(device_cfg_, device_cfg_.depth_map_format, device_cfg_.presentation_extent, {ImageProperty::kDepthAttachment}),
-//
-//	Image(device_cfg_, device_cfg_.depth_map_format, device_cfg_.depth_map_extent, {ImageProperty::kDepthAttachment, ImageProperty::kShaderInput}),
-//},
-//
-//image_views_{
-//	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGAlbedo)]),
-//	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGPosition)]),
-//	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGNormal)]),
-//	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGMetallicRoughness)]),
-//
-//	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kGDepth)]),
-//	ImageView(device_cfg_, images_[static_cast<int>(AttachmentId::kDepthMap)]),
-//},
-
-
 render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene) : RenderObjBase(device_cfg)
 {
 	//TODO fuck! You really have to change this return of push back logic
@@ -86,9 +42,9 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 	auto&& g_fill_batch = collection_.CreateBatch();
 	auto&& g_collect_batch = collection_.CreateBatch();
 
-	shadowmap_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kBuildDepthmap), shadowmap_framebuffer, {render_setup.GetPipeline(PipelineId::kDepth)} });
-	g_fill_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kBuildGBuffers), g_framebuffer, {render_setup.GetPipeline(PipelineId::kBuildGBuffers)} });
-	g_collect_batch.render_passes.push_back(RenderPassNode{ render_setup.GetRenderPass(RenderPassId::kCollectGBuffers), {}, {render_setup.GetPipeline(PipelineId::kCollectGBuffers)} });
+	shadowmap_batch.render_pass_nodes.push_back(RenderPassNode{ RenderModelCategory::kRenderModel, shadowmap_framebuffer, {render_setup.GetPipeline(PipelineId::kDepth)} });
+	g_fill_batch.render_pass_nodes.push_back(RenderPassNode{ RenderModelCategory::kRenderModel,g_framebuffer, {render_setup.GetPipeline(PipelineId::kBuildGBuffers)} });
+	g_collect_batch.render_pass_nodes.push_back(RenderPassNode{ RenderModelCategory::kViewport,{}, {render_setup.GetPipeline(PipelineId::kCollectGBuffers)} });
 
 	shadowmap_batch.dependencies.push_back({ g_fill_batch, g_shadowmap_image});
 
@@ -129,7 +85,7 @@ render::RenderGraph::RenderBatch& render::RenderGraph::RenderCollection::CreateB
 	return render_batches.back();
 }
 
-bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const SceneRenderNode& scene) const
+bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const
 {
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -157,7 +113,7 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 		batches_to_process.pop();
 
 		bool final_pass = false;
-		for (auto&& render_pass_node : current_batch.render_passes)
+		for (auto&& render_pass_node : current_batch.render_pass_nodes)
 		{
 			auto frambuffer = render_pass_node.framebuffer;
 			if (!frambuffer)
@@ -167,7 +123,7 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 
 			VkRenderPassBeginInfo render_pass_begin_info{};
 			render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			render_pass_begin_info.renderPass = render_pass_node.render_pass.GetHandle();
+			render_pass_begin_info.renderPass = frambuffer->GetRenderPass().GetHandle();
 			render_pass_begin_info.framebuffer = frambuffer->GetHandle();
 
 			render_pass_begin_info.renderArea.offset = { 0, 0 };
@@ -201,40 +157,40 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 
 				auto&& pipeline_layout = pipeline.get().GetLayout();
 
-				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene.GetDescriptorSets());
+				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene_ds);
 
-				for (auto&& child : scene.GetChildren())
+				for (auto&& render_model : render_models)
 				{
 					//if (child.GetPrimitives().begin()->type != pipeline_info.primitive_type)
 					//	continue;
 
-					ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.GetDescriptorSets());
+					ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, render_model.descriptor_sets);
 
-					std::vector<VkBuffer> vert_bufs;
-					std::vector<VkDeviceSize> offsetes;
+					//std::vector<VkBuffer> vert_bufs;
+					//std::vector<VkDeviceSize> offsetes;
 
-					stl_util::size<uint32_t>(offsetes);
+					//stl_util::size<uint32_t>(offsetes);
 
-					for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
+					//for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
+					//{
+					//	if (buf.buffer)
+					//	{
+					//		vert_bufs.push_back(buf.buffer->GetHandle());
+					//		offsetes.push_back(buf.offset);
+					//	}
+					//}
+
+
+					vkCmdBindVertexBuffers(command_buffer, 0, u32(render_model.vertex_buffers.size()), render_model.vertex_buffers.data(), render_model.offsetes.data());
+
+					if (render_model.index_buffer_and_offset)
 					{
-						if (buf.buffer)
-						{
-							vert_bufs.push_back(buf.buffer->GetHandle());
-							offsetes.push_back(buf.offset);
-						}
-					}
-
-
-					vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
-					vkCmdBindIndexBuffer(command_buffer, child.GetPrimitives().begin()->indices.buffer->GetHandle(), child.GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
-
-					if (final_pass)
-					{
-						vkCmdDraw(command_buffer, 6, 1, 0, 0);
+						vkCmdBindIndexBuffer(command_buffer, render_model.index_buffer_and_offset->first, render_model.index_buffer_and_offset->second, VK_INDEX_TYPE_UINT16);
+						vkCmdDrawIndexed(command_buffer, render_model.vertex_count, 1, 0, 0, 0);
 					}
 					else
 					{
-						vkCmdDrawIndexed(command_buffer, u32(child.GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
+						vkCmdDraw(command_buffer, render_model.vertex_count, 1, 0, 0);
 					}
 				}
 			}
@@ -309,81 +265,10 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 }
 
 
-
-
-
-
-
-//for (auto&& render_pass_info : render_info)
-//{
-//	const Framebuffer& framebuffer = render_pass_info.framebuffer_id == FramebufferId::kScreen ? screen_buffer : framebuffer_collection_.GetFramebuffer(render_pass_info.framebuffer_id);
-
-//	
-
-//	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-//	int set_ind = 0;
-
-
-
-//	for (auto&& pipeline_info : render_pass_info.pipelines)
-//	{
-//		auto&& pipeline = render_setup_.GetPipeline(pipeline_info.id);
-//		auto&& pipeline_layout = pipeline.GetLayout();
-
-//		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
-
-//		const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = pipeline.GetDescriptorSets();
-
-//		ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, pipeline_info.scene.GetDescriptorSets());
-
-//		for (auto&& child : pipeline_info.scene.GetChildren())
-//		{
-//			if (child.GetPrimitives().begin()->type != pipeline_info.primitive_type)
-//				continue;
-
-//			ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, child.GetDescriptorSets());
-
-//			std::vector<VkBuffer> vert_bufs;
-//			std::vector<VkDeviceSize> offsetes;
-
-//			stl_util::size<uint32_t>(offsetes);
-
-//			for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
-//			{
-//				if (buf.buffer)
-//				{
-//					vert_bufs.push_back(buf.buffer->GetHandle());
-//					offsetes.push_back(buf.offset);
-//				}
-//			}
-
-
-//			vkCmdBindVertexBuffers(command_buffer, 0, u32(vert_bufs.size()), vert_bufs.data(), offsetes.data());
-//			vkCmdBindIndexBuffer(command_buffer, child.GetPrimitives().begin()->indices.buffer->GetHandle(), child.GetPrimitives().begin()->indices.offset, VK_INDEX_TYPE_UINT16);
-
-//			if (pipeline_info.id == PipelineId::kCollectGBuffers)
-//			{
-//				vkCmdDraw(command_buffer, 6, 1, 0, 0);
-//			}
-//			else
-//			{
-//				vkCmdDrawIndexed(command_buffer, u32(child.GetPrimitives().begin()->indices.count), 1, 0, 0, 0);
-//			}
-//		}
-//	}
-
-//	vkCmdEndRenderPass(command_buffer);
-//}
-
-
-
-
 void render::RenderGraph::ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const
 {
 	uint32_t sequence_begin = 0;
 	std::vector<VkDescriptorSet> desc_sets_to_bind;
-
 
 	for (auto&& [set_id, set_layout] : pipeline_desc_sets)
 	{

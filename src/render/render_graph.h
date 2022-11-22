@@ -17,6 +17,31 @@
 
 namespace render
 {
+	enum class RenderModelCategory
+	{
+		kRenderModel,
+		kViewport,
+		kUIShape
+	};
+
+	using RenderModelCategoryFlags = stl_util::EnumFlags<RenderModelCategory>;
+
+
+	struct RenderModel
+	{
+		RenderModelCategory category;
+
+		const std::map<DescriptorSetType, VkDescriptorSet>& descriptor_sets;
+		
+		std::vector<VkBuffer> vertex_buffers;
+		std::vector<VkDeviceSize> offsetes;
+
+		std::optional<std::pair<VkBuffer, uint32_t>> index_buffer_and_offset;
+
+		uint32_t vertex_count;
+	};
+
+
 	class RenderGraph : public RenderObjBase<int*>
 	{
 	public:
@@ -29,13 +54,11 @@ namespace render
 		RenderGraph& operator=(RenderGraph&&) = default;
 
 
-		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const SceneRenderNode& scene) const;
+		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const;
 
 
 		virtual ~RenderGraph() override;
 	
-
-
 
 	private:
 
@@ -43,14 +66,14 @@ namespace render
 
 		struct RenderPassNode
 		{
-			const RenderPass& render_pass;
+			RenderModelCategoryFlags category_flags;
 			stl_util::NullableRef<const Framebuffer> framebuffer;
 			std::vector<std::reference_wrapper<const GraphicsPipeline>> pipelines;
 		};
 
 		struct RenderBatch
 		{
-			std::vector<RenderPassNode> render_passes;
+			std::vector<RenderPassNode> render_pass_nodes;
 			std::vector<std::pair<const RenderBatch&, const Image&>> dependencies;
 			mutable bool processed;
 		};

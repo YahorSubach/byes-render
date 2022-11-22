@@ -73,7 +73,7 @@ namespace render
 		{
 			if (handle_ == VK_NULL_HANDLE)
 			{
-				Construct();
+				assert(Construct());
 			}
 
 			return handle_; 

@@ -1,15 +1,11 @@
 #include "memory.h"
 
-int total_memory = 0;
-
 render::Memory::Memory(const DeviceConfiguration& device_cfg, uint64_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags) : RenderObjBase(device_cfg)
 {
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = size;
 	allocInfo.memoryTypeIndex = GetMemoryTypeIndex(device_cfg, memory_type_bits, memory_flags); // TODO pass memory properties
-
-	total_memory += size;
 
 	if (auto res = vkAllocateMemory(device_cfg_.logical_device, &allocInfo, nullptr, &handle_); res != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate image memory!");

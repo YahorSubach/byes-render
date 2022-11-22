@@ -48,6 +48,8 @@ namespace render
 
 		const std::vector<std::reference_wrapper<const ImageView>>& GetAttachments() const;
 
+		const RenderPass& GetRenderPass() const;
+
 		//void Build(const RenderPass2& render_pass);
 
 		//struct AttachmentDesc

@@ -18,7 +18,16 @@ int render::RenderPass::AddColorAttachment(const std::string_view& name, bool hi
 
 	attachments_.push_back({ name.data(), false});
 
-	attachments_.back().desc.format = high_range ? device_cfg_.high_range_color_format : device_cfg_.color_format;
+	if (use_swapchain_image_)
+	{
+		attachments_.back().desc.format = device_cfg_.presentation_format;
+	}
+	else
+	{
+		attachments_.back().desc.format = high_range ? device_cfg_.high_range_color_format : device_cfg_.color_format;
+	}
+	
+
 	attachments_.back().desc.samples = VK_SAMPLE_COUNT_1_BIT;
 	attachments_.back().desc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments_.back().desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

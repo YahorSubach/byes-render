@@ -123,5 +123,52 @@ namespace render::stl_util
 	NullableRef<ReferencedType> MakeNullableRef(ReferencedType& ref) { return NullableRef<ReferencedType>(ref); }
 
 
+	template<class EnumType, class StorageType = unsigned int>
+	class EnumFlags
+	{
+	public:
+		EnumFlags(): value_(0) {}
+		
+		EnumFlags(EnumType value) : value_(0)
+		{
+			Set(value);
+		}
+
+		EnumFlags(std::initializer_list<EnumType> values): value_(0)
+		{
+			for (auto&& value : values)
+			{
+				Set(value);
+			}
+		}
+
+		template<typename T1, typename ... Ts>
+		bool Check(T1 first_value, Ts ... values) 
+		{
+			return Check(first_value) && Check(values...);
+		}
+
+		template<>
+		bool Check(EnumType check_value)
+		{
+			return (value_ & (1 << static_cast<StorageType>(check_value)) != 0);
+		}
+
+		template<typename T1, typename ... Ts>
+		void Set(T1 first_value, Ts ... values)
+		{
+			Set(first_value);
+			Set(values...);
+		}
+
+		template<>
+		void Set(EnumType set_value)
+		{
+			value_ |= (1 << static_cast<StorageType>(set_value));
+		}
+
+	private:
+		StorageType value_;
+	};
 }
 #endif  // RENDER_ENGINE_RENDER_STL_UTIL_H_

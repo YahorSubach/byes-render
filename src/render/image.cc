@@ -23,6 +23,14 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Ext
 	pixels_data_ = std::make_unique<std::vector<unsigned char>>(image_size);
 	pixels_data_->reserve(image_size);
 	pixels_data_->assign(pixels, pixels + image_size);
+
+	VkFormatProperties format_properties;
+	vkGetPhysicalDeviceFormatProperties(device_cfg_.physical_device, format, &format_properties);
+
+	if ((format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) && (format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT))
+	{
+		mipmap_levels_count_ = static_cast<uint32_t>(std::floor(std::log2(std::max(extent_.height, extent_.width))) + 1);
+	}
 }
 
 render::Image render::Image::FromFile(const DeviceConfiguration& device_cfg, const std::string_view& path)
@@ -115,12 +123,10 @@ void render::Image::TransitionImageLayout(const CommandPool& command_pool, Trans
 		});
 }
 
-void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& buffer, Extent extent) const
+void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& buffer) const
 {
 	assert(handle_ != VK_NULL_HANDLE);
 
-	//Check here image type
-	//mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
@@ -201,6 +207,11 @@ bool render::Image::InitHandle() const
 		AddUsageFlag(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 	}
 
+	if (mipmap_levels_count_ > 1)
+	{
+		AddUsageFlag(VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+	}
+
 	image_info.usage = usage_;
 	
 	//if (image_properties_.Check(ImageProperty::kShaderInput)) image_info.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -242,10 +253,12 @@ bool render::Image::InitHandle() const
 		pixels_data_.reset();
 
 		TransitionImageLayout(*device_cfg_.graphics_cmd_pool, TransitionType::kTransferDst);
-		CopyBuffer(*device_cfg_.transfer_cmd_pool, staging_buffer, extent_);
+		CopyBuffer(*device_cfg_.transfer_cmd_pool, staging_buffer);
+
+		GenerateMipMaps();
 	}
 	
-	//GenerateMipMaps();
+
 
 	return true;
 }
