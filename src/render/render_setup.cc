@@ -34,7 +34,7 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	render_passes_.emplace(RenderPassId::kCollectGBuffers, RenderPass(device_cfg_, RenderPass::SwapchainInteraction::kAcquire));
 	render_passes_.at(RenderPassId::kCollectGBuffers).AddColorAttachment("swapchain_image");
 
-	render_passes_.emplace(RenderPassId::kUI, RenderPass(device_cfg_, RenderPass::SwapchainInteraction::kAcquire));
+	render_passes_.emplace(RenderPassId::kUI, RenderPass(device_cfg_, RenderPass::SwapchainInteraction::kPresent));
 	render_passes_.at(RenderPassId::kUI).AddColorAttachment("swapchain_image");
 
 

@@ -50,15 +50,15 @@ render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const Re
 	ui_batch.render_pass_nodes.push_back(RenderPassNode{ RenderModelCategory::kUIShape, {}, {render_setup.GetPipeline(PipelineId::kUI)} });
 
 
-	shadowmap_batch.dependencies.push_back({ g_fill_batch, g_shadowmap_image});
+	shadowmap_batch.AddDependencyAsSampled(g_fill_batch, g_shadowmap_image);
 
-	g_fill_batch.dependencies.push_back({ g_collect_batch, g_albedo_image });
-	g_fill_batch.dependencies.push_back({ g_collect_batch, g_position_image });
-	g_fill_batch.dependencies.push_back({ g_collect_batch, g_normal_image });
-	g_fill_batch.dependencies.push_back({ g_collect_batch, g_metallic_roughness_image });
-	g_fill_batch.dependencies.push_back({ g_collect_batch, g_depth_image });
+	g_fill_batch.AddDependencyAsSampled(g_collect_batch, g_albedo_image);
+	g_fill_batch.AddDependencyAsSampled(g_collect_batch, g_position_image);
+	g_fill_batch.AddDependencyAsSampled(g_collect_batch, g_normal_image);
+	g_fill_batch.AddDependencyAsSampled(g_collect_batch, g_metallic_roughness_image);
+	g_fill_batch.AddDependencyAsSampled(g_collect_batch, g_depth_image);
 
-	g_collect_batch.dependencies.push_back({ ui_batch, {} });
+	g_collect_batch.AddSwapchainDependencyAsAttachment(ui_batch);
 
 	scene.g_albedo_image = g_albedo_image;
 	scene.g_position_image = g_position_image;
@@ -196,10 +196,10 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 		std::vector<VkImageMemoryBarrier2> vk_barriers;
 		for (auto&& dependency : current_batch.dependencies)
 		{
-			if (!dependency.first.processed)
+			if (!dependency.batch.processed)
 			{
-				dependency.first.processed = true;
-				batches_to_process.push(dependency.first);
+				dependency.batch.processed = true;
+				batches_to_process.push(dependency.batch);
 			}
 
 			VkStructureType            sType;
@@ -215,7 +215,7 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 			VkImage                    image;
 			VkImageSubresourceRange    subresourceRange;
 
-			stl_util::NullableRef<const Image> barrier_image = dependency.second;
+			stl_util::NullableRef<const Image> barrier_image = dependency.image;
 
 			if (!barrier_image)
 			{
@@ -225,12 +225,22 @@ bool render::RenderGraph::FillCommandBuffer(VkCommandBuffer command_buffer, cons
 			VkImageMemoryBarrier2 barrier;
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			barrier.pNext = nullptr;
-			barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+			barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT; // < ---
 			barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 			barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-			barrier.oldLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			barrier.newLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+			if (dependency.as_samped)
+			{
+				barrier.oldLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				barrier.newLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			}
+			else
+			{
+				barrier.oldLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				barrier.newLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			}
+			
 			barrier.srcQueueFamilyIndex = device_cfg_.graphics_queue_index;
 			barrier.dstQueueFamilyIndex = device_cfg_.graphics_queue_index;
 			barrier.image = barrier_image->GetHandle();
@@ -296,4 +306,24 @@ void render::RenderGraph::ProcessDescriptorSets(VkCommandBuffer command_buffer, 
 		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, sequence_begin, u32(desc_sets_to_bind.size()), desc_sets_to_bind.data(), 0, nullptr);
 		desc_sets_to_bind.clear();
 	}
+}
+
+void render::RenderGraph::RenderBatch::AddDependencyAsSampled(const RenderBatch& batch, const Image& image)
+{
+	dependencies.push_back({ batch, image, true});
+}
+
+void render::RenderGraph::RenderBatch::AddDependencyAsAttachment(const RenderBatch& batch, const Image& image)
+{
+	dependencies.push_back({ batch, image, false });
+}
+
+void render::RenderGraph::RenderBatch::AddSwapchainDependencyAsSampled(const RenderBatch& batch)
+{
+	dependencies.push_back({ batch, {}, true });
+}
+
+void render::RenderGraph::RenderBatch::AddSwapchainDependencyAsAttachment(const RenderBatch& batch)
+{
+	dependencies.push_back({ batch, {}, false });
 }

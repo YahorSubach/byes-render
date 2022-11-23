@@ -71,11 +71,28 @@ namespace render
 			std::vector<std::reference_wrapper<const GraphicsPipeline>> pipelines;
 		};
 
-		struct RenderBatch
+
+		class RenderBatch
 		{
+		public:
+			struct Dependency
+			{
+				const RenderBatch& batch;
+				stl_util::NullableRef<const Image> image;
+				bool as_samped;
+			};
+
 			std::vector<RenderPassNode> render_pass_nodes;
-			std::vector<std::pair<const RenderBatch&, stl_util::NullableRef<const Image>>> dependencies;
+			
+			void AddDependencyAsSampled(const RenderBatch& batch, const Image& image);
+			void AddDependencyAsAttachment(const RenderBatch& batch, const Image& image);
+			void AddSwapchainDependencyAsSampled(const RenderBatch& batch);
+			void AddSwapchainDependencyAsAttachment(const RenderBatch& batch);
+
 			mutable bool processed;
+
+			std::vector<Dependency> dependencies;
+
 		};
 
 		struct RenderCollection
