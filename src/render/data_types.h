@@ -12,6 +12,7 @@
 
 namespace render
 {
+
 	class CommandPool;
 	class DescriptorPool;
 	class Sampler;
@@ -51,6 +52,9 @@ namespace render
 		operator VkExtent2D() const { return VkExtent2D{ width , height }; }
 	};
 
+
+	using Format = VkFormat;
+
 	struct DeviceConfiguration
 	{
 		VkPhysicalDevice physical_device;
@@ -76,10 +80,10 @@ namespace render
 		Extent presentation_extent;
 		Extent shadowmap_extent = {512, 512};
 
-		VkFormat presentation_format;
-		VkFormat depth_map_format = VK_FORMAT_D32_SFLOAT;
-		VkFormat high_range_color_format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		VkFormat color_format = VK_FORMAT_B8G8R8A8_SRGB;
+		Format presentation_format;
+		Format depth_map_format = VK_FORMAT_D32_SFLOAT;
+		Format high_range_color_format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		Format color_format = VK_FORMAT_B8G8R8A8_SRGB;
 	};
 
 	enum class ShaderType

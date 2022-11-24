@@ -5,6 +5,7 @@
 #include "vulkan/vulkan.h"
 
 #include <vector>
+#include <map>
 
 #include "render/framebuffer.h"
 #include "render/image.h"
@@ -17,6 +18,75 @@
 
 namespace render
 {
+	class RenderGraph2 : public RenderObjBase<int*>
+	{
+	public:
+
+		class Node;
+		struct Attachment;
+
+		struct Dependency
+		{
+			const Attachment& from_attachment;
+			const Node& to_node;
+
+			bool as_attachment;
+		};
+
+		struct Attachment
+		{
+			std::string name;
+			Format format;
+			
+			Node& node;
+
+			stl_util::NullableRef<Dependency> depends_on;
+
+			Attachment& operator>>(Node& node_to_forward);
+
+			render::RenderGraph2::Attachment& ForwardAsAttachment(Node& to_node);
+			void ForwardAsSampled(Node& to_node);
+
+			std::vector<Dependency> to_dependencies;
+		};
+
+
+
+		class Node
+		{
+		public:
+
+			Node(const std::string& name);
+
+			Attachment& AddAttachment(const std::string& name, Format format);
+			Attachment& GetAttachment(const std::string& name);
+
+			const std::map<std::string, Attachment>& GetAttachments() const;
+
+			const std::string& GetName() const;
+
+			void AddDependency(Dependency dependency);
+
+		private:
+
+			std::string name_;
+			std::map<std::string, Attachment> attachments_;
+			std::vector<Dependency> to_dependencies_;
+			//std::vector<Dependency> from_dependencies_;
+		};
+
+		RenderGraph2(const DeviceConfiguration device_cfg);
+
+		Node& AddNode(const std::string& name);
+
+
+	private:
+		std::map<std::string, Node> nodes_;
+
+	};
+
+
+
 	enum class RenderModelCategory
 	{
 		kRenderModel,

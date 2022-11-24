@@ -6,386 +6,49 @@
 
 #include "common.h"
 
-render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, SwapchainInteractionFlags interaction): LazyRenderObj(device_cfg), swapchain_interaction_flags(interaction), contains_depth_attachment_(false)
+render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const RenderGraph2::Node& render_node): RenderObjBase(device_cfg), contains_depth_attachment_(false)
 {
 	
-
-}
-
-int render::RenderPass::AddColorAttachment(const std::string_view& name, bool high_range)
-{
-	assert(handle_ == VK_NULL_HANDLE);
-
-	attachments_.push_back({ name.data(), false});
-
-	if (swapchain_interaction_flags.Check(SwapchainInteraction::kPresent) || swapchain_interaction_flags.Check(SwapchainInteraction::kAcquire))
-	{
-		attachments_.back().desc.format = device_cfg_.presentation_format;
-	}
-	else
-	{
-		attachments_.back().desc.format = high_range ? device_cfg_.high_range_color_format : device_cfg_.color_format;
-	}
-	
-
-	attachments_.back().desc.samples = VK_SAMPLE_COUNT_1_BIT;
-	attachments_.back().desc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachments_.back().desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	attachments_.back().desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachments_.back().desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments_.back().desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments_.back().desc.finalLayout = swapchain_interaction_flags.Check(SwapchainInteraction::kPresent) ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	return attachments_.size() - 1;
-}
-
-int render::RenderPass::AddDepthAttachment(const std::string_view& name)
-{
-	assert(handle_ == VK_NULL_HANDLE);
-	assert(!depth_attachment_);
-
-	contains_depth_attachment_ = true;
-
-	attachments_.push_back({ name.data(), true});
-
-	attachments_.back().desc.format = device_cfg_.depth_map_format;
-	attachments_.back().desc.samples = VK_SAMPLE_COUNT_1_BIT;
-	attachments_.back().desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachments_.back().desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments_.back().desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachments_.back().desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-	attachments_.back().desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments_.back().desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	return attachments_.size() - 1;
-}
-
-int render::RenderPass::GetAttachmentIndex(const std::string_view& name) const
-{
-	auto&& it = std::find_if(attachments_.begin(), attachments_.end(), [&name](const Attachment& a) {return a.name == name; });
-
-	if (it != attachments_.end())
-		return (it - attachments_.begin());
-
-	return -1;
-}
-
-int render::RenderPass::GetAttachmentsCnt() const
-{
-	return attachments_.size();
-}
-
-int render::RenderPass::GetColorAttachmentsCnt() const
-{
-	if(contains_depth_attachment_)
-		return attachments_.size() - 1;
-
-	return attachments_.size();
-}
-
-const render::RenderPass::Attachment& render::RenderPass::GetAttachmentByIndex(int index) const
-{
-	return attachments_[index];
-}
-
-//render::RenderPass::RenderPassDesc render::RenderPass::BuildRenderPassDesc(render::RenderPassId type, VkFormat color_format, VkFormat depth_format)
-//{
-//
-//	RenderPassDesc result;
-//
-//	switch (type)
-//	{
-//	case RenderPassId::kSimpleRenderToScreen:
-//	{
-//		{
-//			RenderPassDesc::Attachment attachment{};
-//			attachment.name = "color";
-//			attachment.is_depth_attachment = false;
-//
-//			attachment.desc.format = color_format).desc.format = 1);
-//			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-//			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-//
-//			result.attachments.push_back(attachment);
-//		}
-//
-//		{
-//			RenderPassDesc::Attachment attachment{};
-//			attachment.name = "depth";
-//			attachment.is_depth_attachment = true;
-//
-//			attachment.desc.format = depth_format;
-//			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-//			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//
-//			result.attachments.push_back(attachment);
-//		}
-//
-//
-//		RenderPassDesc::Subpass subpass{};
-//
-//		subpass.name = "render";
-//		subpass.attachment_refs.push_back({ "color", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-//		subpass.attachment_refs.push_back({ "depth", VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
-//
-//		result.subpasses.push_back(subpass);
-//
-//		RenderPassDesc::Dependency dependency{};
-//
-//		dependency.from_name = "";
-//		dependency.to_name = "render";
-//
-//		dependency.dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT/* | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT*/;
-//		dependency.dependency.srcAccessMask = 0;
-//
-//		dependency.dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-//		dependency.dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-//
-//		result.dependencies.push_back(dependency);
-//	}
-//	break;
-//
-//
-//	case RenderPassId::kBuildGBuffers:
-//	{
-//		{
-//			RenderPassDesc::Attachment attachment{};
-//			attachment.name = "albedo";
-//			attachment.is_depth_attachment = false;
-//
-//			attachment.desc.format = color_format;
-//			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-//			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//
-//			result.attachments.push_back(attachment);
-//		}
-//
-//		{
-//			RenderPassDesc::Attachment attachment{};
-//			attachment.name = "position";
-//			attachment.is_depth_attachment = false;
-//
-//			attachment.desc.format = color_format;
-//			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-//			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//
-//			result.attachments.push_back(attachment);
-//		}
-//
-//		{
-//			RenderPassDesc::Attachment attachment{};
-//			attachment.name = "normal";
-//			attachment.is_depth_attachment = false;
-//
-//			attachment.desc.format = color_format;
-//			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-//			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//
-//			result.attachments.push_back(attachment);
-//		}
-//
-//		{
-//			RenderPassDesc::Attachment attachment{};
-//			attachment.name = "metallic_roughness";
-//			attachment.is_depth_attachment = false;
-//
-//			attachment.desc.format = color_format;
-//			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-//			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//
-//			result.attachments.push_back(attachment);
-//		}
-//
-//		{
-//			RenderPassDesc::Attachment attachment{};
-//			attachment.name = "depth";
-//			attachment.is_depth_attachment = true;
-//
-//			attachment.desc.format = depth_format; //VK_FORMAT_D32_SFLOAT
-//			attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-//			attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//			attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//			attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//			attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//			attachment.desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-//
-//			result.attachments.push_back(attachment);
-//		}
-//
-//
-//
-//		RenderPassDesc::Subpass subpass{};
-//
-//		subpass.name = "render";
-//		subpass.attachment_refs.push_back({ "albedo", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-//		subpass.attachment_refs.push_back({ "position", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-//		subpass.attachment_refs.push_back({ "normal", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-//		subpass.attachment_refs.push_back({ "metallic_roughness", VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-//		subpass.attachment_refs.push_back({ "depth", VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
-//
-//		result.subpasses.push_back(subpass);
-//
-//
-//		{
-//			RenderPassDesc::Dependency dependency{};
-//
-//			dependency.from_name = "";
-//			dependency.to_name = "render";
-//
-//			dependency.dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT/* | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT*/;
-//			dependency.dependency.srcAccessMask = 0;
-//
-//			dependency.dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-//			dependency.dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-//
-//			result.dependencies.push_back(dependency);
-//		}
-//
-//		{
-//			RenderPassDesc::Dependency dependency{};
-//
-//			dependency.from_name = "render";
-//			dependency.to_name = "";
-//
-//			dependency.dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-//			dependency.dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-//
-//			dependency.dependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-//			dependency.dependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-//
-//			result.dependencies.push_back(dependency);
-//		}
-//	}
-//	break;
-//	case RenderPassId::kBuildDepthmap:
-//	{
-//		RenderPassDesc::Attachment attachment{};
-//		attachment.name = "depth";
-//		attachment.is_depth_attachment = true;
-//
-//		attachment.desc.format = depth_format; //VK_FORMAT_D32_SFLOAT
-//		attachment.desc.samples = VK_SAMPLE_COUNT_1_BIT;
-//		attachment.desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-//		attachment.desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-//		attachment.desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-//		attachment.desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-//		attachment.desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//		attachment.desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-//
-//		result.attachments.push_back(attachment);
-//
-//
-//
-//		RenderPassDesc::Subpass subpass{};
-//
-//		subpass.name = "render";
-//		subpass.attachment_refs.push_back({ "depth", VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
-//
-//		result.subpasses.push_back(subpass);
-//
-//		{
-//			RenderPassDesc::Dependency dependency{};
-//
-//			dependency.from_name = "";
-//			dependency.to_name = "render";
-//
-//			dependency.dependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-//			dependency.dependency.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-//
-//			dependency.dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-//			dependency.dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-//
-//			result.dependencies.push_back(dependency);
-//		}
-//
-//		{
-//			RenderPassDesc::Dependency dependency{};
-//
-//			dependency.from_name = "render";
-//			dependency.to_name = "";
-//
-//			dependency.dependency.srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-//			dependency.dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-//
-//			dependency.dependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-//			dependency.dependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-//
-//			result.dependencies.push_back(dependency);
-//		}
-//	}
-//	break;
-//	default:
-//		break;
-//	}
-//
-//	return result;
-//
-//}
-
-render::RenderPass::~RenderPass()
-{
-	if (handle_ != VK_NULL_HANDLE)
-	{
-		vkDestroyRenderPass(device_cfg_.logical_device, handle_, nullptr);
-	}
-}
-
-bool render::RenderPass::InitHandle() const
-{
 	std::vector<VkAttachmentDescription> vk_attachments;
 	std::map<std::string, uint32_t> attachment_name_to_index;
 
-	int color_attachments_cnt = 0;
-
-	for (uint32_t i = 0; i < attachments_.size(); i++)
+	int attachment_index = 0;
+	for (auto&& [name, node_attachment] : render_node.GetAttachments())
 	{
-		VkAttachmentDescription attachment_description;
+		VkAttachmentDescription attachment_description = {};
 
-		vk_attachments.push_back(attachments_[i].desc);
-		attachment_name_to_index[attachments_[i].name] = i;
+		attachment_description.format = node_attachment.format;
+		attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
+		attachment_description.loadOp = node_attachment.depends_on ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
-		if (!attachments_[i].is_depth_attachment)
-			color_attachments_cnt++;
+		if(node_attachment.format == device_cfg.presentation_format || !node_attachment.to_dependencies.empty())
+			attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		else attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		
+		attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+		if (!node_attachment.depends_on)
+		{
+			attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		}
+		else
+		{
+			attachment_description.initialLayout = node_attachment.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		}
+
+		attachment_description.finalLayout = node_attachment.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		vk_attachments.push_back(attachment_description);
+		attachment_name_to_index[name] = attachment_index;
+		attachment_index++;
 	}
-
 
 	std::vector<VkSubpassDescription> subpasses;
 	std::map<std::string, uint32_t> subpass_name_to_index;
 
 	std::vector<std::vector<VkAttachmentReference>> subpasses_color_refs;
 	std::vector<VkAttachmentReference> subpasses_depth_refs;
-
 
 	int subpass_cnt = 1;
 
@@ -397,22 +60,23 @@ bool render::RenderPass::InitHandle() const
 
 	for (uint32_t subpass_ind = 0; subpass_ind < subpass_cnt; subpass_ind++)
 	{
-		for (uint32_t att_ref_ind = 0; att_ref_ind < attachments_.size(); att_ref_ind++)
+		int attachment_index = 0;
+		for (auto&& [name, node_attachment] : render_node.GetAttachments())
 		{
-			//uint32_t attachment_index = attachment_name_to_index[render_pass_desc.subpasses[subpass_ind].attachment_refs[att_ref_ind].name];
-
-			if (attachments_[att_ref_ind].is_depth_attachment)
+			if (node_attachment.format == device_cfg.depth_map_format)
 			{
-				subpasses_depth_refs[subpass_ind].attachment = att_ref_ind;
+				subpasses_depth_refs[subpass_ind].attachment = attachment_index;
 				subpasses_depth_refs[subpass_ind].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 				subpasses[subpass_ind].pDepthStencilAttachment = &subpasses_depth_refs[subpass_ind];
 			}
 			else
 			{
 				subpasses_color_refs[subpass_ind].push_back({});
-				subpasses_color_refs[subpass_ind].back().attachment = att_ref_ind;
+				subpasses_color_refs[subpass_ind].back().attachment = attachment_index;
 				subpasses_color_refs[subpass_ind].back().layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			}
+
+			attachment_index++;
 		}
 
 		subpasses[subpass_ind].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -422,8 +86,9 @@ bool render::RenderPass::InitHandle() const
 
 	std::vector<VkSubpassDependency> dependencies;
 
-	if (swapchain_interaction_flags.Check(SwapchainInteraction::kAcquire))
+	if (auto it = render_node.GetAttachments().find(kSwapchainAttachmentName); it != render_node.GetAttachments().end())
 	{
+		if (!it->second.depends_on)
 		{
 			VkSubpassDependency vk_dependency;
 
@@ -442,16 +107,6 @@ bool render::RenderPass::InitHandle() const
 		}
 	}
 
-	//for (auto&& dependency : render_pass_desc.dependencies)
-	//{
-	//	VkSubpassDependency vk_dependency = dependency.dependency;
-
-
-	//	vk_dependency.srcSubpass = dependency.from_name.empty() ? VK_SUBPASS_EXTERNAL : subpass_name_to_index[dependency.from_name];
-	//	vk_dependency.dstSubpass = dependency.to_name.empty() ? VK_SUBPASS_EXTERNAL : subpass_name_to_index[dependency.to_name];
-	//	dependencies.push_back(vk_dependency);
-	//}
-
 
 	VkRenderPassCreateInfo render_pass_info{};
 	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -467,9 +122,45 @@ bool render::RenderPass::InitHandle() const
 	if (vkCreateRenderPass(device_cfg_.logical_device, &render_pass_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create render pass!");
 	}
-
-	return true;
 }
+
+
+//int render::RenderPass::GetAttachmentIndex(const std::string_view& name) const
+//{
+//	auto&& it = std::find_if(attachments_.begin(), attachments_.end(), [&name](const Attachment& a) {return a.name == name; });
+//
+//	if (it != attachments_.end())
+//		return (it - attachments_.begin());
+//
+//	return -1;
+//}
+//
+//int render::RenderPass::GetAttachmentsCnt() const
+//{
+//	return attachments_.size();
+//}
+//
+//int render::RenderPass::GetColorAttachmentsCnt() const
+//{
+//	if(contains_depth_attachment_)
+//		return attachments_.size() - 1;
+//
+//	return attachments_.size();
+//}
+//
+//const render::RenderPass::Attachment& render::RenderPass::GetAttachmentByIndex(int index) const
+//{
+//	return attachments_[index];
+//}
+
+render::RenderPass::~RenderPass()
+{
+	if (handle_ != VK_NULL_HANDLE)
+	{
+		vkDestroyRenderPass(device_cfg_.logical_device, handle_, nullptr);
+	}
+}
+
 
 //render::RenderPass2::RenderPass2(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg)
 //{

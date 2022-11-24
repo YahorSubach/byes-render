@@ -10,6 +10,8 @@
 #include "render/graphics_pipeline.h"
 #include "render/descriptor_set_layout.h"
 
+#include "render/render_graph.h"
+
 namespace render
 {
 	class RenderSetup: RenderObjBase<bool>
@@ -27,6 +29,9 @@ namespace render
 
 		void InitDescriptorSetLayouts(const DeviceConfiguration& device_cfg);
 		VkShaderModule CreateShaderModule(const std::vector<char>& code);
+
+
+		RenderGraph2 render_graph_;
 
 		std::map<PipelineId, GraphicsPipeline> pipelines_;
 		std::map<RenderPassId, RenderPass> render_passes_;

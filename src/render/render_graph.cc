@@ -327,3 +327,66 @@ void render::RenderGraph::RenderBatch::AddSwapchainDependencyAsAttachment(const 
 {
 	dependencies.push_back({ batch, {}, false });
 }
+
+
+render::RenderGraph2::RenderGraph2(const DeviceConfiguration device_cfg): RenderObjBase(device_cfg)
+{
+}
+
+render::RenderGraph2::Node& render::RenderGraph2::AddNode(const std::string& name)
+{
+	auto [it, success] = nodes_.insert({ name, {name} });
+	assert(success);
+	return it->second;
+}
+
+render::RenderGraph2::Node::Node(const std::string& name): name_(name)
+{
+}
+
+render::RenderGraph2::Attachment& render::RenderGraph2::Node::AddAttachment(const std::string& name, Format format)
+{
+	auto [it, success] = attachments_.insert({ name, {name, format, *this} });
+	assert(success);
+	return it->second;
+}
+
+render::RenderGraph2::Attachment& render::RenderGraph2::Node::GetAttachment(const std::string& name)
+{
+	return attachments_.at(name);
+}
+
+
+const std::map<std::string, render::RenderGraph2::Attachment>& render::RenderGraph2::Node::GetAttachments() const
+{
+	return attachments_;
+}
+
+const std::string& render::RenderGraph2::Node::GetName() const
+{
+	return name_;
+}
+void render::RenderGraph2::Node::AddDependency(Dependency dependency)
+{
+	to_dependencies_.push_back(dependency);
+}
+render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::operator>>(Node& node_to_forward)
+{
+	ForwardAsSampled(node_to_forward);
+	return *this;
+}
+
+render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::ForwardAsAttachment(Node& to_node)
+{
+	node.AddDependency({ *this, to_node, true });
+	to_dependencies.push_back({ *this, to_node, true });
+
+	auto&& new_attachment = to_node.AddAttachment(name, format);
+	new_attachment.depends_on = node;
+}
+
+void render::RenderGraph2::Attachment::ForwardAsSampled(Node& to_node)
+{
+	node.AddDependency({ *this, to_node, false });
+	to_dependencies.push_back({ *this, to_node, false });
+}

@@ -6,57 +6,24 @@
 
 #include "render/object_base.h"
 #include "render/image_view.h"
+#include "render/render_graph.h"
 
 namespace render
 {
-	
+	const std::string kSwapchainAttachmentName = "swapchain";
 
-	class RenderPass : public LazyRenderObj<VkRenderPass>
+	class RenderPass : public RenderObjBase<VkRenderPass>
 	{
 	public:
 
-		enum class SwapchainInteraction
-		{
-			kNone,
-			kAcquire,
-			kPresent
-		};
-
-		using SwapchainInteractionFlags = stl_util::EnumFlags<SwapchainInteraction>;
-
-		//struct RenderPassDesc
+		//enum class SwapchainInteraction
 		//{
-		//	struct Attachment
-		//	{
-		//		std::string name;
-		//		bool is_depth_attachment;
-		//		VkAttachmentDescription desc;
-		//	};
-
-		//	struct Subpass
-		//	{
-		//		struct AttachmentRef
-		//		{
-		//			std::string name;
-		//			VkImageLayout layout;
-		//		};
-
-		//		std::string name;
-		//		std::vector<AttachmentRef> attachment_refs;
-		//	};
-
-		//	struct Dependency
-		//	{
-		//		std::string from_name;
-		//		std::string to_name;
-
-		//		VkSubpassDependency dependency;
-		//	};
-
-		//	std::vector<Attachment> attachments;
-		//	std::vector<Subpass> subpasses;
-		//	std::vector<Dependency> dependencies;
+		//	kNone,
+		//	kAcquire,
+		//	kPresent
 		//};
+
+		//using SwapchainInteractionFlags = stl_util::EnumFlags<SwapchainInteraction>;
 
 		struct Attachment
 		{
@@ -66,14 +33,14 @@ namespace render
 		};
 
 
-		RenderPass(const DeviceConfiguration& device_cfg, SwapchainInteractionFlags interaction = {});
+		RenderPass(const DeviceConfiguration& device_cfg, const RenderGraph2::Node& render_node/*, SwapchainInteractionFlags interaction = {}*/);
 
-		int AddColorAttachment(const std::string_view& name, bool high_range = true);
-		int AddDepthAttachment(const std::string_view& name);
-		int GetAttachmentIndex(const std::string_view& name) const;
-		int GetAttachmentsCnt() const;
-		int GetColorAttachmentsCnt() const;
-		const Attachment& GetAttachmentByIndex(int index) const;
+		//int AddColorAttachment(const std::string_view& name, bool high_range = true);
+		//int AddDepthAttachment(const std::string_view& name);
+		//int GetAttachmentIndex(const std::string_view& name) const;
+		//int GetAttachmentsCnt() const;
+		//int GetColorAttachmentsCnt() const;
+		//const Attachment& GetAttachmentByIndex(int index) const;
 
 		//static RenderPassDesc BuildRenderPassDesc(RenderPassId type, VkFormat color_format, VkFormat depth_format);
 
@@ -90,40 +57,14 @@ namespace render
 
 		bool contains_depth_attachment_;
 
-		std::vector<Attachment> attachments_;
-		std::vector<Attachment> depth_attachments_;
-		std::optional<Attachment> depth_attachment_;
 
-		virtual bool InitHandle() const;
-		SwapchainInteractionFlags swapchain_interaction_flags;
+		//std::vector<Attachment> attachments_;
+		//std::vector<Attachment> depth_attachments_;
+		//std::optional<Attachment> depth_attachment_;
+
+		//virtual bool InitHandle() const;
+		//SwapchainInteractionFlags swapchain_interaction_flags;
 	};
-
-	/*class RenderPass2 : public RenderObjBase<VkRenderPass>
-	{
-	public:
-
-		RenderPass2(const DeviceConfiguration& device_cfg);
-
-		RenderPass2(const RenderPass2&) = delete;
-		RenderPass2(RenderPass2&&) = default;
-
-		RenderPass2& operator=(const RenderPass2&) = delete;
-		RenderPass2& operator=(RenderPass2&&) = default;
-
-
-		void Attach();
-
-
-		virtual ~RenderPass2() override;
-
-	private:
-
-		struct VkConstructParams
-		{};
-
-		std::unique_ptr<VkConstructParams> params_;
-
-	};*/
 
 }
 #endif  // RENDER_ENGINE_RENDER_RENDER_PASS_H_
