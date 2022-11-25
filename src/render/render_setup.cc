@@ -4,6 +4,8 @@
 
 #include "render/shader_module.h"
 
+#include "render/descriptor_set.h"
+
 render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg): 
 	RenderObjBase(device_cfg),
 	render_graph_(device_cfg),
@@ -20,14 +22,14 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	auto&& g_collect_node = render_graph_.AddNode("g_build");
 	auto&& ui_node = render_graph_.AddNode("g_build");
 
-	g_build_node.AddAttachment("g_albedo", device_cfg.high_range_color_format) >> g_collect_node;
-	g_build_node.AddAttachment("g_position", device_cfg.high_range_color_format) >> g_collect_node;
-	g_build_node.AddAttachment("g_normal", device_cfg.high_range_color_format) >> g_collect_node;
-	g_build_node.AddAttachment("g_metal_rough", device_cfg.high_range_color_format) >> g_collect_node;
-	g_build_node.AddAttachment("g_depth", device_cfg.depth_map_format);
+	g_build_node.AddAttachment("g_albedo", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> g_collect_node;
+	g_build_node.AddAttachment("g_position", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> g_collect_node;
+	g_build_node.AddAttachment("g_normal", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> g_collect_node;
+	g_build_node.AddAttachment("g_metal_rough", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> g_collect_node;
+	g_build_node.AddAttachment("g_depth", device_cfg.depth_map_format, device_cfg.presentation_extent);
 
-	g_collect_node.AddAttachment("swapchain", device_cfg.presentation_format);
-	g_collect_node.ForwardAsAttachment("swapchain", ui_node);
+	g_collect_node.AddAttachment("swapchain", device_cfg.presentation_format, device_cfg.presentation_extent) >> ui_node;
+
 
 
 

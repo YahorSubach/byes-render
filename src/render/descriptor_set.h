@@ -20,9 +20,9 @@ namespace render
 #undef ENUM_OP
 
 		Count,
+		None = Count,
 		
 		ListEnd
-		
 	};
 
 	enum class DescriptorBindingType

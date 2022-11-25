@@ -41,7 +41,7 @@ namespace render
 		
 		virtual bool InitHandle() const override;
 
-		stl_util::NullableRef<const Image> image_;
+		//stl_util::NullableRef<const Image> image_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_IMAGE_VIEW_H_

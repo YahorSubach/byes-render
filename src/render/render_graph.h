@@ -30,59 +30,88 @@ namespace render
 			const Attachment& from_attachment;
 			const Node& to_node;
 
-			bool as_attachment;
+			DescriptorSetType descriptor_set_type;
 		};
 
 		struct Attachment
 		{
+		private:
+			struct DescriptorSetForwarder
+			{
+				Attachment& attachment;
+				DescriptorSetType type;
+				Attachment& operator>>(Node& node_to_forward);
+			};
+
+		public:
+
 			std::string name;
 			Format format;
+			Extent extent;
 			
 			Node& node;
 
 			stl_util::NullableRef<Dependency> depends_on;
 
+			DescriptorSetForwarder operator>>(DescriptorSetType desc_type);
 			Attachment& operator>>(Node& node_to_forward);
 
-			render::RenderGraph2::Attachment& ForwardAsAttachment(Node& to_node);
-			void ForwardAsSampled(Node& to_node);
+			Attachment& ForwardAsAttachment(Node& to_node);
+			Attachment& ForwardAsSampled(Node& to_node, DescriptorSetType set_type);
 
 			std::vector<Dependency> to_dependencies;
 		};
-
 
 
 		class Node
 		{
 		public:
 
-			Node(const std::string& name);
+			Node(const RenderGraph2& render_graph, const std::string& name);
 
-			Attachment& AddAttachment(const std::string& name, Format format);
+			Attachment& AddAttachment(const std::string& name, Format format, Extent extent);
 			Attachment& GetAttachment(const std::string& name);
 
 			const std::map<std::string, Attachment>& GetAttachments() const;
 
 			const std::string& GetName() const;
-
-			void AddDependency(Dependency dependency);
+			void Build();
+			/*void AddDependency(Dependency dependency);*/
 
 		private:
-
+			const RenderGraph2& render_graph_;
 			std::string name_;
 			std::map<std::string, Attachment> attachments_;
-			std::vector<Dependency> to_dependencies_;
+			std::optional<RenderPass> render_pass_;
+
+			/*std::vector<Dependency> to_dependencies_;*/
 			//std::vector<Dependency> from_dependencies_;
 		};
 
 		RenderGraph2(const DeviceConfiguration device_cfg);
 
 		Node& AddNode(const std::string& name);
+		void Build();
 
+
+		
+		const std::map<std::string, Node>& GetNodes() const;
 
 	private:
 		std::map<std::string, Node> nodes_;
 
+	};
+
+	class RenderGraphHandler
+	{
+	public:
+
+		RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph);
+
+	private:
+		std::map<std::string, std::pair<Image, ImageView>> images_;
+		std::map<std::string, Framebuffer> framebuffers_;
+		const RenderGraph2& render_graph_;
 	};
 
 

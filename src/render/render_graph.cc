@@ -335,18 +335,31 @@ render::RenderGraph2::RenderGraph2(const DeviceConfiguration device_cfg): Render
 
 render::RenderGraph2::Node& render::RenderGraph2::AddNode(const std::string& name)
 {
-	auto [it, success] = nodes_.insert({ name, {name} });
+	auto [it, success] = nodes_.insert({ name, Node{*this, name} });
 	assert(success);
 	return it->second;
 }
 
-render::RenderGraph2::Node::Node(const std::string& name): name_(name)
+void render::RenderGraph2::Build()
+{
+	for (auto&& [name, node] : nodes_)
+	{
+		node.Build();
+	}
+}
+
+const std::map<std::string, render::RenderGraph2::Node>& render::RenderGraph2::GetNodes() const
+{
+	return nodes_;
+}
+
+render::RenderGraph2::Node::Node(const RenderGraph2& render_graph, const std::string& name) : name_(name), render_graph_(render_graph)
 {
 }
 
-render::RenderGraph2::Attachment& render::RenderGraph2::Node::AddAttachment(const std::string& name, Format format)
+render::RenderGraph2::Attachment& render::RenderGraph2::Node::AddAttachment(const std::string& name, Format format, Extent extent)
 {
-	auto [it, success] = attachments_.insert({ name, {name, format, *this} });
+	auto [it, success] = attachments_.insert({ name, {name, format, extent, *this} });
 	assert(success);
 	return it->second;
 }
@@ -366,27 +379,81 @@ const std::string& render::RenderGraph2::Node::GetName() const
 {
 	return name_;
 }
-void render::RenderGraph2::Node::AddDependency(Dependency dependency)
+
+void render::RenderGraph2::Node::Build()
 {
-	to_dependencies_.push_back(dependency);
+	render_pass_ = RenderPass(render_graph_.device_cfg_, *this);
 }
+//void render::RenderGraph2::Node::AddDependency(Dependency dependency)
+//{
+//	to_dependencies_.push_back(dependency);
+//}
+
+render::RenderGraph2::Attachment::DescriptorSetForwarder render::RenderGraph2::Attachment::operator>>(DescriptorSetType desc_type)
+{
+	return {*this, desc_type};
+}
+
 render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::operator>>(Node& node_to_forward)
 {
-	ForwardAsSampled(node_to_forward);
-	return *this;
+	return ForwardAsAttachment(node_to_forward);
 }
 
 render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::ForwardAsAttachment(Node& to_node)
 {
-	node.AddDependency({ *this, to_node, true });
-	to_dependencies.push_back({ *this, to_node, true });
+	//node.AddDependency({ *this, to_node, true });
+	to_dependencies.push_back({ *this, to_node, DescriptorSetType::None });
 
-	auto&& new_attachment = to_node.AddAttachment(name, format);
+	auto&& new_attachment = to_node.AddAttachment(name, format, extent);
 	new_attachment.depends_on = node;
 }
 
-void render::RenderGraph2::Attachment::ForwardAsSampled(Node& to_node)
+render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::ForwardAsSampled(Node& to_node, DescriptorSetType set_type)
 {
-	node.AddDependency({ *this, to_node, false });
-	to_dependencies.push_back({ *this, to_node, false });
+	//node.AddDependency({ *this, to_node, false });
+	to_dependencies.push_back({ *this, to_node, set_type });
+	return *this;
+}
+
+render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::DescriptorSetForwarder::operator>>(Node& node_to_forward)
+{
+	return attachment.ForwardAsSampled(node_to_forward, type);
+}
+
+render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph): render_graph_(render_graph)
+{
+	for (auto&& [node_name, node] : render_graph.GetNodes())
+	{
+		Framebuffer framebuffer(device_cfg,);
+
+		for (auto&& [attachment_name, attachment] : node.GetAttachments())
+		{
+			if (images_.count(attachment_name) > 0)
+				continue;
+
+			Image image(device_cfg, attachment.format, attachment.extent);
+			
+			if (attachment.format == device_cfg.depth_map_format)
+			{
+				image.AddUsageFlag(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+			}
+			else
+			{
+				image.AddUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+			}
+
+			for (auto&& dependency : attachment.to_dependencies)
+			{
+				if (dependency.descriptor_set_type != DescriptorSetType::None)
+				{
+					image.AddUsageFlag(VK_IMAGE_USAGE_SAMPLED_BIT);
+				}
+			}
+
+			ImageView image_view(device_cfg, image);
+
+			auto res = images_.insert({ attachment_name, std::pair{std::move(image), ImageView{device_cfg}} });
+			res.first->second.second.Assign(res.first->second.first);
+		}
+	}
 }

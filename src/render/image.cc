@@ -179,6 +179,7 @@ uint32_t render::Image::GetMipMapLevelsCount() const
 
 uint32_t render::Image::AddUsageFlag(uint32_t flag) const
 {
+	assert(handle_ == VK_NULL_HANDLE);
 	usage_ = usage_ | flag;
 	return usage_;
 }
