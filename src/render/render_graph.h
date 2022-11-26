@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 
+#include "render/data_types.h"
 #include "render/descriptor_sets_manager.h"
 #include "render/framebuffer.h"
 #include "render/image.h"
@@ -73,7 +74,7 @@ namespace render
 		{
 		public:
 
-			Node(const RenderGraph2& render_graph, const std::string& name, const Extent& extent);
+			Node(const RenderGraph2& render_graph, const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags);
 
 			Attachment& AddAttachment(const std::string& name, Format format, Extent extent);
 			Attachment& GetAttachment(const std::string& name);
@@ -90,7 +91,7 @@ namespace render
 			//std::vector<std::reference_wrapper<Dependency>> depends_on;
 
 			int order;
-
+			RenderModelCategoryFlags category_flags;
 		private:
 			const RenderGraph2& render_graph_;
 			const Extent& extent_;
@@ -104,7 +105,7 @@ namespace render
 
 		RenderGraph2(const DeviceConfiguration device_cfg);
 
-		Node& AddNode(const std::string& name);
+		Node& AddNode(const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags);
 		void Build();
 
 
@@ -162,6 +163,8 @@ namespace render
 	{
 		RenderModelCategory category;
 
+		const GraphicsPipeline& pipeline;
+
 		const std::map<DescriptorSetType, VkDescriptorSet>& descriptor_sets;
 		
 		std::vector<VkBuffer> vertex_buffers;
@@ -173,71 +176,71 @@ namespace render
 	};
 
 
-	class RenderGraph : public RenderObjBase<int*>
-	{
-	public:
-		RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene);
+	//class RenderGraph : public RenderObjBase<int*>
+	//{
+	//public:
+	//	RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene);
 
-		RenderGraph(const RenderGraph&) = delete;
-		RenderGraph(RenderGraph&&) = default;
+	//	RenderGraph(const RenderGraph&) = delete;
+	//	RenderGraph(RenderGraph&&) = default;
 
-		RenderGraph& operator=(const RenderGraph&) = delete;
-		RenderGraph& operator=(RenderGraph&&) = default;
-
-
-		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const;
+	//	RenderGraph& operator=(const RenderGraph&) = delete;
+	//	RenderGraph& operator=(RenderGraph&&) = default;
 
 
-		virtual ~RenderGraph() override;
-	
-
-	private:
-
-		void ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const;
-
-		struct RenderPassNode
-		{
-			RenderModelCategoryFlags category_flags;
-			stl_util::NullableRef<const Framebuffer> framebuffer;
-			std::vector<std::reference_wrapper<const GraphicsPipeline>> pipelines;
-		};
+	//	bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const;
 
 
-		class RenderBatch
-		{
-		public:
-			struct Dependency
-			{
-				const RenderBatch& batch;
-				stl_util::NullableRef<const Image> image;
-				bool as_samped;
-			};
+	//	virtual ~RenderGraph() override;
+	//
 
-			std::vector<RenderPassNode> render_pass_nodes;
-			
-			void AddDependencyAsSampled(const RenderBatch& batch, const Image& image);
-			void AddDependencyAsAttachment(const RenderBatch& batch, const Image& image);
-			void AddSwapchainDependencyAsSampled(const RenderBatch& batch);
-			void AddSwapchainDependencyAsAttachment(const RenderBatch& batch);
+	//private:
 
-			mutable bool processed;
+	//	void ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const;
 
-			std::vector<Dependency> dependencies;
+	//	struct RenderPassNode
+	//	{
+	//		RenderModelCategoryFlags category_flags;
+	//		stl_util::NullableRef<const Framebuffer> framebuffer;
+	//		std::vector<std::reference_wrapper<const GraphicsPipeline>> pipelines;
+	//	};
 
-		};
 
-		struct RenderCollection
-		{
-			std::pair<Image&, ImageView&> CreateImage(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent);
-			Framebuffer& CreateFramebuffer(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass);
-			RenderBatch& CreateBatch();
-			std::vector<Image> images;
-			std::vector<ImageView> image_views;
-			std::vector<Framebuffer> frambuffers;
-			std::vector<RenderBatch> render_batches;
-		};
+	//	class RenderBatch
+	//	{
+	//	public:
+	//		struct Dependency
+	//		{
+	//			const RenderBatch& batch;
+	//			stl_util::NullableRef<const Image> image;
+	//			bool as_samped;
+	//		};
 
-		RenderCollection collection_;
-	};
+	//		std::vector<RenderPassNode> render_pass_nodes;
+	//		
+	//		void AddDependencyAsSampled(const RenderBatch& batch, const Image& image);
+	//		void AddDependencyAsAttachment(const RenderBatch& batch, const Image& image);
+	//		void AddSwapchainDependencyAsSampled(const RenderBatch& batch);
+	//		void AddSwapchainDependencyAsAttachment(const RenderBatch& batch);
+
+	//		mutable bool processed;
+
+	//		std::vector<Dependency> dependencies;
+
+	//	};
+
+	//	struct RenderCollection
+	//	{
+	//		std::pair<Image&, ImageView&> CreateImage(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent);
+	//		Framebuffer& CreateFramebuffer(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass);
+	//		RenderBatch& CreateBatch();
+	//		std::vector<Image> images;
+	//		std::vector<ImageView> image_views;
+	//		std::vector<Framebuffer> frambuffers;
+	//		std::vector<RenderBatch> render_batches;
+	//	};
+
+	//	RenderCollection collection_;
+	//};
 }
 #endif  // RENDER_ENGINE_RENDER_RENDER_GRAPH_H_
