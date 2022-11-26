@@ -59,7 +59,7 @@ namespace render
 		Extent GetExtent() const;
 
 		const RenderPass& GetRenderPass() const;
-
+		const std::vector<VkFormat>& GetFormats() const;
 		//void Build(const RenderPass2& render_pass);
 
 		//struct AttachmentDesc
@@ -75,7 +75,10 @@ namespace render
 		virtual bool InitHandle() const override;
 
 		Extent extent_;
+		std::vector<VkFormat> formats_;
 		const RenderPass& render_pass_;
+
+		
 
 		//std::vector<std::reference_wrapper<const ImageView>> image_views_;
 		//std::map<std::string, const ImageView&> name_to_image_view_;

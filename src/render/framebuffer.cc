@@ -12,6 +12,7 @@ render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Co
 	for (auto&& image_view : params.attachments)
 	{
 		vk_attachments.push_back(image_view.get().GetHandle());
+		formats_.push_back(image_view.get().GetFormat());
 	}
 
 	//int attachments_cnt = render_pass_.GetAttachmentsCnt();
@@ -60,6 +61,11 @@ render::Extent render::Framebuffer::GetExtent() const
 const render::RenderPass& render::Framebuffer::GetRenderPass() const
 {
 	return render_pass_;
+}
+
+const std::vector<VkFormat>& render::Framebuffer::GetFormats() const
+{
+	return formats_;
 }
 
 //void render::Framebuffer::Build(const RenderPass2& render_pass)

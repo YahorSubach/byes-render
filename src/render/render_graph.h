@@ -87,7 +87,9 @@ namespace render
 			const RenderPass& GetRenderPass() const;
 			Extent GetExtent() const;
 
-			std::vector<std::reference_wrapper<Dependency>> depends_on;
+			//std::vector<std::reference_wrapper<Dependency>> depends_on;
+
+			int order;
 
 		private:
 			const RenderGraph2& render_graph_;
@@ -114,7 +116,7 @@ namespace render
 
 	};
 
-	class RenderGraphHandler
+	class RenderGraphHandler: RenderObjBase<int*>
 	{
 	public:
 

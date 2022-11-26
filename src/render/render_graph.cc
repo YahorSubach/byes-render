@@ -355,7 +355,7 @@ const std::map<std::string, render::RenderGraph2::Node>& render::RenderGraph2::G
 	return nodes_;
 }
 
-render::RenderGraph2::Node::Node(const RenderGraph2& render_graph, const std::string& name, const Extent& extent) : name_(name), render_graph_(render_graph), extent_(extent)
+render::RenderGraph2::Node::Node(const RenderGraph2& render_graph, const std::string& name, const Extent& extent) : name_(name), render_graph_(render_graph), extent_(extent), order(0)
 {
 }
 
@@ -418,14 +418,16 @@ render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::ForwardAsAtt
 
 	auto&& new_attachment = to_node.AddAttachment(name, format, extent);
 	new_attachment.depends_on = node;
-	to_node.depends = true;
+	to_node.order = std::max(to_node.order, node.order + 1);
+	//to_node.depends = true;
 }
 
 render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::ForwardAsSampled(Node& to_node, DescriptorSetType set_type, int binding_index)
 {
 	//node.AddDependency({ *this, to_node, false });
 	to_dependencies.push_back({ *this, to_node, set_type, binding_index });
-	to_node.depends = true;
+	to_node.order = std::max(to_node.order, node.order + 1);
+	//to_node.depends = true;
 	return *this;
 }
 
@@ -439,14 +441,15 @@ render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::DescriptorSe
 	return attachment.ForwardAsSampled(node_to_forward, type, descriptor_set_binding_index);
 }
 
-render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, DescriptorSetsManager& desc_set_manager): render_graph_(render_graph)
+render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, DescriptorSetsManager& desc_set_manager): 
+	RenderObjBase(device_cfg), render_graph_(render_graph)
 {
 	std::map<std::string, std::map<DescriptorSetType, std::map<int, const AttachmentImage&>>> desc_set_images;
 
 	for (auto&& [node_name, node] : render_graph.GetNodes())
 	{
 		Framebuffer::ConstructParams framebuffer_params{node.GetRenderPass(), node.GetExtent()};
-
+		bool has_dependency = false;
 		for (auto&& [attachment_name, attachment] : node.GetAttachments())
 		{
 			auto&& it = attachment_images_.find(attachment_name);
@@ -483,6 +486,7 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 
 			for (auto&& dependency : attachment.to_dependencies)
 			{
+				has_dependency = true;
 				if (dependency.descriptor_set_type != DescriptorSetType::None)
 				{
 					desc_set_images[dependency.to_node.GetName()][dependency.descriptor_set_type].emplace(dependency.descriptor_set_binding_index, res.first->second);
@@ -490,8 +494,11 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 			}
 		}
 
-		Framebuffer framebuffer(device_cfg, framebuffer_params);
-		node_data_.emplace(node_name, RenderNodeData{std::move(framebuffer)});
+		if (has_dependency)
+		{
+			Framebuffer framebuffer(device_cfg, framebuffer_params);
+			node_data_.emplace(node_name, RenderNodeData{ std::move(framebuffer) });
+		}
 	}
 
 	for (auto&& [node_name, descriptors] : desc_set_images)
@@ -544,38 +551,52 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 
 	std::set<std::string> processed_nodes;
 
+	int order = 0;
+
 	while (true)
 	{
-
-		for (auto&& node : render_graph_.GetNodes())
+		bool stop = true;
+		std::vector<std::reference_wrapper<const RenderGraph2::Dependency>> dependencies;
+		for (auto&& [node_name, node] : render_graph_.GetNodes())
 		{
-			auto frambuffer = render_pass_node.framebuffer;
-			if (!frambuffer)
+			if (node.order != order)
+				continue;
+
+			stop = false;
+
+			stl_util::NullableRef<const Framebuffer> framebuffer = swapchain_framebuffer;
+			if (auto&& it = node_data_.find(node_name); it != node_data_.end())
 			{
-				frambuffer = swapchain_framebuffer;
+				framebuffer = it->second.frambuffer;
 			}
 
 			VkRenderPassBeginInfo render_pass_begin_info{};
 			render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			render_pass_begin_info.renderPass = frambuffer->GetRenderPass().GetHandle();
-			render_pass_begin_info.framebuffer = frambuffer->GetHandle();
+			render_pass_begin_info.renderPass = node.GetRenderPass().GetHandle();
+			render_pass_begin_info.framebuffer = framebuffer->GetHandle();
 
 			render_pass_begin_info.renderArea.offset = { 0, 0 };
-			render_pass_begin_info.renderArea.extent = frambuffer->GetExtent();
+			render_pass_begin_info.renderArea.extent = framebuffer->GetExtent();
 
-			std::vector<VkClearValue> clear_values(frambuffer->GetAttachmentImageViews().size());
-			int index = 0;
-			for (auto&& attachment : frambuffer->GetAttachmentImageViews())
+			for (auto&& attachment : node.GetAttachments())
 			{
-				if (attachment.get().CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
+				for (auto&& dependency : attachment.second.to_dependencies)
 				{
-					clear_values[index].color = VkClearColorValue{ {0.0f, 0.0f, 0.0f, 1.0f} };
+					dependencies.push_back(dependency);
+				}
+			}
+
+			std::vector<VkClearValue> clear_values(framebuffer->GetFormats().size());
+			for (int att_ind = 0; att_ind < framebuffer->GetFormats().size(); att_ind++)
+			{
+				if (framebuffer->GetFormats()[att_ind] == device_cfg_.depth_map_format)
+				{
+					clear_values[att_ind].depthStencil = { 1.0f, 0 };
 				}
 				else
 				{
-					clear_values[index].depthStencil = { 1.0f, 0 };
+					clear_values[att_ind].color = VkClearColorValue{ {0.0f, 0.0f, 0.0f, 1.0f} };
 				}
-				index++;
 			}
 
 			render_pass_begin_info.clearValueCount = static_cast<uint32_t>(clear_values.size());
@@ -617,12 +638,10 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 			}
 
 			vkCmdEndRenderPass(command_buffer);
-
-			final_pass = true;
 		}
 
 		std::vector<VkImageMemoryBarrier2> vk_barriers;
-		for (auto&& dependency : current_batch.dependencies)
+		for (auto&& dependency : dependencies)
 		{
 			if (!dependency.batch.processed)
 			{
