@@ -22,10 +22,10 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	auto&& g_collect_node = render_graph_.AddNode("g_build");
 	auto&& ui_node = render_graph_.AddNode("g_build");
 
-	g_build_node.AddAttachment("g_albedo", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> g_collect_node;
-	g_build_node.AddAttachment("g_position", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> g_collect_node;
-	g_build_node.AddAttachment("g_normal", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> g_collect_node;
-	g_build_node.AddAttachment("g_metal_rough", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> g_collect_node;
+	g_build_node.AddAttachment("g_albedo", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> 0 >> g_collect_node;
+	g_build_node.AddAttachment("g_position", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> 1 >> g_collect_node;
+	g_build_node.AddAttachment("g_normal", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> 2 >> g_collect_node;
+	g_build_node.AddAttachment("g_metal_rough", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> 3 >> g_collect_node;
 	g_build_node.AddAttachment("g_depth", device_cfg.depth_map_format, device_cfg.presentation_extent);
 
 	g_collect_node.AddAttachment("swapchain", device_cfg.presentation_format, device_cfg.presentation_extent) >> ui_node;

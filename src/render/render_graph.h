@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 
+#include "render/descriptor_sets_manager.h"
 #include "render/framebuffer.h"
 #include "render/image.h"
 #include "render/image_view.h"
@@ -31,6 +32,7 @@ namespace render
 			const Node& to_node;
 
 			DescriptorSetType descriptor_set_type;
+			int descriptor_set_binding_index = -1;
 		};
 
 		struct Attachment
@@ -40,6 +42,10 @@ namespace render
 			{
 				Attachment& attachment;
 				DescriptorSetType type;
+
+				int descriptor_set_binding_index = -1;
+
+				DescriptorSetForwarder& operator>>(int binding_index);
 				Attachment& operator>>(Node& node_to_forward);
 			};
 
@@ -57,7 +63,7 @@ namespace render
 			Attachment& operator>>(Node& node_to_forward);
 
 			Attachment& ForwardAsAttachment(Node& to_node);
-			Attachment& ForwardAsSampled(Node& to_node, DescriptorSetType set_type);
+			Attachment& ForwardAsSampled(Node& to_node, DescriptorSetType set_type, int binding_index);
 
 			std::vector<Dependency> to_dependencies;
 		};
@@ -67,7 +73,7 @@ namespace render
 		{
 		public:
 
-			Node(const RenderGraph2& render_graph, const std::string& name);
+			Node(const RenderGraph2& render_graph, const std::string& name, const Extent& extent);
 
 			Attachment& AddAttachment(const std::string& name, Format format, Extent extent);
 			Attachment& GetAttachment(const std::string& name);
@@ -78,8 +84,14 @@ namespace render
 			void Build();
 			/*void AddDependency(Dependency dependency);*/
 
+			const RenderPass& GetRenderPass() const;
+			Extent GetExtent() const;
+
+			std::vector<std::reference_wrapper<Dependency>> depends_on;
+
 		private:
 			const RenderGraph2& render_graph_;
+			const Extent& extent_;
 			std::string name_;
 			std::map<std::string, Attachment> attachments_;
 			std::optional<RenderPass> render_pass_;
@@ -106,11 +118,29 @@ namespace render
 	{
 	public:
 
-		RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph);
+		RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, DescriptorSetsManager& desc_set_manager);
+
+		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const;
 
 	private:
-		std::map<std::string, std::pair<Image, ImageView>> images_;
-		std::map<std::string, Framebuffer> framebuffers_;
+
+		void ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const;
+
+		struct AttachmentImage
+		{
+			VkFormat format;
+			Image image;
+			ImageView image_view;
+		};
+
+		struct RenderNodeData
+		{
+			Framebuffer frambuffer;
+			std::map<DescriptorSetType, VkDescriptorSet> descriptor_sets;
+		};
+
+		std::map<std::string, AttachmentImage> attachment_images_;
+		std::map<std::string, RenderNodeData> node_data_;;
 		const RenderGraph2& render_graph_;
 	};
 

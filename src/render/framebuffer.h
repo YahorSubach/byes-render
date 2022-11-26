@@ -32,7 +32,17 @@ namespace render
 	class Framebuffer : public LazyRenderObj<VkFramebuffer>
 	{
 	public:
-		Framebuffer(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass);
+
+		struct ConstructParams
+		{
+			const RenderPass& render_pass;
+
+			Extent extent;
+			std::vector<std::reference_wrapper<ImageView>> attachments;
+
+		};
+
+		Framebuffer(const DeviceConfiguration& device_cfg, const ConstructParams& params);
 
 		Framebuffer(const Framebuffer&) = delete;
 		Framebuffer(Framebuffer&&) = default;
@@ -40,9 +50,9 @@ namespace render
 		Framebuffer& operator=(const Framebuffer&) = delete;
 		Framebuffer& operator=(Framebuffer&&) = default;
 
-		int AddAttachment(const std::string_view& name, const ImageView& image_view);
-		const ImageView& GetAttachment(const std::string_view& name) const;
-		const std::vector<std::reference_wrapper<const ImageView>>& GetAttachmentImageViews() const;
+		//int AddAttachment(const std::string_view& name, const ImageView& image_view);
+		//const ImageView& GetAttachment(const std::string_view& name) const;
+		//const std::vector<std::reference_wrapper<const ImageView>>& GetAttachmentImageViews() const;
 
 		virtual ~Framebuffer() override;
 	
@@ -67,8 +77,8 @@ namespace render
 		Extent extent_;
 		const RenderPass& render_pass_;
 
-		std::vector<std::reference_wrapper<const ImageView>> image_views_;
-		std::map<std::string, const ImageView&> name_to_image_view_;
+		//std::vector<std::reference_wrapper<const ImageView>> image_views_;
+		//std::map<std::string, const ImageView&> name_to_image_view_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_FRAMEBUFFER_H_

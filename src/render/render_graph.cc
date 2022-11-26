@@ -2,6 +2,8 @@
 
 #include <stack>
 #include <queue>
+#include <set>
+
 
 render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene) : RenderObjBase(device_cfg)
 {
@@ -353,7 +355,7 @@ const std::map<std::string, render::RenderGraph2::Node>& render::RenderGraph2::G
 	return nodes_;
 }
 
-render::RenderGraph2::Node::Node(const RenderGraph2& render_graph, const std::string& name) : name_(name), render_graph_(render_graph)
+render::RenderGraph2::Node::Node(const RenderGraph2& render_graph, const std::string& name, const Extent& extent) : name_(name), render_graph_(render_graph), extent_(extent)
 {
 }
 
@@ -384,6 +386,16 @@ void render::RenderGraph2::Node::Build()
 {
 	render_pass_ = RenderPass(render_graph_.device_cfg_, *this);
 }
+const render::RenderPass& render::RenderGraph2::Node::GetRenderPass() const
+{
+	assert(render_pass_);
+	return render_pass_.value();
+}
+
+render::Extent render::RenderGraph2::Node::GetExtent() const
+{
+	return extent_;
+}
 //void render::RenderGraph2::Node::AddDependency(Dependency dependency)
 //{
 //	to_dependencies_.push_back(dependency);
@@ -406,31 +418,45 @@ render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::ForwardAsAtt
 
 	auto&& new_attachment = to_node.AddAttachment(name, format, extent);
 	new_attachment.depends_on = node;
+	to_node.depends = true;
 }
 
-render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::ForwardAsSampled(Node& to_node, DescriptorSetType set_type)
+render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::ForwardAsSampled(Node& to_node, DescriptorSetType set_type, int binding_index)
 {
 	//node.AddDependency({ *this, to_node, false });
-	to_dependencies.push_back({ *this, to_node, set_type });
+	to_dependencies.push_back({ *this, to_node, set_type, binding_index });
+	to_node.depends = true;
 	return *this;
+}
+
+render::RenderGraph2::Attachment::DescriptorSetForwarder& render::RenderGraph2::Attachment::DescriptorSetForwarder::operator>>(int binding_index)
+{
+	descriptor_set_binding_index = binding_index;
 }
 
 render::RenderGraph2::Attachment& render::RenderGraph2::Attachment::DescriptorSetForwarder::operator>>(Node& node_to_forward)
 {
-	return attachment.ForwardAsSampled(node_to_forward, type);
+	return attachment.ForwardAsSampled(node_to_forward, type, descriptor_set_binding_index);
 }
 
-render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph): render_graph_(render_graph)
+render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, DescriptorSetsManager& desc_set_manager): render_graph_(render_graph)
 {
+	std::map<std::string, std::map<DescriptorSetType, std::map<int, const AttachmentImage&>>> desc_set_images;
+
 	for (auto&& [node_name, node] : render_graph.GetNodes())
 	{
-		Framebuffer framebuffer(device_cfg,);
+		Framebuffer::ConstructParams framebuffer_params{node.GetRenderPass(), node.GetExtent()};
 
 		for (auto&& [attachment_name, attachment] : node.GetAttachments())
 		{
-			if (images_.count(attachment_name) > 0)
-				continue;
+			auto&& it = attachment_images_.find(attachment_name);
 
+			if (it != attachment_images_.end())
+			{
+				framebuffer_params.attachments.push_back(it->second.image_view);
+				continue;
+			}
+			
 			Image image(device_cfg, attachment.format, attachment.extent);
 			
 			if (attachment.format == device_cfg.depth_map_format)
@@ -452,8 +478,230 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 
 			ImageView image_view(device_cfg, image);
 
-			auto res = images_.insert({ attachment_name, std::pair{std::move(image), ImageView{device_cfg}} });
-			res.first->second.second.Assign(res.first->second.first);
+			auto res = attachment_images_.insert({ attachment_name, AttachmentImage{attachment.format, std::move(image), std::move(image_view)}});
+			framebuffer_params.attachments.push_back(res.first->second.image_view);
+
+			for (auto&& dependency : attachment.to_dependencies)
+			{
+				if (dependency.descriptor_set_type != DescriptorSetType::None)
+				{
+					desc_set_images[dependency.to_node.GetName()][dependency.descriptor_set_type].emplace(dependency.descriptor_set_binding_index, res.first->second);
+				}
+			}
+		}
+
+		Framebuffer framebuffer(device_cfg, framebuffer_params);
+		node_data_.emplace(node_name, RenderNodeData{std::move(framebuffer)});
+	}
+
+	for (auto&& [node_name, descriptors] : desc_set_images)
+	{
+		auto&& node_data = node_data_[node_name];
+
+		for (auto&& [desc_type, desc_images] : descriptors)
+		{
+			VkDescriptorSet vk_descriptor_set = desc_set_manager.GetFreeDescriptor(desc_type);
+
+			std::vector<VkWriteDescriptorSet> writes(desc_images.size());
+
+			for (auto&& [binding_index, binding_att_image] : desc_images)
+			{
+				VkDescriptorImageInfo image_info;
+				image_info.sampler = device_cfg.texture_sampler->GetHandle();
+				image_info.imageLayout = binding_att_image.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				image_info.imageView = binding_att_image.image_view.GetHandle();
+
+				writes[binding_index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writes[binding_index].pNext = nullptr;
+				writes[binding_index].dstSet = vk_descriptor_set;
+				writes[binding_index].dstBinding = binding_index;
+				writes[binding_index].dstArrayElement = 0;
+				writes[binding_index].descriptorCount = 1;
+				writes[binding_index].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+				writes[binding_index].pImageInfo = &image_info;
+				writes[binding_index].pBufferInfo = nullptr;
+				writes[binding_index].pTexelBufferView = nullptr;
+			}
+
+			vkUpdateDescriptorSets(device_cfg.logical_device, writes.size(), writes.data(), 0, nullptr);
+			node_data.descriptor_sets.emplace(desc_type, vk_descriptor_set);
 		}
 	}
+}
+
+bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const
+{
+	VkCommandBufferBeginInfo begin_info{};
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT; // Optional
+	begin_info.pInheritanceInfo = nullptr; // Optional
+
+	VkResult result;
+
+	if (result = vkBeginCommandBuffer(command_buffer, &begin_info); result != VK_SUCCESS) {
+		throw std::runtime_error("failed to begin recording command buffer!");
+	}
+
+	std::set<std::string> processed_nodes;
+
+	while (true)
+	{
+
+		for (auto&& node : render_graph_.GetNodes())
+		{
+			auto frambuffer = render_pass_node.framebuffer;
+			if (!frambuffer)
+			{
+				frambuffer = swapchain_framebuffer;
+			}
+
+			VkRenderPassBeginInfo render_pass_begin_info{};
+			render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			render_pass_begin_info.renderPass = frambuffer->GetRenderPass().GetHandle();
+			render_pass_begin_info.framebuffer = frambuffer->GetHandle();
+
+			render_pass_begin_info.renderArea.offset = { 0, 0 };
+			render_pass_begin_info.renderArea.extent = frambuffer->GetExtent();
+
+			std::vector<VkClearValue> clear_values(frambuffer->GetAttachmentImageViews().size());
+			int index = 0;
+			for (auto&& attachment : frambuffer->GetAttachmentImageViews())
+			{
+				if (attachment.get().CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT))
+				{
+					clear_values[index].color = VkClearColorValue{ {0.0f, 0.0f, 0.0f, 1.0f} };
+				}
+				else
+				{
+					clear_values[index].depthStencil = { 1.0f, 0 };
+				}
+				index++;
+			}
+
+			render_pass_begin_info.clearValueCount = static_cast<uint32_t>(clear_values.size());
+			render_pass_begin_info.pClearValues = clear_values.data();
+
+			vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+			for (auto&& pipeline : render_pass_node.pipelines)
+			{
+				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get().GetHandle());
+
+				const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = pipeline.get().GetDescriptorSets();
+
+				auto&& pipeline_layout = pipeline.get().GetLayout();
+
+				ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene_ds);
+
+				for (auto&& render_model : render_models)
+				{
+					if (/*true || */render_pass_node.category_flags.Check(render_model.category)) {
+
+						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, render_model.descriptor_sets);
+
+						assert(render_model.vertex_buffers.size() == render_model.vertex_buffers_offsets.size());
+
+						vkCmdBindVertexBuffers(command_buffer, 0, u32(render_model.vertex_buffers.size()), render_model.vertex_buffers.data(), render_model.vertex_buffers_offsets.data());
+
+						if (render_model.index_buffer_and_offset.has_value())
+						{
+							vkCmdBindIndexBuffer(command_buffer, render_model.index_buffer_and_offset->first, render_model.index_buffer_and_offset->second, VK_INDEX_TYPE_UINT16);
+							vkCmdDrawIndexed(command_buffer, render_model.vertex_count, 1, 0, 0, 0);
+						}
+						else
+						{
+							vkCmdDraw(command_buffer, render_model.vertex_count, 1, 0, 0);
+						}
+					}
+				}
+			}
+
+			vkCmdEndRenderPass(command_buffer);
+
+			final_pass = true;
+		}
+
+		std::vector<VkImageMemoryBarrier2> vk_barriers;
+		for (auto&& dependency : current_batch.dependencies)
+		{
+			if (!dependency.batch.processed)
+			{
+				dependency.batch.processed = true;
+				batches_to_process.push(dependency.batch);
+			}
+
+			VkStructureType            sType;
+			const void* pNext;
+			VkPipelineStageFlags2      srcStageMask;
+			VkAccessFlags2             srcAccessMask;
+			VkPipelineStageFlags2      dstStageMask;
+			VkAccessFlags2             dstAccessMask;
+			VkImageLayout              oldLayout;
+			VkImageLayout              newLayout;
+			uint32_t                   srcQueueFamilyIndex;
+			uint32_t                   dstQueueFamilyIndex;
+			VkImage                    image;
+			VkImageSubresourceRange    subresourceRange;
+
+			stl_util::NullableRef<const Image> barrier_image = dependency.image;
+
+			if (!barrier_image)
+			{
+				barrier_image = swapchain_framebuffer.GetAttachment("swapchain_image").GetImage();
+			}
+
+			VkImageMemoryBarrier2 barrier;
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			barrier.pNext = nullptr;
+			barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT; // < ---
+			barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+
+			if (dependency.as_samped)
+			{
+				barrier.oldLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				barrier.newLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			}
+			else
+			{
+				barrier.oldLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				barrier.newLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			}
+
+			barrier.srcQueueFamilyIndex = 0;
+			barrier.dstQueueFamilyIndex = 0;
+			barrier.image = barrier_image->GetHandle();
+			barrier.subresourceRange.aspectMask = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = 1;
+
+			vk_barriers.push_back(barrier);
+		}
+
+		if (vk_barriers.size() > 0)
+		{
+			VkDependencyInfo vk_dependency_info;
+			vk_dependency_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			vk_dependency_info.pNext = nullptr;
+			vk_dependency_info.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+			vk_dependency_info.memoryBarrierCount = 0;
+			vk_dependency_info.pMemoryBarriers = nullptr;
+			vk_dependency_info.bufferMemoryBarrierCount = 0;
+			vk_dependency_info.pBufferMemoryBarriers = nullptr;
+			vk_dependency_info.imageMemoryBarrierCount = vk_barriers.size();
+			vk_dependency_info.pImageMemoryBarriers = vk_barriers.data();
+
+			vkCmdPipelineBarrier2(command_buffer, &vk_dependency_info);
+		}
+	}
+	if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+		throw std::runtime_error("failed to record command buffer!");
+	}
+}
+
+void render::RenderGraphHandler::ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const
+{
 }

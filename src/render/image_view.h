@@ -35,7 +35,7 @@ namespace render
 
 		virtual ~ImageView() override;
 
-		stl_util::NullableRef<const Image> GetImage() const;
+		//stl_util::NullableRef<const Image> GetImage() const;
 
 	protected:
 		
