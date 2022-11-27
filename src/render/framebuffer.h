@@ -38,7 +38,7 @@ namespace render
 			const RenderPass& render_pass;
 
 			Extent extent;
-			std::vector<std::reference_wrapper<ImageView>> attachments;
+			std::vector<std::reference_wrapper<const ImageView>> attachments;
 
 		};
 
@@ -50,7 +50,7 @@ namespace render
 		Framebuffer& operator=(const Framebuffer&) = delete;
 		Framebuffer& operator=(Framebuffer&&) = default;
 
-		//int AddAttachment(const std::string_view& name, const ImageView& image_view);
+		//int Attach(const std::string_view& name, const ImageView& image_view);
 		//const ImageView& GetAttachment(const std::string_view& name) const;
 		//const std::vector<std::reference_wrapper<const ImageView>>& GetAttachmentImageViews() const;
 

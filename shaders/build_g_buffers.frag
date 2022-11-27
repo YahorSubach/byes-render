@@ -19,7 +19,7 @@ layout(set = 3, binding = 0) uniform LightPositionAndViewProjMat_0 {
 } shadow_light;
 
 layout(set = 4, binding = 0) uniform sampler2D Environement_envSampler;
-layout(set = 4, binding = 1) uniform sampler2D Environement_shadowSampler;
+//layout(set = 4, binding = 1) uniform sampler2D Environement_shadowSampler;
 
 layout(location = 0) in vec3 fragPosition;
 layout(location = 1) in vec3 fragNorm;
@@ -52,13 +52,13 @@ float LinearizeShadow(float near, float far, float shadow)
 	return (-2 * far * near) / (far + near - shadow * (far - near));
 }
 
-float GetShadowMapValue(vec2 coords)
-{
-	//return (texture(shadowSampler, coords + vec2(0,0.001)).r + texture(shadowSampler, coords + vec2(-0.001, -0.001)).r + texture(shadowSampler, coords + vec2(0.001, -0.001)).r) / 3;
-	
-	return texture(Environement_shadowSampler, coords + 0.01*(rand2(coords) - 0.5)).r;
-	//return texture(shadowSampler, coords).r;
-}
+//float GetShadowMapValue(vec2 coords)
+//{
+//	//return (texture(shadowSampler, coords + vec2(0,0.001)).r + texture(shadowSampler, coords + vec2(-0.001, -0.001)).r + texture(shadowSampler, coords + vec2(0.001, -0.001)).r) / 3;
+//	
+//	return texture(Environement_shadowSampler, coords + 0.01*(rand2(coords) - 0.5)).r;
+//	//return texture(shadowSampler, coords).r;
+//}
 
 void main() {
 
@@ -125,13 +125,13 @@ void main() {
 	
 	vec4 light_space_frag_pos = shadow_light.view_mat * vec4(fragPosition, 1);
 
-	float shadow_map_value = GetShadowMapValue(vec2(shadow_map_coord.x/2+0.5,shadow_map_coord.y/2+0.5));
-	shadow_map_value = LinearizeShadow(shadow_light.near, shadow_light.far, shadow_map_value);
+	//float shadow_map_value = GetShadowMapValue(vec2(shadow_map_coord.x/2+0.5,shadow_map_coord.y/2+0.5));
+	//shadow_map_value = LinearizeShadow(shadow_light.near, shadow_light.far, shadow_map_value);
 
 	//float shadow_value = clamp((shadow_map_value - light_space_frag_pos.z) * 3, 0.0, 1.0);
-	float shadow_value = shadow_map_value - 0.1 > light_space_frag_pos.z ? 1.0 : 0.0;
+	//float shadow_value = shadow_map_value - 0.1 > light_space_frag_pos.z ? 1.0 : 0.0;
 
-	float diffuse_multiplier = (1 - shadow_value) * (light_multiplier + spec_multiplier); 
+	//float diffuse_multiplier = (1 - shadow_value) * (light_multiplier + spec_multiplier); 
 
 	//float shadow_multiplier = clamp(shadow_map_value+0. - shadow_map_coord.z, 0, 1);
 

@@ -205,7 +205,7 @@ bool render::Image::InitHandle() const
 
 	if (pixels_data_)
 	{
-		AddUsageFlag(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		AddUsageFlag(VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 	}
 
 	if (mipmap_levels_count_ > 1)

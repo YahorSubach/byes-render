@@ -6,7 +6,6 @@
 #include "common.h"
 #include "render/object_base.h"
 #include "render/buffer.h"
-#include "render/graphics_pipeline.h"
 #include "render/image_view.h"
 
 #include "render/descriptor_set.h"

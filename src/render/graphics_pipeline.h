@@ -7,7 +7,7 @@
 
 #include "render/descriptor_set_layout.h"
 #include "render/object_base.h"
-#include "render/render_pass.h"
+#include "render/render_graph.h"
 #include "render/shader_module.h"
 
 namespace render
@@ -35,7 +35,7 @@ namespace render
 	class GraphicsPipeline : public RenderObjBase<VkPipeline>
 	{
 	public:
-		GraphicsPipeline(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, bool enable_depth_test = true);
+		GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, bool enable_depth_test = true);
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;
 		GraphicsPipeline(GraphicsPipeline&&) = default;

@@ -68,12 +68,13 @@ namespace render
 		{
 			image_view_.Assign(*(new_data.GetImage()));
 			sampler_ = new_data.GetSampler();
-			image_view_.AddUsageFlag(VK_IMAGE_USAGE_SAMPLED_BIT);
+			//image_view_.AddUsageFlag(VK_IMAGE_USAGE_SAMPLED_BIT);
 		}
 
 		void FillWriteDescriptorSet(VkWriteDescriptorSet& write_desc_set)
 		{
-			vk_image_info_.imageLayout = (image_view_.CheckUsageFlag(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			vk_image_info_.imageLayout = image_view_.GetFormat() == image_view_.GetDeviceCfg().depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				
 			vk_image_info_.imageView = image_view_.GetHandle();
 			vk_image_info_.sampler = sampler_->GetHandle();
 

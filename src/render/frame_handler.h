@@ -19,7 +19,7 @@ namespace render
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
-		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, const BatchesManager& batches_manager, const ui::UI& ui);
+		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, const ui::UI& ui);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;
@@ -27,7 +27,7 @@ namespace render
 		FrameHandler& operator=(const FrameHandler&) = delete;
 		FrameHandler& operator=(FrameHandler&&) = default;
 		
-		bool Draw(const Framebuffer& swapchain_framebuffer, uint32_t image_index, const RenderSetup& pipeline_collection, glm::vec3 pos, glm::vec3 look);
+		bool Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index, glm::vec3 pos, glm::vec3 look);
 
 		VkSemaphore GetImageAvailableSemaphore() const;
 
@@ -50,12 +50,12 @@ namespace render
 
 		VkQueue graphics_queue_;
 
-		DescriptorSetsManager descriptor_sets_manager_;
-
 		const ui::UI& ui_;
 
+		const RenderSetup& render_setup_;
+
 		ModelSceneDescSetHolder model_scene_;
-		RenderGraph render_graph_;
+		RenderGraphHandler render_graph_handeler_;
 		UIScene ui_scene_;
 		Buffer viewport_vertex_buffer_;
 	};

@@ -78,7 +78,7 @@ namespace render
 	};
 
 
-	class ModelSceneDescSetHolder : public DescriptorSetHolder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement, DescriptorSetType::kGBuffers>
+	class ModelSceneDescSetHolder : public DescriptorSetHolder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>
 	{
 	public:
 
@@ -91,11 +91,11 @@ namespace render
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data) override;
 
 		SceneRenderNode GetRenderNode();
 

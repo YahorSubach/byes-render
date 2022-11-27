@@ -37,6 +37,10 @@ void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::Descript
 	{
 		data.metallic_roughness = mesh_.primitives[0].material.metallic_roughness;
 	}
+	else if(mesh_.primitives[0].material.albedo)
+	{
+		data.metallic_roughness = mesh_.primitives[0].material.albedo;
+	}
 	else
 	{
 		data.metallic_roughness = device_cfg_.default_image;
@@ -144,35 +148,35 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 	data.environement_sampler = diffuse_sampler_;
 }
 
-void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
-{
-	data.shadow_map = shadowmap_image;
-	data.shadow_map_sampler = shadow_sampler_;
-}
+//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
+//{
+//	data.shadow_map = shadowmap_image;
+//	data.shadow_map_sampler = shadow_sampler_;
+//}
 
-void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data)
-{
-	data.albedo = g_albedo_image;
-	data.albedo_sampler = nearest_sampler_;
-}
-
-void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data)
-{
-	data.position = g_position_image;
-	data.position_sampler = nearest_sampler_;
-}
-
-void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data)
-{
-	data.normal = g_normal_image;
-	data.normal_sampler = nearest_sampler_;
-}
-
-void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data)
-{
-	data.metallic_roughness = g_metal_rough_image;
-	data.metallic_roughness_sampler = nearest_sampler_;
-}
+//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data)
+//{
+//	data.albedo = g_albedo_image;
+//	data.albedo_sampler = nearest_sampler_;
+//}
+//
+//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data)
+//{
+//	data.position = g_position_image;
+//	data.position_sampler = nearest_sampler_;
+//}
+//
+//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data)
+//{
+//	data.normal = g_normal_image;
+//	data.normal_sampler = nearest_sampler_;
+//}
+//
+//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data)
+//{
+//	data.metallic_roughness = g_metal_rough_image;
+//	data.metallic_roughness_sampler = nearest_sampler_;
+//}
 
 render::SceneRenderNode render::ModelSceneDescSetHolder::GetRenderNode()
 {

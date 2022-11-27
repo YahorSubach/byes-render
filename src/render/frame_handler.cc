@@ -13,16 +13,16 @@
 #include <render/data_types.h>
 #include <render/command_buffer_filler.h>
 
-render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, const BatchesManager& batches_manager, const ui::UI& ui) :
+render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, const ui::UI& ui) :
 	RenderObjBase(device_cfg), swapchain_(swapchain.GetHandle()), graphics_queue_(device_cfg.graphics_queue),
 	command_buffer_(device_cfg.graphics_cmd_pool->GetCommandBuffer()),
 	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	render_finished_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
 	model_scene_(device_cfg, batches_manager),
-	render_graph_(device_cfg, render_setup, model_scene_),
+	render_setup_(render_setup),
+	render_graph_handeler_(device_cfg, render_setup.GetRenderGraph(), descriptor_set_manager),
 	ui_scene_(device_cfg, ui),
-	descriptor_sets_manager_(device_cfg, render_setup),
 	ui_(ui),
 	viewport_vertex_buffer_(device_cfg_, 6 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 {
@@ -41,14 +41,14 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	model_scene_.UpdateData();
 	ui_scene_.UpdateData();
 
-	model_scene_.AttachDescriptorSets(descriptor_sets_manager_);
-	ui_scene_.AttachDescriptorSets(descriptor_sets_manager_);
+	model_scene_.AttachDescriptorSets(descriptor_set_manager);
+	ui_scene_.AttachDescriptorSets(descriptor_set_manager);
 
 	handle_ = (void*)(1);
 }
 
 
-bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32_t image_index, const RenderSetup& render_setup, glm::vec3 pos, glm::vec3 look)
+bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index, glm::vec3 pos, glm::vec3 look)
 {
 	//CommandBufferFiller command_filler(render_setup, framebuffer_collection);
 
@@ -175,6 +175,7 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 			render_models.push_back(RenderModel
 				{
 					RenderModelCategory::kRenderModel,
+					render_setup_.GetPipeline(PipelineId::kBuildGBuffers),
 					model.GetDescriptorSets(),
 				{},
 				{},
@@ -195,6 +196,7 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 	render_models.push_back(RenderModel
 		{
 			RenderModelCategory::kViewport,
+			render_setup_.GetPipeline(PipelineId::kCollectGBuffers),
 		{},
 		{},
 		{},
@@ -206,7 +208,7 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, uint32
 	render_models.back().vertex_buffers.push_back(viewport_vertex_buffer_.GetHandle());
 	render_models.back().vertex_buffers_offsets.push_back(0);
 
-	render_graph_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, model_scene_.GetRenderNode().GetDescriptorSets(), render_models);
+	render_graph_handeler_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, swapchain_image, model_scene_.GetRenderNode().GetDescriptorSets(), render_models);
 
 	present_info_.pImageIndices = &image_index;
 

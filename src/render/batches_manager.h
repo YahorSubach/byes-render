@@ -8,7 +8,6 @@
 #include "common.h"
 #include "render/animator.h"
 #include "render/object_base.h"
-#include "render/data_types.h"
 #include "render/batch.h"
 #include "render/descriptor_pool.h"
 #include "render/image.h"

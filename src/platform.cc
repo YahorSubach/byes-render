@@ -228,7 +228,7 @@ namespace render::platform
 				WS_OVERLAPPEDWINDOW,            // Window style
 
 				// Size and position
-				CW_USEDEFAULT, CW_USEDEFAULT, 160, 100,
+				CW_USEDEFAULT, CW_USEDEFAULT, 1600, 1000,
 
 				NULL,       // Parent window    
 				NULL,       // Menu

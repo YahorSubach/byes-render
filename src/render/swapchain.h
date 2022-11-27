@@ -28,6 +28,7 @@ namespace render
 		VkFormat GetFormat() const;
 
 		size_t GetImagesCount() const;
+		const Image& GetImage(size_t index) const;
 		const ImageView& GetImageView(size_t index) const;
 
 		virtual ~Swapchain() override;

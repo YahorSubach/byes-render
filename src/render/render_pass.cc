@@ -6,20 +6,22 @@
 
 #include "common.h"
 
-render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const RenderGraph2::Node& render_node): RenderObjBase(device_cfg), contains_depth_attachment_(false)
+#include "render/render_graph.h"
+
+render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const RenderNode& render_node): RenderObjBase(device_cfg), contains_depth_attachment_(false)
 {
 	
 	std::vector<VkAttachmentDescription> vk_attachments;
 	std::map<std::string, uint32_t> attachment_name_to_index;
 
 	int attachment_index = 0;
-	for (auto&& [name, node_attachment] : render_node.GetAttachments())
+	for (auto&& node_attachment : render_node.GetAttachments())
 	{
 		VkAttachmentDescription attachment_description = {};
 
 		attachment_description.format = node_attachment.format;
 		attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-		attachment_description.loadOp = node_attachment.depends_on ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachment_description.loadOp = node_attachment.depends_on ? VK_ATTACHMENT_LOAD_OP_LOAD : node_attachment.format == device_cfg.depth_map_format ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
 		if(node_attachment.format == device_cfg.presentation_format || !node_attachment.to_dependencies.empty())
 			attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -37,10 +39,17 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 			attachment_description.initialLayout = node_attachment.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 
-		attachment_description.finalLayout = node_attachment.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (node_attachment.is_swapchain_image && node_attachment.to_dependencies.empty())
+		{
+			attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		}
+		else
+		{
+			attachment_description.finalLayout = node_attachment.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		}
 
 		vk_attachments.push_back(attachment_description);
-		attachment_name_to_index[name] = attachment_index;
+		attachment_name_to_index[node_attachment.name] = attachment_index;
 		attachment_index++;
 	}
 
@@ -61,7 +70,7 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 	for (uint32_t subpass_ind = 0; subpass_ind < subpass_cnt; subpass_ind++)
 	{
 		int attachment_index = 0;
-		for (auto&& [name, node_attachment] : render_node.GetAttachments())
+		for (auto&& node_attachment : render_node.GetAttachments())
 		{
 			if (node_attachment.format == device_cfg.depth_map_format)
 			{
@@ -86,9 +95,19 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 
 	std::vector<VkSubpassDependency> dependencies;
 
-	if (auto it = render_node.GetAttachments().find(kSwapchainAttachmentName); it != render_node.GetAttachments().end())
+	bool acquire_depend = false;
+	for (auto&& attachment : render_node.GetAttachments())
 	{
-		if (!it->second.depends_on)
+		if (attachment.is_swapchain_image)
+		{
+			acquire_depend = true;
+			break;
+		}
+	}
+
+	if (acquire_depend)
+	{
+		//if (!it->second.depends_on)
 		{
 			VkSubpassDependency vk_dependency;
 

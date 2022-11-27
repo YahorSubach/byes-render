@@ -78,6 +78,11 @@ size_t render::Swapchain::GetImagesCount() const
 	return images_.size();
 }
 
+const render::Image& render::Swapchain::GetImage(size_t index) const
+{
+	return images_[index];
+}
+
 const render::ImageView& render::Swapchain::GetImageView(size_t index) const
 {
 	return image_views_[index];

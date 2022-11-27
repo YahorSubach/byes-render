@@ -13,24 +13,52 @@
 #include "render/image.h"
 #include "render/image_view.h"
 #include "render/object_base.h"
-#include "render/graphics_pipeline.h"
-#include "render/render_setup.h"
 #include "render/scene.h"
 
 
 namespace render
 {
-	class RenderGraph2 : public RenderObjBase<int*>
+
+	enum class RenderModelCategory
+	{
+		kRenderModel,
+		kViewport,
+		kUIShape
+	};
+
+	using RenderModelCategoryFlags = stl_util::EnumFlags<RenderModelCategory>;
+
+	class GraphicsPipeline;
+
+	struct RenderModel
+	{
+		RenderModelCategory category;
+
+		const GraphicsPipeline& pipeline;
+
+		const std::map<DescriptorSetType, VkDescriptorSet>& descriptor_sets;
+
+		std::vector<VkBuffer> vertex_buffers;
+		std::vector<VkDeviceSize> vertex_buffers_offsets;
+
+		std::optional<std::pair<VkBuffer, uint32_t>> index_buffer_and_offset;
+
+		uint32_t vertex_count;
+	};
+
+	class GraphicsPipeline;
+	class RenderGraph2;
+
+	class RenderNode
 	{
 	public:
 
-		class Node;
 		struct Attachment;
 
 		struct Dependency
 		{
 			const Attachment& from_attachment;
-			const Node& to_node;
+			const RenderNode& to_node;
 
 			DescriptorSetType descriptor_set_type;
 			int descriptor_set_binding_index = -1;
@@ -47,7 +75,7 @@ namespace render
 				int descriptor_set_binding_index = -1;
 
 				DescriptorSetForwarder& operator>>(int binding_index);
-				Attachment& operator>>(Node& node_to_forward);
+				Attachment& operator>>(RenderNode& node_to_forward);
 			};
 
 		public:
@@ -55,65 +83,69 @@ namespace render
 			std::string name;
 			Format format;
 			Extent extent;
-			
-			Node& node;
+			bool is_swapchain_image;
+
+			RenderNode& RenderNode;
 
 			stl_util::NullableRef<Dependency> depends_on;
 
 			DescriptorSetForwarder operator>>(DescriptorSetType desc_type);
-			Attachment& operator>>(Node& node_to_forward);
+			Attachment& operator>>(render::RenderNode& node_to_forward);
 
-			Attachment& ForwardAsAttachment(Node& to_node);
-			Attachment& ForwardAsSampled(Node& to_node, DescriptorSetType set_type, int binding_index);
+			Attachment& ForwardAsAttachment(render::RenderNode& to_node);
+			Attachment& ForwardAsSampled(render::RenderNode& to_node, DescriptorSetType set_type, int binding_index);
 
 			std::vector<Dependency> to_dependencies;
 		};
 
 
-		class Node
-		{
-		public:
+		RenderNode(const RenderGraph2& render_graph, const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags);
 
-			Node(const RenderGraph2& render_graph, const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags);
+		Attachment& Attach(const std::string& name, Format format, Extent extent);
+		Attachment& AttachSwapchain();
+		Attachment& GetAttachment(const std::string& name);
 
-			Attachment& AddAttachment(const std::string& name, Format format, Extent extent);
-			Attachment& GetAttachment(const std::string& name);
+		const std::vector<Attachment>& GetAttachments() const;
 
-			const std::map<std::string, Attachment>& GetAttachments() const;
+		const std::string& GetName() const;
+		void Build();
+		/*void AddDependency(Dependency dependency);*/
 
-			const std::string& GetName() const;
-			void Build();
-			/*void AddDependency(Dependency dependency);*/
+		const RenderPass& GetRenderPass() const;
+		Extent GetExtent() const;
 
-			const RenderPass& GetRenderPass() const;
-			Extent GetExtent() const;
+		//std::vector<std::reference_wrapper<Dependency>> depends_on;
 
-			//std::vector<std::reference_wrapper<Dependency>> depends_on;
+		bool use_swapchain_framebuffer;
 
-			int order;
-			RenderModelCategoryFlags category_flags;
-		private:
-			const RenderGraph2& render_graph_;
-			const Extent& extent_;
-			std::string name_;
-			std::map<std::string, Attachment> attachments_;
-			std::optional<RenderPass> render_pass_;
+		int order;
+		RenderModelCategoryFlags category_flags;
+	private:
+		const RenderGraph2& render_graph_;
+		const Extent& extent_;
+		std::string name_;
+		std::vector<Attachment> attachments_;
+		std::optional<RenderPass> render_pass_;
 
-			/*std::vector<Dependency> to_dependencies_;*/
-			//std::vector<Dependency> from_dependencies_;
-		};
+		/*std::vector<Dependency> to_dependencies_;*/
+		//std::vector<Dependency> from_dependencies_;
+	};
+
+	class RenderGraph2 : public RenderObjBase<int*>
+	{
+	public:
+
+
 
 		RenderGraph2(const DeviceConfiguration device_cfg);
 
-		Node& AddNode(const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags);
+		RenderNode& AddNode(const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags);
 		void Build();
 
-
-		
-		const std::map<std::string, Node>& GetNodes() const;
+		const std::map<std::string, RenderNode>& GetNodes() const;
 
 	private:
-		std::map<std::string, Node> nodes_;
+		std::map<std::string, RenderNode> nodes_;
 
 	};
 
@@ -123,7 +155,7 @@ namespace render
 
 		RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, DescriptorSetsManager& desc_set_manager);
 
-		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const;
+		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const;
 
 	private:
 
@@ -138,42 +170,19 @@ namespace render
 
 		struct RenderNodeData
 		{
-			Framebuffer frambuffer;
+			std::optional<Framebuffer> frambuffer;
 			std::map<DescriptorSetType, VkDescriptorSet> descriptor_sets;
 		};
 
 		std::map<std::string, AttachmentImage> attachment_images_;
 		std::map<std::string, RenderNodeData> node_data_;;
 		const RenderGraph2& render_graph_;
+		Sampler nearest_sampler_;
 	};
 
 
 
-	enum class RenderModelCategory
-	{
-		kRenderModel,
-		kViewport,
-		kUIShape
-	};
 
-	using RenderModelCategoryFlags = stl_util::EnumFlags<RenderModelCategory>;
-
-
-	struct RenderModel
-	{
-		RenderModelCategory category;
-
-		const GraphicsPipeline& pipeline;
-
-		const std::map<DescriptorSetType, VkDescriptorSet>& descriptor_sets;
-		
-		std::vector<VkBuffer> vertex_buffers;
-		std::vector<VkDeviceSize> vertex_buffers_offsets;
-
-		std::optional<std::pair<VkBuffer, uint32_t>> index_buffer_and_offset;
-
-		uint32_t vertex_count;
-	};
 
 
 	//class RenderGraph : public RenderObjBase<int*>

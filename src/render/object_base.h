@@ -39,12 +39,14 @@ namespace render
 
 		virtual HandleType GetHandle() const { return handle_; }
 
-		const DeviceConfiguration& GetDeviceCfg() { return device_cfg_; };
+		const DeviceConfiguration& GetDeviceCfg() const { return device_cfg_; };
 		//virtual ~RenderObjBase() override
 		//{
 		//	int a = 1;
 		//}
 		
+	protected:
+
 		const DeviceConfiguration& device_cfg_;
 		mutable HandleType handle_;
 	};

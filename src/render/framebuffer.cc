@@ -95,7 +95,7 @@ const std::vector<VkFormat>& render::Framebuffer::GetFormats() const
 //}
 //
 
-//int render::Framebuffer::AddAttachment(const std::string_view& name, const ImageView& image_view)
+//int render::Framebuffer::Attach(const std::string_view& name, const ImageView& image_view)
 //{
 //	assert(name_to_image_view_.count(std::string(name)) == 0);
 //

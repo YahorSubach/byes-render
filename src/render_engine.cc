@@ -34,6 +34,7 @@
 #include "render/graphics_pipeline.h"
 #include "render/image.h"
 #include "render/image_view.h"
+#include "render/render_setup.h"
 #include "render/sampler.h"
 #include "render/swapchain.h"
 
@@ -249,14 +250,15 @@ namespace render
 				device_cfg_.presentation_extent = swapchain.GetExtent();
 				device_cfg_.presentation_format = swapchain.GetFormat();
 
-				ui::UI ui(device_cfg_, swapchain.GetExtent());
+				DescriptorSetsManager descriptor_set_manager(device_cfg_);
+				RenderSetup render_setup(device_cfg_, descriptor_set_manager);
 
-				RenderSetup render_setup(device_cfg_);
+				ui::UI ui(device_cfg_, swapchain.GetExtent());
 
 				std::vector<Framebuffer> swapchain_framebuffers;
 
-				Image depth_image(device_cfg_, device_cfg_.depth_map_format, swapchain.GetExtent());
-				ImageView depth_image_view(device_cfg_, depth_image);
+				//Image depth_image(device_cfg_, device_cfg_.depth_map_format, swapchain.GetExtent());
+				//ImageView depth_image_view(device_cfg_, depth_image);
 
 				for (int i = 0; i < swapchain.GetImagesCount(); i++)
 				{
@@ -265,9 +267,15 @@ namespace render
 					//attachments.push_back(swapchain.GetImageView(i));
 					//attachments.push_back(depth_image_view);
 
-					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, swapchain.GetExtent(), render_setup.GetRenderPass(RenderPassId::kCollectGBuffers)));
-					swapchain_framebuffers.back().AddAttachment("swapchain_image", swapchain.GetImageView(i));
-					//swapchain_framebuffers.back().AddAttachment("depth_image", depth_image_view);
+					Framebuffer::ConstructParams params
+					{
+						render_setup.GetSwapchainRenderPass(),
+						device_cfg_.presentation_extent,
+					};
+
+					params.attachments.push_back(swapchain.GetImageView(i));
+
+					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, params));
 				}
 
 				BatchesManager batches_manager(device_cfg_, kFramesCount, swapchain, descriptor_pool);
@@ -277,7 +285,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, batches_manager, ui));
+					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, descriptor_set_manager, batches_manager, ui));
 				}
 
 				auto last_update_time = std::chrono::steady_clock::now();
@@ -382,10 +390,7 @@ namespace render
 
 
 
-					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], image_index, render_setup, position, look);
-
-
-
+					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], swapchain.GetImage(image_index), image_index, position, look);
 				}
 
 				vkDeviceWaitIdle(device_cfg_.logical_device);

@@ -13,7 +13,7 @@
 
 namespace render
 {
-	class ImageView : public LazyRenderObj<VkImageView>
+	class ImageView : public RenderObjBase<VkImageView>
 	{
 	public:
 
@@ -28,8 +28,8 @@ namespace render
 
 		void Assign(const Image& image);
 		
-		uint32_t AddUsageFlag(uint32_t flag) const;
-		uint32_t CheckUsageFlag(uint32_t flag) const;
+		//uint32_t AddUsageFlag(uint32_t flag) const;
+		//uint32_t CheckUsageFlag(uint32_t flag) const;
 
 		VkFormat GetFormat() const;
 
@@ -39,7 +39,9 @@ namespace render
 
 	protected:
 		
-		virtual bool InitHandle() const override;
+		VkFormat format_;
+
+		//virtual bool InitHandle() const override;
 
 		//stl_util::NullableRef<const Image> image_;
 	};

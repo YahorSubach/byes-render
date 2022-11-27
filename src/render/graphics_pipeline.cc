@@ -9,7 +9,7 @@
 #include "render/data_types.h"
 
 
-render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, bool enable_depth_test):
+render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, bool enable_depth_test):
 	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE)
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
@@ -62,14 +62,14 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(extent.width);
-	viewport.height = static_cast<float>(extent.height);
+	viewport.width = static_cast<float>(render_node.GetExtent().width);
+	viewport.height = static_cast<float>(render_node.GetExtent().height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = extent;
+	scissor.extent = render_node.GetExtent();
 
 	VkPipelineViewportStateCreateInfo viewport_state{};
 	viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -103,7 +103,16 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	//TODO: configure blend
 
-	std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_states(render_pass.GetColorAttachmentsCnt());
+	int color_attachments_cnt = 0;
+
+	for (auto&& attachment : render_node.GetAttachments())
+	{
+		if (attachment.format != device_cfg.depth_map_format)
+			color_attachments_cnt++;
+	}
+
+
+	std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_states(color_attachments_cnt);
 
 	for (auto&& color_blend_attachment : blend_attachment_states)
 	{
@@ -227,7 +236,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	pipeline_info.layout = layout_;
 
-	pipeline_info.renderPass = render_pass.GetHandle();
+	pipeline_info.renderPass = render_node.GetRenderPass().GetHandle();
 	pipeline_info.subpass = 0;
 
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE; // Optional

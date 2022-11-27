@@ -6,11 +6,12 @@
 
 #include "render/object_base.h"
 #include "render/image_view.h"
-#include "render/render_graph.h"
 
 namespace render
 {
 	const std::string kSwapchainAttachmentName = "swapchain";
+
+	class RenderNode;
 
 	class RenderPass : public RenderObjBase<VkRenderPass>
 	{
@@ -33,7 +34,7 @@ namespace render
 		};
 
 
-		RenderPass(const DeviceConfiguration& device_cfg, const RenderGraph2::Node& render_node/*, SwapchainInteractionFlags interaction = {}*/);
+		RenderPass(const DeviceConfiguration& device_cfg, const RenderNode& render_node/*, SwapchainInteractionFlags interaction = {}*/);
 
 		//int AddColorAttachment(const std::string_view& name, bool high_range = true);
 		//int AddDepthAttachment(const std::string_view& name);

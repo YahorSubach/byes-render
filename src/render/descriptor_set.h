@@ -249,23 +249,23 @@ namespace render
 			Data data;
 		};
 
-		template<>
-		struct Binding<1>
-		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+		//template<>
+		//struct Binding<1>
+		//{
+		//	static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+		//	static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
 
-			struct Data
-			{
-				stl_util::NullableRef<const Image> shadow_map;
-				stl_util::NullableRef<const Image> GetImage() const { return shadow_map; }
+		//	struct Data
+		//	{
+		//		stl_util::NullableRef<const Image> shadow_map;
+		//		stl_util::NullableRef<const Image> GetImage() const { return shadow_map; }
 
-				stl_util::NullableRef<const Sampler> shadow_map_sampler;
-				stl_util::NullableRef<const Sampler> GetSampler() const { return shadow_map_sampler; }
-			};
+		//		stl_util::NullableRef<const Sampler> shadow_map_sampler;
+		//		stl_util::NullableRef<const Sampler> GetSampler() const { return shadow_map_sampler; }
+		//	};
 
-			Data data;
-		};
+		//	Data data;
+		//};
 	};
 
 	template<>
