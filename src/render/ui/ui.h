@@ -44,7 +44,6 @@ namespace render::ui
 		
 		Image test_image_;
 
-
 	private:
 
 		struct FontData

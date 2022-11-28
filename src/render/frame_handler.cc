@@ -13,7 +13,7 @@
 #include <render/data_types.h>
 #include <render/command_buffer_filler.h>
 
-render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, const ui::UI& ui) :
+render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, const ui::UI& ui) :
 	RenderObjBase(device_cfg), swapchain_(swapchain.GetHandle()), graphics_queue_(device_cfg.graphics_queue),
 	command_buffer_(device_cfg.graphics_cmd_pool->GetCommandBuffer()),
 	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
@@ -21,7 +21,7 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
 	model_scene_(device_cfg, batches_manager),
 	render_setup_(render_setup),
-	render_graph_handeler_(device_cfg, render_setup.GetRenderGraph(), descriptor_set_manager),
+	render_graph_handeler_(device_cfg, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
 	ui_scene_(device_cfg, ui),
 	ui_(ui),
 	viewport_vertex_buffer_(device_cfg_, 6 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
@@ -191,7 +191,28 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 		}
 	}
 
+	for (auto&& model : ui_scene_.GetRenderNode().GetChildren())
+	{
+		for (auto&& primitive : model.GetPrimitives())
+		{
+			render_models.push_back(RenderModel
+				{
+					RenderModelCategory::kUIShape,
+					render_setup_.GetPipeline(PipelineId::kUI),
+					model.GetDescriptorSets(),
+				{},
+				{},
+				std::make_pair(primitive.indices.buffer->GetHandle(), primitive.indices.offset),
+				u32(primitive.indices.count)
+				});
 
+			for (auto&& vertex_buffer : primitive.vertex_buffers)
+			{
+				render_models.back().vertex_buffers.push_back(vertex_buffer.buffer->GetHandle());
+				render_models.back().vertex_buffers_offsets.push_back(vertex_buffer.offset);
+			}
+		}
+	}
 
 	render_models.push_back(RenderModel
 		{
@@ -204,6 +225,7 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 		6
 		}
 	);
+
 
 	render_models.back().vertex_buffers.push_back(viewport_vertex_buffer_.GetHandle());
 	render_models.back().vertex_buffers_offsets.push_back(0);

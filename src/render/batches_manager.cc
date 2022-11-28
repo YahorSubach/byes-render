@@ -9,7 +9,7 @@
 
 
 
-render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, DescriptorPool& descriptor_pool) : RenderObjBase(device_cfg)
+render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg)
 {
 
 	//images_.push_back(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png"));

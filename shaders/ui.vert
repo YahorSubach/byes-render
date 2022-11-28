@@ -16,7 +16,7 @@ void main() {
     gl_Position = transformUBO.matrix * vec4(inPosition.xy, 0, 1);
 
     gl_Position.xy = gl_Position.xy * 2 - 1;
-    gl_Position.z = 0;
+    gl_Position.z = 0.1;
     gl_Position.w = 1;
 
 	fragPosition = gl_Position;

@@ -26,7 +26,7 @@ namespace render
 	{
 	public:
 
-		BatchesManager(const DeviceConfiguration& device_cfg, uint32_t frames_cnt, const Swapchain& swapchain, DescriptorPool& descriptor_pool);
+		BatchesManager(const DeviceConfiguration& device_cfg);
 
 		BatchesManager(const BatchesManager&) = delete;
 		BatchesManager(BatchesManager&&) = default;

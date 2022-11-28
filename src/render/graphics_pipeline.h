@@ -35,7 +35,7 @@ namespace render
 	class GraphicsPipeline : public RenderObjBase<VkPipeline>
 	{
 	public:
-		GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, bool enable_depth_test = true);
+		GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, bool enable_depth_test = true);
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;
 		GraphicsPipeline(GraphicsPipeline&&) = default;

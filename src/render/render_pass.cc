@@ -141,6 +141,9 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 	if (vkCreateRenderPass(device_cfg_.logical_device, &render_pass_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create render pass!");
 	}
+
+	//vkDestroyRenderPass(device_cfg_.logical_device, handle_, nullptr);
+
 }
 
 

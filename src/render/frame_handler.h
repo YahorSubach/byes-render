@@ -19,7 +19,7 @@ namespace render
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
-		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, const ui::UI& ui);
+		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, const ui::UI& ui);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;

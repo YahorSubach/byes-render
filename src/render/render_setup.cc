@@ -6,30 +6,30 @@
 
 #include "render/descriptor_set.h"
 
-render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg, const DescriptorSetsManager& descriptor_set_manager):
+render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg):
 	RenderObjBase(device_cfg),
 	render_graph_(device_cfg)
 {
 
 
-	auto&& g_build_node = render_graph_.AddNode("g_build", device_cfg.presentation_extent, {RenderModelCategory::kRenderModel});
-	auto&& g_collect_node = render_graph_.AddNode("g_collect", device_cfg.presentation_extent, { RenderModelCategory::kViewport });
-	auto&& ui_node = render_graph_.AddNode("ui", device_cfg.presentation_extent, { RenderModelCategory::kUIShape });
+	g_build_node = render_graph_.AddNode("g_build", ExtentType::kPresentation, {RenderModelCategory::kRenderModel});
+	g_collect_node = render_graph_.AddNode("g_collect", ExtentType::kPresentation, { RenderModelCategory::kViewport });
+	ui_node = render_graph_.AddNode("ui", ExtentType::kPresentation, { RenderModelCategory::kUIShape });
 
-	g_collect_node.use_swapchain_framebuffer = true;
-	ui_node.use_swapchain_framebuffer = true;
+	g_collect_node->use_swapchain_framebuffer = true;
+	ui_node->use_swapchain_framebuffer = true;
 
-	g_build_node.Attach("g_albedo", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> 0 >> g_collect_node;
-	g_build_node.Attach("g_position", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> 1 >> g_collect_node;
-	g_build_node.Attach("g_normal", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> 2 >> g_collect_node;
-	g_build_node.Attach("g_metal_rough", device_cfg.high_range_color_format, device_cfg.presentation_extent) >> DescriptorSetType::kGBuffers >> 3 >> g_collect_node;
-	g_build_node.Attach("g_depth", device_cfg.depth_map_format, device_cfg.presentation_extent);
+	g_build_node->Attach("g_albedo", device_cfg.high_range_color_format) >> DescriptorSetType::kGBuffers >> 0 >> *g_collect_node;
+	g_build_node->Attach("g_position", device_cfg.high_range_color_format) >> DescriptorSetType::kGBuffers >> 1 >> *g_collect_node;
+	g_build_node->Attach("g_normal", device_cfg.high_range_color_format) >> DescriptorSetType::kGBuffers >> 2 >> *g_collect_node;
+	g_build_node->Attach("g_metal_rough", device_cfg.high_range_color_format) >> DescriptorSetType::kGBuffers >> 3 >> *g_collect_node;
+	g_build_node->Attach("g_depth", device_cfg.depth_map_format);
 
-	auto&& swapchain_attachment = g_collect_node.AttachSwapchain() >> ui_node;
+	auto&& swapchain_attachment = g_collect_node->AttachSwapchain() >> *ui_node;
 
 	render_graph_.Build();
 
-	swapchain_render_pass_ = g_collect_node.GetRenderPass();
+	swapchain_render_pass_ = g_collect_node->GetRenderPass();
 
 	//render_passes_.emplace(RenderPassId::kSimpleRenderToScreen, RenderPass(device_cfg_, RenderPass::SwapchainInteraction::kPresent));
 	//render_passes_.at(RenderPassId::kSimpleRenderToScreen).AddColorAttachment("swapchain_image", false);
@@ -81,26 +81,7 @@ render::RenderSetup::RenderSetup(const DeviceConfiguration& device_cfg, const De
 	//	pipelines_.emplace(PipelineId::kDepthSkinned, GraphicsPipeline(device_cfg, { 512, 512 }, render_passes_.at(RenderPassId::kBuildDepthmap), vert_shader_module, frag_shader_module));
 	//}
 
-	{
-		ShaderModule vert_shader_module(device_cfg, "ui.vert", descriptor_set_manager.GetLayouts());
-		ShaderModule frag_shader_module(device_cfg, "ui.frag", descriptor_set_manager.GetLayouts());
-
-		pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(device_cfg, ui_node, vert_shader_module, frag_shader_module, false));
-	}
-
-	{
-		ShaderModule vert_shader_module(device_cfg, "build_g_buffers.vert", descriptor_set_manager.GetLayouts());
-		ShaderModule frag_shader_module(device_cfg, "build_g_buffers.frag", descriptor_set_manager.GetLayouts());
-
-		pipelines_.emplace(PipelineId::kBuildGBuffers, GraphicsPipeline(device_cfg, g_build_node, vert_shader_module, frag_shader_module));
-	}
-
-	{
-		ShaderModule vert_shader_module(device_cfg, "collect_g_buffers.vert", descriptor_set_manager.GetLayouts());
-		ShaderModule frag_shader_module(device_cfg, "collect_g_buffers.frag", descriptor_set_manager.GetLayouts());
-
-		pipelines_.emplace(PipelineId::kCollectGBuffers, GraphicsPipeline(device_cfg, g_collect_node, vert_shader_module, frag_shader_module));
-	}
+	
 }
 
 //const render::RenderPass& render::RenderSetup::GetRenderPass(RenderPassId renderpass_id) const
@@ -121,6 +102,32 @@ const render::RenderGraph2& render::RenderSetup::GetRenderGraph() const
 const render::RenderPass& render::RenderSetup::GetSwapchainRenderPass() const
 {
 	return swapchain_render_pass_.value();
+}
+
+void render::RenderSetup::InitPipelines(const DescriptorSetsManager& descriptor_set_manager, const std::array<Extent, kExtentTypeCnt>& extents)
+{
+	pipelines_.clear();
+
+	{
+		ShaderModule vert_shader_module(device_cfg_, "ui.vert", descriptor_set_manager.GetLayouts());
+		ShaderModule frag_shader_module(device_cfg_, "ui.frag", descriptor_set_manager.GetLayouts());
+
+		pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(device_cfg_, *ui_node, vert_shader_module, frag_shader_module, extents, false));
+	}
+
+	{
+		ShaderModule vert_shader_module(device_cfg_, "build_g_buffers.vert", descriptor_set_manager.GetLayouts());
+		ShaderModule frag_shader_module(device_cfg_, "build_g_buffers.frag", descriptor_set_manager.GetLayouts());
+
+		pipelines_.emplace(PipelineId::kBuildGBuffers, GraphicsPipeline(device_cfg_, *g_build_node, vert_shader_module, frag_shader_module, extents));
+	}
+
+	{
+		ShaderModule vert_shader_module(device_cfg_, "collect_g_buffers.vert", descriptor_set_manager.GetLayouts());
+		ShaderModule frag_shader_module(device_cfg_, "collect_g_buffers.frag", descriptor_set_manager.GetLayouts());
+
+		pipelines_.emplace(PipelineId::kCollectGBuffers, GraphicsPipeline(device_cfg_, *g_collect_node, vert_shader_module, frag_shader_module, extents));
+	}
 }
 
 const render::GraphicsPipeline& render::RenderSetup::GetPipeline(PipelineId pipeline_id) const

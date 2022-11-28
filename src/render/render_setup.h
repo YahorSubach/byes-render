@@ -21,8 +21,9 @@ namespace render
 	{
 	public:
 
-		RenderSetup(const DeviceConfiguration& device_cfg, const DescriptorSetsManager& descriptor_set_manager);
+		RenderSetup(const DeviceConfiguration& device_cfg);
 
+		void InitPipelines(const DescriptorSetsManager& descriptor_set_manager, const std::array<Extent, kExtentTypeCnt>& extents);
 		const GraphicsPipeline& GetPipeline(PipelineId pipeline_id) const;
 		//const RenderPass& GetRenderPass(RenderPassId renderpass_id) const;
 
@@ -34,12 +35,16 @@ namespace render
 		//void InitDescriptorSetLayouts(const DeviceConfiguration& device_cfg);
 		//VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
-
 		RenderGraph2 render_graph_;
 
 		stl_util::NullableRef<const RenderPass> swapchain_render_pass_;
 
 		std::map<PipelineId, GraphicsPipeline> pipelines_;
+
+		stl_util::NullableRef<render::RenderNode> g_build_node;
+		stl_util::NullableRef<render::RenderNode> g_collect_node;
+		stl_util::NullableRef<render::RenderNode> ui_node;
+
 		//std::map<RenderPassId, RenderPass> render_passes_;
 	};
 }

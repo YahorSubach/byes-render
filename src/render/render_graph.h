@@ -26,6 +26,7 @@ namespace render
 		kUIShape
 	};
 
+
 	using RenderModelCategoryFlags = stl_util::EnumFlags<RenderModelCategory>;
 
 	class GraphicsPipeline;
@@ -82,10 +83,10 @@ namespace render
 
 			std::string name;
 			Format format;
-			Extent extent;
+			//const Extent& extent;
 			bool is_swapchain_image;
 
-			RenderNode& RenderNode;
+			RenderNode& node;
 
 			stl_util::NullableRef<Dependency> depends_on;
 
@@ -99,9 +100,9 @@ namespace render
 		};
 
 
-		RenderNode(const RenderGraph2& render_graph, const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags);
+		RenderNode(const RenderGraph2& render_graph, const std::string& name, const ExtentType& extent, RenderModelCategoryFlags category_flags);
 
-		Attachment& Attach(const std::string& name, Format format, Extent extent);
+		Attachment& Attach(const std::string& name, Format format);
 		Attachment& AttachSwapchain();
 		Attachment& GetAttachment(const std::string& name);
 
@@ -112,7 +113,7 @@ namespace render
 		/*void AddDependency(Dependency dependency);*/
 
 		const RenderPass& GetRenderPass() const;
-		Extent GetExtent() const;
+		const ExtentType& GetExtentType() const;
 
 		//std::vector<std::reference_wrapper<Dependency>> depends_on;
 
@@ -122,7 +123,7 @@ namespace render
 		RenderModelCategoryFlags category_flags;
 	private:
 		const RenderGraph2& render_graph_;
-		const Extent& extent_;
+		ExtentType extent_type_;
 		std::string name_;
 		std::vector<Attachment> attachments_;
 		std::optional<RenderPass> render_pass_;
@@ -137,9 +138,9 @@ namespace render
 
 
 
-		RenderGraph2(const DeviceConfiguration device_cfg);
+		RenderGraph2(const DeviceConfiguration& device_cfg);
 
-		RenderNode& AddNode(const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags);
+		RenderNode& AddNode(const std::string& name, ExtentType extent_type, RenderModelCategoryFlags category_flags);
 		void Build();
 
 		const std::map<std::string, RenderNode>& GetNodes() const;
@@ -153,7 +154,7 @@ namespace render
 	{
 	public:
 
-		RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, DescriptorSetsManager& desc_set_manager);
+		RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager);
 
 		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const;
 

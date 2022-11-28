@@ -9,7 +9,7 @@
 #include "render/data_types.h"
 
 
-render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, bool enable_depth_test):
+render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, bool enable_depth_test):
 	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE)
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
@@ -62,14 +62,14 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(render_node.GetExtent().width);
-	viewport.height = static_cast<float>(render_node.GetExtent().height);
+	viewport.width = static_cast<float>(extents[u32(render_node.GetExtentType())].width);
+	viewport.height = static_cast<float>(extents[u32(render_node.GetExtentType())].height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = render_node.GetExtent();
+	scissor.extent = extents[u32(render_node.GetExtentType())];
 
 	VkPipelineViewportStateCreateInfo viewport_state{};
 	viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

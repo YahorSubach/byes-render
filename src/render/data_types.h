@@ -18,6 +18,16 @@ namespace render
 	class Sampler;
 	class Image;
 
+	enum class ExtentType
+	{
+		kPresentation,
+		kViewport,
+		kShadowMap,
+
+		Count
+	};
+
+	const int kExtentTypeCnt = static_cast<int>(ExtentType::Count);
 
 	enum class PipelineId
 	{
@@ -46,6 +56,8 @@ namespace render
 		uint32_t width;
 		uint32_t height;
 
+		bool operator==(const Extent& rhs) const { return (width == rhs.width) && (height == rhs.height); }
+
 		Extent() = default;
 		Extent(VkExtent2D vk_ext) : width(vk_ext.width), height(vk_ext.height) {}
 		Extent(uint32_t width, uint32_t height) : width(width), height(height) {}
@@ -70,15 +82,11 @@ namespace render
 
 		CommandPool* graphics_cmd_pool;
 		CommandPool* transfer_cmd_pool;
-		DescriptorPool* descriptor_pool;
 
 		Sampler* texture_sampler;
 		Sampler* shadowmap_sampler;
 
 		stl_util::NullableRef<Image> default_image;
-
-		Extent presentation_extent;
-		Extent shadowmap_extent = {512, 512};
 
 		Format presentation_format;
 		Format depth_map_format = VK_FORMAT_D32_SFLOAT;

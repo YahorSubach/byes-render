@@ -233,12 +233,16 @@ namespace render
 
 			Image def_image = Image::FromFile(device_cfg_, "../images/test.jpg");
 			device_cfg_.default_image = def_image;
+			device_cfg_.presentation_format = surface_ptr_->GetSurfaceFormat(device_cfg_.physical_device).format;
+
+			DescriptorSetsManager descriptor_set_manager(device_cfg_);
+			RenderSetup render_setup(device_cfg_);
+			
+			BatchesManager batches_manager(device_cfg_);
 
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
-				DescriptorPool descriptor_pool(device_cfg_, 2000, 2000);
-
-				device_cfg_.descriptor_pool = &descriptor_pool;
+				descriptor_set_manager.FreeAll();
 
 				graphics_command_pool_ptr_->ClearCommandBuffers();
 				graphics_command_pool_ptr_->CreateCommandBuffers(kFramesCount);
@@ -247,45 +251,38 @@ namespace render
 
 				Swapchain swapchain(device_cfg_, *surface_ptr_);
 
-				device_cfg_.presentation_extent = swapchain.GetExtent();
-				device_cfg_.presentation_format = swapchain.GetFormat();
+				std::array<Extent, kExtentTypeCnt> extents
+				{
+					swapchain.GetExtent(),
+					swapchain.GetExtent(),
+					{512,512}
+				};
 
-				DescriptorSetsManager descriptor_set_manager(device_cfg_);
-				RenderSetup render_setup(device_cfg_, descriptor_set_manager);
+				render_setup.InitPipelines(descriptor_set_manager, extents);
 
 				ui::UI ui(device_cfg_, swapchain.GetExtent());
 
 				std::vector<Framebuffer> swapchain_framebuffers;
 
-				//Image depth_image(device_cfg_, device_cfg_.depth_map_format, swapchain.GetExtent());
-				//ImageView depth_image_view(device_cfg_, depth_image);
-
 				for (int i = 0; i < swapchain.GetImagesCount(); i++)
 				{
-					//std::vector<std::reference_wrapper<const ImageView>> attachments;
-					//
-					//attachments.push_back(swapchain.GetImageView(i));
-					//attachments.push_back(depth_image_view);
-
 					Framebuffer::ConstructParams params
 					{
 						render_setup.GetSwapchainRenderPass(),
-						device_cfg_.presentation_extent,
+						swapchain.GetExtent()
 					};
 
 					params.attachments.push_back(swapchain.GetImageView(i));
 
 					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, params));
 				}
-
-				BatchesManager batches_manager(device_cfg_, kFramesCount, swapchain, descriptor_pool);
 				
 				frames.clear();
 				frames.reserve(kFramesCount);
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, descriptor_set_manager, batches_manager, ui));
+					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui));
 				}
 
 				auto last_update_time = std::chrono::steady_clock::now();

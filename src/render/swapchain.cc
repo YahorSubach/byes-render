@@ -6,7 +6,7 @@
 
 #include "surface.h"
 
-render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surface& surface) : RenderObjBase(device_cfg)
+render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surface& surface) : RenderObjBase(device_cfg), extent_(), format_()
 {
 	VkSurfaceCapabilitiesKHR capabilities;
 	VkBool32 device_surface_support;

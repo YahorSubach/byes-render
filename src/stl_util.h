@@ -91,6 +91,8 @@ namespace render::stl_util
 		template<typename ...Params>
 		NullableRef(Params&& ... params) : std::optional<std::reference_wrapper<ReferencedType>>(std::forward<Params>(params)...) {}
 
+		NullableRef(std::nullopt_t t) : std::optional<std::reference_wrapper<ReferencedType>>(t) {}
+
 		std::remove_reference_t<ReferencedType>* operator->()
 		{
 			return &(std::optional<std::reference_wrapper<ReferencedType>>::value().get());
@@ -117,6 +119,8 @@ namespace render::stl_util
 			std::optional<std::reference_wrapper<ReferencedType>>::operator=(std::forward<RHS>(rhs));
 			return *this;
 		}
+
+		//operator std::remove_reference_t<ReferencedType>& () { return (std::optional<std::reference_wrapper<ReferencedType>>::value().get()); }
 	};
 
 	template<typename ReferencedType>

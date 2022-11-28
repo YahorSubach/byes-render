@@ -8,6 +8,7 @@
 #include "vulkan/vulkan.h"
 
 #include "render/buffer.h"
+#include "render/descriptor_pool.h"
 #include "render/descriptor_set.h"
 #include "render/descriptor_set_layout.h"
 #include "render/image_view.h"
@@ -31,6 +32,7 @@ namespace render
 
 		VkDescriptorSet GetFreeDescriptor(DescriptorSetType);
 		void FreeDescriptorSet(VkDescriptorSet);
+		void FreeAll();
 
 		const std::array<DescriptorSetLayout, static_cast<uint32_t>(DescriptorSetType::Count)>& GetLayouts() const;
 
@@ -48,6 +50,7 @@ namespace render
 		std::map<DescriptorSetType, std::vector<ImageView>> image_views_;
 
 		std::array<DescriptorSetLayout, static_cast<uint32_t>(DescriptorSetType::Count)> descriptor_set_layouts_;
+		DescriptorPool descriptor_pool_;
 	};
 }
 

@@ -331,13 +331,13 @@
 //}
 
 
-render::RenderGraph2::RenderGraph2(const DeviceConfiguration device_cfg): RenderObjBase(device_cfg)
+render::RenderGraph2::RenderGraph2(const DeviceConfiguration& device_cfg): RenderObjBase(device_cfg)
 {
 }
 
-render::RenderNode& render::RenderGraph2::AddNode(const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags)
+render::RenderNode& render::RenderGraph2::AddNode(const std::string& name, ExtentType extent_type, RenderModelCategoryFlags category_flags)
 {
-	auto [it, success] = nodes_.insert({ name, RenderNode{*this, name, extent, category_flags} });
+	auto [it, success] = nodes_.insert({ name, RenderNode{*this, name, extent_type, category_flags} });
 	assert(success);
 	return it->second;
 }
@@ -355,22 +355,22 @@ const std::map<std::string, render::RenderNode>& render::RenderGraph2::GetNodes(
 	return nodes_;
 }
 
-render::RenderNode::RenderNode(const RenderGraph2& render_graph, const std::string& name, const Extent& extent, RenderModelCategoryFlags category_flags) :
-	name_(name), render_graph_(render_graph), extent_(extent), order(0), category_flags(category_flags), use_swapchain_framebuffer(false)
+render::RenderNode::RenderNode(const RenderGraph2& render_graph, const std::string& name, const ExtentType& extent_type, RenderModelCategoryFlags category_flags) :
+	name_(name), render_graph_(render_graph), extent_type_(extent_type), order(0), category_flags(category_flags), use_swapchain_framebuffer(false)
 {
 	attachments_.reserve(16);
 }
 
-render::RenderNode::Attachment& render::RenderNode::Attach(const std::string& name, Format format, Extent extent)
+render::RenderNode::Attachment& render::RenderNode::Attach(const std::string& name, Format format)
 {
-	attachments_.push_back({name, format, extent, false, *this});
+	attachments_.push_back({name, format, false, *this});
 	//assert(success);
 	return attachments_.back();
 }
 
 render::RenderNode::Attachment& render::RenderNode::AttachSwapchain()
 {
-	attachments_.push_back({ kSwapchainAttachmentName, render_graph_.GetDeviceCfg().presentation_format, render_graph_.GetDeviceCfg().presentation_extent, true, *this});
+	attachments_.push_back({ kSwapchainAttachmentName, render_graph_.GetDeviceCfg().presentation_format, true, *this});
 	//assert(success);
 	return attachments_.back();
 }
@@ -407,9 +407,9 @@ const render::RenderPass& render::RenderNode::GetRenderPass() const
 	return render_pass_.value();
 }
 
-render::Extent render::RenderNode::GetExtent() const
+const render::ExtentType& render::RenderNode::GetExtentType() const
 {
-	return extent_;
+	return extent_type_;
 }
 //void render::RenderNode::AddDependency(Dependency dependency)
 //{
@@ -428,13 +428,14 @@ render::RenderNode::Attachment& render::RenderNode::Attachment::operator>>(rende
 
 render::RenderNode::Attachment& render::RenderNode::Attachment::ForwardAsAttachment(render::RenderNode& to_node)
 {
+	assert(node.extent_type_ == to_node.extent_type_);
 	//RenderNode.AddDependency({ *this, to_node, true });
 	to_dependencies.push_back({ *this, to_node, DescriptorSetType::None });
 
-	auto&& new_attachment = to_node.Attach(kSwapchainAttachmentName, format, extent);
+	auto&& new_attachment = to_node.Attach(kSwapchainAttachmentName, format);
 	new_attachment.is_swapchain_image = is_swapchain_image;
 	new_attachment.depends_on = to_dependencies.back();
-	to_node.order = std::max(to_node.order, RenderNode.order + 1);
+	to_node.order = std::max(to_node.order, node.order + 1);
 	//to_node.depends = true;
 
 	return new_attachment;
@@ -444,7 +445,7 @@ render::RenderNode::Attachment& render::RenderNode::Attachment::ForwardAsSampled
 {
 	//RenderNode.AddDependency({ *this, to_node, false });
 	to_dependencies.push_back({ *this, to_node, set_type, binding_index });
-	to_node.order = std::max(to_node.order, RenderNode.order + 1);
+	to_node.order = std::max(to_node.order, node.order + 1);
 	//to_node.depends = true;
 	return *this;
 }
@@ -460,14 +461,14 @@ render::RenderNode::Attachment& render::RenderNode::Attachment::DescriptorSetFor
 	return attachment.ForwardAsSampled(node_to_forward, type, descriptor_set_binding_index);
 }
 
-render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, DescriptorSetsManager& desc_set_manager): 
+render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager):
 	RenderObjBase(device_cfg), render_graph_(render_graph), nearest_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat, true)
 {
 	std::map<std::string, std::map<DescriptorSetType, std::map<int, const AttachmentImage&>>> desc_set_images;
 
 	for (auto&& [node_name, RenderNode] : render_graph.GetNodes())
 	{
-		Framebuffer::ConstructParams framebuffer_params{RenderNode.GetRenderPass(), RenderNode.GetExtent()};
+		Framebuffer::ConstructParams framebuffer_params{RenderNode.GetRenderPass(), extents[u32(RenderNode.GetExtentType())]};
 
 		for (auto&& attachment : RenderNode.GetAttachments())
 		{
@@ -479,7 +480,7 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 				continue;
 			}
 			
-			Image image(device_cfg, attachment.format, attachment.extent);
+			Image image(device_cfg, attachment.format, extents[u32(RenderNode.GetExtentType())]);
 			
 			if (attachment.format == device_cfg.depth_map_format)
 			{
