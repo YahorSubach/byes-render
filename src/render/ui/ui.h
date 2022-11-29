@@ -21,8 +21,12 @@ namespace render::ui
 
 		int bitmap_x;
 		int bitmap_y;
+
 		int bitmap_width;
 		int bitmap_heigth;
+
+		int bitmap_atlas_x;
+		int bitmap_atlas_y;
 
 		stl_util::NullableRef<const Image> bitmap;
 	};
@@ -36,7 +40,7 @@ namespace render::ui
 		const std::vector<BufferAccessor>& GetVertexBuffers() const;
 		const BufferAccessor& GetIndexBuffer() const;
 
-		const Glyph& GetGlyph(char character, int font_size) const;
+		const Glyph& GetGlyph(char32_t character, int font_size) const;
 
 		const Sampler& GetUISampler() const;
 
@@ -49,7 +53,7 @@ namespace render::ui
 		struct FontData
 		{
 			std::map<char32_t, Glyph> glyphs;
-			std::map<char32_t, Image> glyph_images;
+			Image atlas;
 		};
 
 		mutable std::map<int, FontData> size_to_font_data_;

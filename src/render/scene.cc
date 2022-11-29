@@ -1,4 +1,4 @@
-#include "scene.h"
+﻿#include "scene.h"
 
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
@@ -204,7 +204,9 @@ void render::ModelSceneDescSetHolder::AttachDescriptorSets(DescriptorSetsManager
 	}
 }
 
-render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): DescriptorSetHolder(device_cfg), ui_(ui), screen_panel_(0,0,ui.GetExtent().width, ui.GetExtent().height), text_block_(ui, 300, 300, 30, "Hi, bro! Now we finally have a text!")
+render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): 
+	DescriptorSetHolder(device_cfg), ui_(ui), screen_panel_(0,0,ui.GetExtent().width, ui.GetExtent().height), 
+	text_block_(ui, 300, 300, 30, U"Привет, теперь текст на русском!")
 {
 	ui_polygones_.reserve(64);
 	ui_polygones_geom_.reserve(64);

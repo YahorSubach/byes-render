@@ -45,7 +45,7 @@ void render::ui::Panel::SetParent(const Panel& parent)
     local_transform = glm::scale(local_transform, glm::vec3(1.0f * width_ / parent_->width_, 1.0f * height_ / parent_->height_, 1.0f));
 }
 
-render::ui::TextBlock::TextBlock(const UI& ui, int x, int y, int font_size, const std::string& text) : Panel(x, y, 0 ,0)
+render::ui::TextBlock::TextBlock(const UI& ui, int x, int y, int font_size, const std::basic_string<char32_t>& text) : Panel(x, y, 0 ,0)
 {
     width_ = 0;
     height_ = font_size;
@@ -54,9 +54,9 @@ render::ui::TextBlock::TextBlock(const UI& ui, int x, int y, int font_size, cons
 
     std::vector<GlyphPanel> glyphs;
 
-    for (char c : text)
+    for (char32_t c : text)
     {
-        auto glyph = ui.GetGlyph(c, font_size);;
+        auto glyph = ui.GetGlyph(c, font_size);
 
         if (glyph.bitmap)
         {

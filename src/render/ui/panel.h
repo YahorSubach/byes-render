@@ -53,7 +53,7 @@ namespace render::ui
 	class TextBlock : public Panel
 	{
 	public:
-		TextBlock(const UI& ui, int x, int y, int font_size, const std::string& text);
+		TextBlock(const UI& ui, int x, int y, int font_size, const std::basic_string<char32_t>& text);
 
 	};
 

@@ -19,7 +19,7 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkI
 
 render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const unsigned char* pixels): Image(device_cfg, format, extent)
 {
-	VkDeviceSize image_size = extent.width * extent.height * 4;
+	VkDeviceSize image_size = extent.width * extent.height * (format != VK_FORMAT_R8_SRGB ? 4 : 1);
 	pixels_data_ = std::make_unique<std::vector<unsigned char>>(image_size);
 	pixels_data_->reserve(image_size);
 	pixels_data_->assign(pixels, pixels + image_size);

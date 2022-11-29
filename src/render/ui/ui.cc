@@ -29,9 +29,9 @@ render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBas
     std::array<glm::vec2, 4> tex_coords =
     {
         glm::vec2(0.0f, 0.0f),
-        glm::vec2(0.0f, 1.0f),
-        glm::vec2(1.0f, 0.0f),
-        glm::vec2(1.0f, 1.0f)
+        glm::vec2(0.0f, 0.25f),
+        glm::vec2(0.25f, 0.0f),
+        glm::vec2(0.25f, 0.25f)
     };
 
     polygon_vert_tex_.LoadData(tex_coords.data(), sizeof(tex_coords));
@@ -58,6 +58,111 @@ render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBas
         std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
     }
 
+    int font_size = 30;
+
+    std::map<char32_t, Glyph> glyphs;
+
+    std::basic_string_view<char32_t> char_array = U"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя1234567890*/!?,.-_=+@# \\";
+    
+    int inline_cnt = sqrt(char_array.size()) + 1;
+
+    uint32_t atlas_width = 0;
+
+    for (int char_ind = 0; char_ind < inline_cnt; char_ind++)
+    {
+        FT_Set_Pixel_Sizes(face, 0, font_size);
+        FT_Load_Char(face, char_array[char_ind], FT_LOAD_RENDER);
+        atlas_width += face->glyph->bitmap.width;
+    }
+
+    int total_height = 0;
+    int current_line_height = 0;
+    int current_line_width = 0;
+
+    for (int char_ind = 0; char_ind < char_array.size(); char_ind++)
+    {
+        FT_Set_Pixel_Sizes(face, 0, font_size);
+        FT_Load_Char(face, char_array[char_ind], FT_LOAD_RENDER);
+        
+        int bitmap_width = face->glyph->bitmap.width;
+        int bitmap_height = face->glyph->bitmap.width;
+
+        if (current_line_width + bitmap_width <= atlas_width)
+        {
+            current_line_width += bitmap_width;
+            current_line_height = std::max(current_line_height, bitmap_height);
+        }
+        else
+        {
+            total_height += current_line_height;
+
+            current_line_width = bitmap_width;
+            current_line_height = bitmap_height;
+        }
+    }
+
+    total_height += current_line_height;
+
+    uint32_t atlas_height = total_height;
+
+    std::vector<unsigned char> atlas_data(atlas_width * atlas_height);
+
+
+    int atlas_x = 0;
+    int atlas_y = 0;
+
+    current_line_height = 0;
+
+    for (int char_ind = 0; char_ind < char_array.size(); char_ind++)
+    {
+        FT_Set_Pixel_Sizes(face, 0, font_size);
+        FT_Load_Char(face, char_array[char_ind], FT_LOAD_RENDER);
+
+        int bitmap_width = face->glyph->bitmap.width;
+        int bitmap_height = face->glyph->bitmap.width;
+
+        if (atlas_x + bitmap_width <= atlas_width)
+        {
+            current_line_height = std::max(current_line_height, bitmap_height);
+        }
+        else
+        {
+            atlas_y += current_line_height;
+            atlas_x = 0;
+
+            current_line_height = bitmap_height;
+        }
+
+        for (int bitmap_row_ind = 0; bitmap_row_ind < bitmap_height; bitmap_row_ind++)
+        {
+            std::memcpy(&atlas_data[(atlas_y + bitmap_row_ind) * atlas_width] + atlas_x, &face->glyph->bitmap.buffer[bitmap_width * bitmap_row_ind], bitmap_width);
+        }
+
+
+        render::ui::Glyph glyph =
+        {
+            face->glyph->advance.x / 64,
+
+            face->glyph->bitmap_left,
+            font_size - face->glyph->bitmap_top,
+            face->glyph->bitmap.width,
+            face->glyph->bitmap.rows
+        };
+
+        glyphs.emplace(char_array[char_ind], glyph);
+
+        atlas_x += bitmap_width;
+    }
+
+    FontData font_data = { {},  Image(device_cfg_, VK_FORMAT_R8_SRGB, { atlas_width, atlas_height}, atlas_data.data()) };
+
+    size_to_font_data_.emplace(font_size, std::move(font_data));
+    size_to_font_data_.at(font_size).glyphs = std::move(glyphs);
+
+    for (auto&& glyph : size_to_font_data_.at(font_size).glyphs)
+    {
+        glyph.second.bitmap = size_to_font_data_.at(font_size).atlas;
+    }
 }
 
 
@@ -72,15 +177,17 @@ const render::BufferAccessor& render::ui::UI::GetIndexBuffer() const
     return index_buffer_;
 }
 
-const render::ui::Glyph& render::ui::UI::GetGlyph(char character, int font_size) const
+const render::ui::Glyph& render::ui::UI::GetGlyph(char32_t character, int font_size) const
 {
-    auto&& font_data = size_to_font_data_[font_size];
+    auto&& font_data = size_to_font_data_.at(font_size);
 
     if (auto it = font_data.glyphs.find(character); it == font_data.glyphs.end())
     {
         FT_Set_Pixel_Sizes(face, 0, font_size);
 
-        if (FT_Load_Char(face, character, FT_LOAD_RENDER))
+        auto t = U"АБВГДЕЁЖЗИ";
+
+        if (FT_Load_Char(face, t[0], FT_LOAD_RENDER))
         {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
         }
@@ -89,23 +196,23 @@ const render::ui::Glyph& render::ui::UI::GetGlyph(char character, int font_size)
 
         if (face->glyph->bitmap.width != 0 && face->glyph->bitmap.rows != 0)
         {
-            font_data.glyph_images.emplace((char32_t)character, Image(device_cfg_, VK_FORMAT_R8_SRGB, { face->glyph->bitmap.width, face->glyph->bitmap.rows }, face->glyph->bitmap.buffer/*, {ImageProperty::kShaderInput }*/));
+            //font_data.glyph_images.emplace((char32_t)character, Image(device_cfg_, VK_FORMAT_R8_SRGB, { face->glyph->bitmap.width, face->glyph->bitmap.rows }, face->glyph->bitmap.buffer/*, {ImageProperty::kShaderInput }*/));
             contains_bitmap = true;
         }
 
-        render::ui::Glyph glyph =
-        {
-            face->glyph->advance.x / 64,
+        //render::ui::Glyph glyph =
+        //{
+        //    face->glyph->advance.x / 64,
 
-            face->glyph->bitmap_left,
-            font_size - face->glyph->bitmap_top,
-            face->glyph->bitmap.width,
-            face->glyph->bitmap.rows,
+        //    face->glyph->bitmap_left,
+        //    font_size - face->glyph->bitmap_top,
+        //    face->glyph->bitmap.width,
+        //    face->glyph->bitmap.rows,
 
-            contains_bitmap ? stl_util::MakeNullableRef(font_data.glyph_images.at(character)) : std::nullopt
-        };
+        //    contains_bitmap ? stl_util::MakeNullableRef(font_data.glyph_images.at(character)) : std::nullopt
+        //};
 
-        font_data.glyphs.emplace(character, glyph);
+        //font_data.glyphs.emplace(character, glyph);
 
         return font_data.glyphs.at(character);
     }
