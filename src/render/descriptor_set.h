@@ -294,6 +294,28 @@ namespace render
 	};
 
 	template<>
+	struct DescriptorSetBindings<DescriptorSetType::kAtlas>
+	{
+		template<int i>
+		struct Binding { using NotBinded = void; };
+
+		template<>
+		struct Binding<0>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Vertex;
+
+			struct Data
+			{
+				glm::vec2 atlas_position;
+				glm::vec2 width_heigth;
+			};
+
+			Data data;
+		};
+	};
+
+	template<>
 	struct DescriptorSetBindings<DescriptorSetType::kGBuffers>
 	{
 		template<int i>

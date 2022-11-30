@@ -29,9 +29,9 @@ render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBas
     std::array<glm::vec2, 4> tex_coords =
     {
         glm::vec2(0.0f, 0.0f),
-        glm::vec2(0.0f, 0.25f),
-        glm::vec2(0.25f, 0.0f),
-        glm::vec2(0.25f, 0.25f)
+        glm::vec2(0.0f, 1.0f),
+        glm::vec2(1.0f, 0.0f),
+        glm::vec2(1.0f, 1.0f)
     };
 
     polygon_vert_tex_.LoadData(tex_coords.data(), sizeof(tex_coords));
@@ -145,8 +145,10 @@ render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBas
 
             face->glyph->bitmap_left,
             font_size - face->glyph->bitmap_top,
-            face->glyph->bitmap.width,
-            face->glyph->bitmap.rows
+            bitmap_width,
+            bitmap_height,
+            glm::vec2(1.0f * atlas_x / atlas_width, 1.0f * atlas_y / atlas_height),
+            glm::vec2(1.0f * bitmap_width / atlas_width, 1.0f * bitmap_height / atlas_height)
         };
 
         glyphs.emplace(char_array[char_ind], glyph);
@@ -226,6 +228,11 @@ const render::ui::Glyph& render::ui::UI::GetGlyph(char32_t character, int font_s
 const render::Sampler& render::ui::UI::GetUISampler() const
 {
     return ui_sampler_;
+}
+
+const render::Image& render::ui::UI::GetAtlas() const
+{
+    return size_to_font_data_.at(30).atlas;
 }
 
 render::Extent render::ui::UI::GetExtent() const

@@ -8,5 +8,6 @@ ENUM_OP(Material)
 ENUM_OP(Environement)
 
 ENUM_OP(Texture)
+ENUM_OP(Atlas)
 
 ENUM_OP(GBuffers)

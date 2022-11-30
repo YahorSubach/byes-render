@@ -128,24 +128,26 @@ namespace render
 	};
 
 
-	class UIPoly : public DescriptorSetHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kTexture>
+	class UIPoly : public DescriptorSetHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kAtlas>
 	{
 		const ui::UI& ui_;
 		std::vector<Primitive> primitives_;
 
 		glm::mat4 transform_;
-		const Image& image_;
+
+		glm::vec2 atlas_position_;
+		glm::vec2 atlas_width_height_;
 
 	public:
-		UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, const Image& image);
+		UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, glm::vec2 atlas_position, glm::vec2 atlas_width_height);
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kAtlas>::Binding<0>::Data& data) override;
 
 		PrimitivesHolderRenderNode GetRenderNode();
 	};
 
-	class UIScene : public DescriptorSetHolder<>
+	class UIScene : public DescriptorSetHolder<DescriptorSetType::kTexture>
 	{
 		const ui::UI& ui_;
 
@@ -157,6 +159,8 @@ namespace render
 
 	public:
 		UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui);
+
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data) override;
 
 		SceneRenderNode GetRenderNode();
 

@@ -2,12 +2,14 @@
 
 #include <glm/glm/gtc/matrix_transform.hpp>
 
-render::ui::Panel::Panel(int x, int y, int width, int height): x_(x), y_(y), width_(width), height_(height)
+render::ui::Panel::Panel(int x, int y, int width, int height): x_(x), y_(y), width_(width), height_(height), atlas_position(-1,-1), atlas_width_heigth(-1, -1)
 {
     local_transform = glm::identity<glm::mat4>();
 }
 
-render::ui::Panel::Panel(const Panel& panel) : x_(panel.x_), y_(panel.y_), width_(panel.width_), height_(panel.height_), local_transform(panel.local_transform), children(panel.children), image_(panel.image_)
+render::ui::Panel::Panel(const Panel& panel) : 
+    x_(panel.x_), y_(panel.y_), width_(panel.width_), height_(panel.height_), local_transform(panel.local_transform), 
+    atlas_position(panel.atlas_position), atlas_width_heigth(panel.atlas_width_heigth),children(panel.children), image_(panel.image_)
 {
     for (auto&& child : children)
     {
@@ -16,11 +18,11 @@ render::ui::Panel::Panel(const Panel& panel) : x_(panel.x_), y_(panel.y_), width
 }
 
 
-void render::ui::Panel::CollectRender(glm::mat4 parent_transform, std::vector<std::pair<glm::mat4, const Image&>>& to_render)
+void render::ui::Panel::CollectRender(glm::mat4 parent_transform, std::vector<std::pair<glm::mat4, std::pair<glm::vec2, glm::vec2>>>& to_render)
 {
-    if (image_)
+    if (atlas_position.x >= 0)
     {
-        std::pair<glm::mat4, const Image&> res(parent_transform * local_transform, *image_);
+        std::pair<glm::mat4, std::pair<glm::vec2, glm::vec2>> res(parent_transform * local_transform, {atlas_position, atlas_width_heigth});
 
         to_render.push_back(res);
     }
@@ -79,5 +81,9 @@ render::ui::TextBlock::TextBlock(const UI& ui, int x, int y, int font_size, cons
 render::ui::GlyphPanel::GlyphPanel(int x, int y, int font_size, render::ui::Glyph glyph): Panel(x,y,glyph.advance,font_size), character_panel_(glyph.bitmap_x, glyph.bitmap_y, glyph.bitmap_width, glyph.bitmap_heigth)
 {
     character_panel_.image_ = stl_util::NullableRef<const Image>(glyph.bitmap);
+
+    character_panel_.atlas_position = glyph.atlas_position;
+    character_panel_.atlas_width_heigth = glyph.atlas_width_height;
+
     AddChild(character_panel_);
 }

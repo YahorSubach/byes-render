@@ -25,9 +25,9 @@ namespace render::ui
 		int bitmap_width;
 		int bitmap_heigth;
 
-		int bitmap_atlas_x;
-		int bitmap_atlas_y;
-
+		glm::vec2 atlas_position;
+		glm::vec2 atlas_width_height;
+		
 		stl_util::NullableRef<const Image> bitmap;
 	};
 
@@ -43,6 +43,8 @@ namespace render::ui
 		const Glyph& GetGlyph(char32_t character, int font_size) const;
 
 		const Sampler& GetUISampler() const;
+		const Image& GetAtlas() const;
+
 
 		Extent GetExtent() const;
 		

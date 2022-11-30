@@ -25,13 +25,15 @@ namespace render::ui
 		int width_ = 0;
 		int height_ = 0;
 
+		glm::vec2 atlas_position;
+		glm::vec2 atlas_width_heigth;
 
 		glm::mat4 local_transform;
 		std::vector<Panel> children;
 
 		stl_util::NullableRef<const Image> image_;
 
-		void CollectRender(glm::mat4 parent_transform, std::vector<std::pair<glm::mat4, const Image&>>& to_render);
+		void CollectRender(glm::mat4 parent_transform, std::vector<std::pair<glm::mat4, std::pair<glm::vec2, glm::vec2>>>& to_render);
 
 		void AddChild(const Panel& panel);
 

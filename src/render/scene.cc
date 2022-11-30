@@ -206,20 +206,26 @@ void render::ModelSceneDescSetHolder::AttachDescriptorSets(DescriptorSetsManager
 
 render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): 
 	DescriptorSetHolder(device_cfg), ui_(ui), screen_panel_(0,0,ui.GetExtent().width, ui.GetExtent().height), 
-	text_block_(ui, 300, 300, 30, U"Привет, теперь текст на русском!")
+	text_block_(ui, 20, 20, 30, U"Привет, теперь текст на русском!")
 {
 	ui_polygones_.reserve(64);
 	ui_polygones_geom_.reserve(64);
 
 	screen_panel_.AddChild(text_block_);
-	std::vector<std::pair<glm::mat4, const Image&>> to_render;
+	std::vector<std::pair<glm::mat4, std::pair<glm::vec2, glm::vec2>>> to_render;
 	screen_panel_.CollectRender(glm::identity<glm::mat4>(), to_render);
 
-	for (auto&& [transform, image] : to_render)
+	for (auto&& [transform, atlas] : to_render)
 	{
-		ui_polygones_.push_back(UIPoly(device_cfg_, ui_, transform, image));
+		ui_polygones_.push_back(UIPoly(device_cfg_, ui_, transform, atlas.first, atlas.second));
 		ui_polygones_geom_.push_back(ui_polygones_.back());
 	}
+}
+
+void render::UIScene::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
+{
+	data.texture = ui_.GetAtlas();
+	data.texture_sampler = ui_.GetUISampler();
 }
 
 
@@ -252,7 +258,8 @@ void render::UIScene::AttachDescriptorSets(DescriptorSetsManager& manager)
 
 
 
-render::UIPoly::UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, const Image& image): DescriptorSetHolder(device_cfg), ui_(ui), transform_(transform), image_(image)
+render::UIPoly::UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, glm::vec2 atlas_position, glm::vec2 atlas_width_height): 
+	DescriptorSetHolder(device_cfg), ui_(ui), transform_(transform), atlas_position_(atlas_position), atlas_width_height_(atlas_width_height)
 {
 
 	Primitive prim;
@@ -269,10 +276,10 @@ void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::k
 	data.model_mat = transform_;
 }
 
-void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
+void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kAtlas>::Binding<0>::Data& data)
 {
-	data.texture = image_;
-	data.texture_sampler = ui_.GetUISampler();
+	data.atlas_position = atlas_position_;
+	data.width_heigth = atlas_width_height_;
 }
 
 render::PrimitivesHolderRenderNode render::UIPoly::GetRenderNode()

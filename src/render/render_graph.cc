@@ -634,20 +634,23 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 			VkPipelineLayout pipeline_layout;
 			for (auto&& render_model : render_models)
 			{
-				if (current_pipeline != &render_model.pipeline)
+				if (/*true || */RenderNode.category_flags.Check(render_model.category)) 
 				{
-					current_pipeline = &render_model.pipeline;
 
-					vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render_model.pipeline.GetHandle());
-					const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = render_model.pipeline.GetDescriptorSets();
+					if (current_pipeline != &render_model.pipeline)
+					{
+						current_pipeline = &render_model.pipeline;
 
-					pipeline_layout = render_model.pipeline.GetLayout();
+						vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render_model.pipeline.GetHandle());
+						const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = render_model.pipeline.GetDescriptorSets();
 
-					ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, node_desc_set);
-					ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene_ds);
-				}
+						pipeline_layout = render_model.pipeline.GetLayout();
 
-				if (/*true || */RenderNode.category_flags.Check(render_model.category)) {
+						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, node_desc_set);
+						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene_ds);
+					}
+
+
 					const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = render_model.pipeline.GetDescriptorSets();
 
 					ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, render_model.descriptor_sets);

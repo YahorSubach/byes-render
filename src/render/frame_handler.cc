@@ -230,7 +230,12 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 	render_models.back().vertex_buffers.push_back(viewport_vertex_buffer_.GetHandle());
 	render_models.back().vertex_buffers_offsets.push_back(0);
 
-	render_graph_handeler_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, swapchain_image, model_scene_.GetRenderNode().GetDescriptorSets(), render_models);
+
+	auto scene_descriptor_sets = model_scene_.GetRenderNode().GetDescriptorSets();
+	scene_descriptor_sets.insert(ui_scene_.GetDescriptorSets().begin(), ui_scene_.GetDescriptorSets().end());
+
+
+	render_graph_handeler_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, swapchain_image, scene_descriptor_sets, render_models);
 
 	present_info_.pImageIndices = &image_index;
 
