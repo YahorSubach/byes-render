@@ -10,6 +10,8 @@ target_sources(shaders
 		${CMAKE_CURRENT_LIST_DIR}/shadow.frag
 		${CMAKE_CURRENT_LIST_DIR}/ui.vert
 		${CMAKE_CURRENT_LIST_DIR}/ui.frag
+		${CMAKE_CURRENT_LIST_DIR}/bitmap.vert
+		${CMAKE_CURRENT_LIST_DIR}/bitmap.frag
 		${CMAKE_CURRENT_LIST_DIR}/collect_g_buffers.vert
 		${CMAKE_CURRENT_LIST_DIR}/collect_g_buffers.frag
 		${CMAKE_CURRENT_LIST_DIR}/build_g_buffers.vert

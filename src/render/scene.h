@@ -128,7 +128,7 @@ namespace render
 	};
 
 
-	class UIPoly : public DescriptorSetHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kAtlas>
+	class UIPoly : public DescriptorSetHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kBitmapAtlas>
 	{
 		const ui::UI& ui_;
 		std::vector<Primitive> primitives_;
@@ -142,7 +142,7 @@ namespace render
 		UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, glm::vec2 atlas_position, glm::vec2 atlas_width_height);
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kAtlas>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data) override;
 
 		PrimitivesHolderRenderNode GetRenderNode();
 	};

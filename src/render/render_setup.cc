@@ -109,8 +109,8 @@ void render::RenderSetup::InitPipelines(const DescriptorSetsManager& descriptor_
 	pipelines_.clear();
 
 	{
-		ShaderModule vert_shader_module(device_cfg_, "ui.vert", descriptor_set_manager.GetLayouts());
-		ShaderModule frag_shader_module(device_cfg_, "ui.frag", descriptor_set_manager.GetLayouts());
+		ShaderModule vert_shader_module(device_cfg_, "bitmap.vert", descriptor_set_manager.GetLayouts());
+		ShaderModule frag_shader_module(device_cfg_, "bitmap.frag", descriptor_set_manager.GetLayouts());
 
 		pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(device_cfg_, *ui_node, vert_shader_module, frag_shader_module, extents, false));
 	}

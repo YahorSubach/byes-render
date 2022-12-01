@@ -294,7 +294,7 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSetBindings<DescriptorSetType::kAtlas>
+	struct DescriptorSetBindings<DescriptorSetType::kBitmapAtlas>
 	{
 		template<int i>
 		struct Binding { using NotBinded = void; };
@@ -309,6 +309,7 @@ namespace render
 			{
 				glm::vec2 atlas_position;
 				glm::vec2 width_heigth;
+				glm::vec4 color;
 			};
 
 			Data data;

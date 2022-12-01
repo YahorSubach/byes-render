@@ -276,10 +276,11 @@ void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::k
 	data.model_mat = transform_;
 }
 
-void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kAtlas>::Binding<0>::Data& data)
+void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data)
 {
 	data.atlas_position = atlas_position_;
 	data.width_heigth = atlas_width_height_;
+	data.color = glm::vec4(0.5, 1.0, 0.5, 1.0);
 }
 
 render::PrimitivesHolderRenderNode render::UIPoly::GetRenderNode()
