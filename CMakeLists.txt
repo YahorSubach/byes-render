@@ -35,7 +35,7 @@ if(Vulkan_FOUND)
 		target_compile_definitions(render_engine PRIVATE VK_USE_PLATFORM_WIN32_KHR)
 
 		add_custom_target(shaders
-			COMMAND cmd /c "cd ../shaders && compile.bat"
+			COMMAND cmd /c "${CMAKE_CURRENT_SOURCE_DIR}/shaders/compile.bat"
 			COMMENT "compiling shaders..."
 		)
 		

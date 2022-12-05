@@ -1,3 +1,6 @@
+
+pushd %~dp0..\shaders\
+
 glslc.exe test.vert -o vert.spv
 glslc.exe test.frag -o frag.spv
 glslc.exe test_2.vert -o vert_2.spv
@@ -16,3 +19,5 @@ glslc.exe collect_g_buffers.vert -o collect_g_buffers.vert.spv
 glslc.exe collect_g_buffers.frag -o collect_g_buffers.frag.spv
 glslc.exe build_g_buffers.vert -o build_g_buffers.vert.spv
 glslc.exe build_g_buffers.frag -o build_g_buffers.frag.spv
+
+popd
