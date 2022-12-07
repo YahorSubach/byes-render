@@ -17,6 +17,40 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkI
 	handle_ = image_handle;
 }
 
+render::Image::Image(const DeviceConfiguration& device_cfg, DefaultImageType type) : Image(device_cfg, device_cfg.color_format, {1, 1})
+{
+	VkDeviceSize image_size = 4;
+
+	const unsigned char black[4] = { 0, 0, 0, 255 };
+	const unsigned char white[4] = { 255, 255, 255, 255 };
+
+	const unsigned char* data;
+
+	switch (type)
+	{
+	case render::Image::DefaultImageType::kBlack:
+		data = black;
+		break;
+	case render::Image::DefaultImageType::kWhite:
+		data = white;
+		break;
+	default:
+		break;
+	}
+
+	pixels_data_ = std::make_unique<std::vector<unsigned char>>(image_size);
+	pixels_data_->reserve(image_size);
+	pixels_data_->assign(data, data + image_size);
+
+	VkFormatProperties format_properties;
+	vkGetPhysicalDeviceFormatProperties(device_cfg_.physical_device, format_, &format_properties);
+
+	if ((format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) && (format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT))
+	{
+		mipmap_levels_count_ = static_cast<uint32_t>(std::floor(std::log2(std::max(extent_.height, extent_.width))) + 1);
+	}
+}
+
 render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const unsigned char* pixels): Image(device_cfg, format, extent)
 {
 	VkDeviceSize image_size = extent.width * extent.height * (format != VK_FORMAT_R8_SRGB ? 4 : 1);

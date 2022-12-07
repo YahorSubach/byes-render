@@ -94,7 +94,7 @@ render::PrimitivesHolderRenderNode render::ModelDescSetHolder::GetRenderNode()
 
 
 render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager):
-	DescriptorSetHolder(device_cfg), env_image_(Image::FromFile(device_cfg, "../images/textures/CaveEnv.png")),
+	DescriptorSetHolder(device_cfg), env_image_(device_cfg, Image::BuiltinImageType::kBlack),
 	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), nearest_sampler_(device_cfg, 10, Sampler::AddressMode::kRepeat, true), shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder)
 
 {

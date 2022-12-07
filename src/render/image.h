@@ -91,9 +91,16 @@ namespace render
 			kFragmentRead,
 		};
 
+		enum class BuiltinImageType
+		{
+			kBlack,
+			kWhite,
+		};
+
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent, const unsigned char* pixels);
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent);
 		Image(const DeviceConfiguration& device_cfg, VkFormat format, VkImage image_handle);
+		Image(const DeviceConfiguration& device_cfg, BuiltinImageType type);
 
 		static Image FromFile(const DeviceConfiguration& device_cfg, const std::string_view& path);
 

@@ -33,6 +33,8 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg) : 
 //	};
 
 	gltf_wrappers_.reserve(16);
+#if 0
+
 
 	{
 
@@ -94,7 +96,7 @@ render::BatchesManager::BatchesManager(const DeviceConfiguration& device_cfg) : 
 			meshes_.push_back(mesh);
 		}
 	}
-
+#endif
 	//{
 	//	GPULocalBuffer vertices_gpu_buffer(device_cfg, sizeof(vertices[0]) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, queue_indices);
 	//	GPULocalBuffer faces_gpu_buffer(device_cfg, sizeof(faces[0]) * faces.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices);
