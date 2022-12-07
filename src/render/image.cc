@@ -17,7 +17,7 @@ render::Image::Image(const DeviceConfiguration& device_cfg, VkFormat format, VkI
 	handle_ = image_handle;
 }
 
-render::Image::Image(const DeviceConfiguration& device_cfg, DefaultImageType type) : Image(device_cfg, device_cfg.color_format, {1, 1})
+render::Image::Image(const DeviceConfiguration& device_cfg, BuiltinImageType type) : Image(device_cfg, device_cfg.color_format, {1, 1})
 {
 	VkDeviceSize image_size = 4;
 
@@ -28,10 +28,10 @@ render::Image::Image(const DeviceConfiguration& device_cfg, DefaultImageType typ
 
 	switch (type)
 	{
-	case render::Image::DefaultImageType::kBlack:
+	case render::Image::BuiltinImageType::kBlack:
 		data = black;
 		break;
-	case render::Image::DefaultImageType::kWhite:
+	case render::Image::BuiltinImageType::kWhite:
 		data = white;
 		break;
 	default:
