@@ -55,9 +55,12 @@ namespace render
 		const RenderSetup& render_setup_;
 
 		ModelSceneDescSetHolder model_scene_;
-		RenderGraphHandler render_graph_handeler_;
+		RenderGraphHandler render_graph_handler_;
 		UIScene ui_scene_;
 		Buffer viewport_vertex_buffer_;
+
+		Buffer debug_lines_position_buffer_;
+		Buffer debug_lines_color_buffer_;
 	};
 }
 

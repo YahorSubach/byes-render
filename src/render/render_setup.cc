@@ -112,7 +112,7 @@ void render::RenderSetup::InitPipelines(const DescriptorSetsManager& descriptor_
 		ShaderModule vert_shader_module(device_cfg_, "bitmap.vert", descriptor_set_manager.GetLayouts());
 		ShaderModule frag_shader_module(device_cfg_, "bitmap.frag", descriptor_set_manager.GetLayouts());
 
-		pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(device_cfg_, *ui_node, vert_shader_module, frag_shader_module, extents, false));
+		pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(device_cfg_, *ui_node, vert_shader_module, frag_shader_module, extents, GraphicsPipeline::EParams::kDisableDepthTest));
 	}
 
 	{
@@ -127,6 +127,13 @@ void render::RenderSetup::InitPipelines(const DescriptorSetsManager& descriptor_
 		ShaderModule frag_shader_module(device_cfg_, "collect_g_buffers.frag", descriptor_set_manager.GetLayouts());
 
 		pipelines_.emplace(PipelineId::kCollectGBuffers, GraphicsPipeline(device_cfg_, *g_collect_node, vert_shader_module, frag_shader_module, extents));
+	}
+
+	{
+		ShaderModule vert_shader_module(device_cfg_, "pos_color.vert", descriptor_set_manager.GetLayouts());
+		ShaderModule frag_shader_module(device_cfg_, "pos_color.frag", descriptor_set_manager.GetLayouts());
+
+		pipelines_.emplace(PipelineId::kDebugLines, GraphicsPipeline(device_cfg_, *ui_node, vert_shader_module, frag_shader_module, extents, GraphicsPipeline::EParams::kLineTopology));
 	}
 }
 

@@ -38,7 +38,9 @@ namespace render
 		kUI,
 
 		kBuildGBuffers,
-		kCollectGBuffers
+		kCollectGBuffers,
+
+		kDebugLines
 	};
 
 	enum class RenderPassId

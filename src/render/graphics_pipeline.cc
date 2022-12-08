@@ -9,7 +9,7 @@
 #include "render/data_types.h"
 
 
-render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, bool enable_depth_test):
+render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, Params params):
 	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE)
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
@@ -56,7 +56,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly{};
 	input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	input_assembly.topology = params.Check(EParams::kLineTopology) ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST : VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	input_assembly.primitiveRestartEnable = VK_FALSE;
 
 	VkViewport viewport{};
@@ -141,7 +141,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	VkPipelineDepthStencilStateCreateInfo depth_stencil{};
 	depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depth_stencil.depthTestEnable = enable_depth_test;
+	depth_stencil.depthTestEnable = !params.Check(EParams::kDisableDepthTest);
 	depth_stencil.depthWriteEnable = VK_TRUE;
 	depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
 	depth_stencil.depthBoundsTestEnable = VK_FALSE;

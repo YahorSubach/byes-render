@@ -37,14 +37,14 @@ namespace render
 
 		const GraphicsPipeline& pipeline;
 
+		uint32_t vertex_count;
+
 		const std::map<DescriptorSetType, VkDescriptorSet>& descriptor_sets;
 
 		std::vector<VkBuffer> vertex_buffers;
 		std::vector<VkDeviceSize> vertex_buffers_offsets;
 
 		std::optional<std::pair<VkBuffer, uint32_t>> index_buffer_and_offset;
-
-		uint32_t vertex_count;
 	};
 
 	class GraphicsPipeline;
