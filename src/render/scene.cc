@@ -93,9 +93,10 @@ render::PrimitivesHolderRenderNode render::ModelDescSetHolder::GetRenderNode()
 }
 
 
-render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager):
+render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Scene& scene):
 	DescriptorSetHolder(device_cfg), env_image_(device_cfg, Image::BuiltinImageType::kBlack),
-	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), nearest_sampler_(device_cfg, 10, Sampler::AddressMode::kRepeat, true), shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder)
+	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), nearest_sampler_(device_cfg, 10, Sampler::AddressMode::kRepeat, true), 
+	shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder), scene_(scene)
 
 {
 
@@ -123,17 +124,39 @@ const std::vector<render::ModelDescSetHolder>& render::ModelSceneDescSetHolder::
 	return models_;
 }
 
-void render::ModelSceneDescSetHolder::UpdateCameraData(glm::vec3 pos, glm::vec3 look, float aspect)
-{
-	camera_data_.position = glm::vec4(pos, 1.0f);
-	glm::mat4 proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 200.0f);
-	proj[1][1] *= -1;
-	camera_data_.proj_view_mat = proj * glm::lookAt(pos, pos + look, glm::vec3(0.0f, 0.0f, 1.0f));
-}
+//void render::ModelSceneDescSetHolder::UpdateCameraData(glm::vec3 pos, glm::vec3 look, float aspect)
+//{
+//	camera_data_.position = glm::vec4(pos, 1.0f);
+//	glm::mat4 proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 200.0f);
+//	proj[1][1] *= -1;
+//	camera_data_.proj_view_mat = proj * glm::lookAt(pos, pos + look, glm::vec3(0.0f, 0.0f, 1.0f));
+//}
 
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
 {
+	Camera camera = scene_.GetActiveCamera();
+
+	camera_data_.position.x = camera.position.x;
+	camera_data_.position.y = camera.position.y;
+	camera_data_.position.z = camera.position.z;
+	camera_data_.position.w = 1.0f;
+
+	glm::vec3 position;
+	glm::vec3 orientation;
+	
+	position.x = camera.position.x;
+	position.y = camera.position.y;
+	position.z = camera.position.z;
+	
+	orientation.x = camera.orientation.x;
+	orientation.y = camera.orientation.y;
+	orientation.z = camera.orientation.z;
+
+	glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
+	proj[1][1] *= -1;
+	camera_data_.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
+
 	data = camera_data_;
 }
 

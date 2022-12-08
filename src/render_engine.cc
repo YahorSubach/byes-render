@@ -213,7 +213,12 @@ namespace render
 			//vkDestroyPipelineLayout(vk_logical_devices_[selected_device_index], pipelineLayout, nullptr);
 		}
 
-		void ShowWindow()
+		void StartRenderThread()
+		{
+			render_thread_ = std::thread(&RenderEngine::RenderEngineImpl::RenderLoop, this);
+		}
+
+		void RenderLoop()
 		{
 
 			static auto start_time = std::chrono::high_resolution_clock::now();
@@ -395,6 +400,8 @@ namespace render
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
 		}
+
+		Scene& GetScene() { return scene_; }
 
 		~RenderEngineImpl()
 		{
@@ -769,6 +776,11 @@ namespace render
 		std::unique_ptr<CommandPool> transfer_command_pool_ptr_;
 
 		const uint32_t kFramesCount = 4;
+
+		std::thread render_thread_;
+
+		Scene scene_;
+
 		//VkSemaphore image_available_semaphore_;
 		//VkSemaphore render_finished_semaphore_;
 };
@@ -785,8 +797,27 @@ namespace render
 		return impl_->VKInitSuccess();
 	}
 
-	void RenderEngine::ShowWindow()
+	void RenderEngine::StartRender()
 	{
-		impl_->ShowWindow();
+		impl_->StartRenderThread();
+	}
+	Scene& RenderEngine::GetCurrentScene()
+	{
+		return impl_->GetScene();
+	}
+
+	class Scene::SceneImpl
+	{
+	public:
+		Camera camera;
+	};
+
+	Camera& Scene::GetActiveCamera()
+	{
+		return impl_->camera;
+	}
+	const Camera& Scene::GetActiveCamera() const
+	{
+		return impl_->camera;
 	}
 }

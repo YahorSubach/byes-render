@@ -17,6 +17,7 @@
 
 namespace render
 {
+
 	class RenderNodeBase
 	{
 	public:
@@ -82,7 +83,7 @@ namespace render
 	{
 	public:
 
-		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager);
+		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Scene& scene);
 
 		const std::vector<ModelDescSetHolder>& GetModels() const;
 
@@ -125,6 +126,8 @@ namespace render
 		Sampler diffuse_sampler_;
 		Sampler nearest_sampler_;
 		Sampler shadow_sampler_;
+
+		const Scene& scene_;
 	};
 
 

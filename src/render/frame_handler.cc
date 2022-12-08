@@ -13,13 +13,15 @@
 #include <render/data_types.h>
 #include <render/command_buffer_filler.h>
 
-render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, const ui::UI& ui) :
+render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, 
+	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, 
+	const ui::UI& ui, const Scene& scene) :
 	RenderObjBase(device_cfg), swapchain_(swapchain.GetHandle()), graphics_queue_(device_cfg.graphics_queue),
 	command_buffer_(device_cfg.graphics_cmd_pool->GetCommandBuffer()),
 	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	render_finished_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-	model_scene_(device_cfg, batches_manager),
+	model_scene_(device_cfg, batches_manager, scene),
 	render_setup_(render_setup),
 	render_graph_handler_(device_cfg, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
 	ui_scene_(device_cfg, ui),
