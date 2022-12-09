@@ -96,7 +96,7 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 }
 
 
-bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index, glm::vec3 pos, glm::vec3 look)
+bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index)
 {
 	//CommandBufferFiller command_filler(render_setup, framebuffer_collection);
 
@@ -130,7 +130,7 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 	vkWaitForFences(device_cfg_.logical_device, 1, &cmd_buffer_fence_, VK_TRUE, UINT64_MAX);
 	vkResetFences(device_cfg_.logical_device, 1, &cmd_buffer_fence_);
 
-	model_scene_.UpdateCameraData(pos, look, 1.0f * swapchain_framebuffer.GetExtent().width / swapchain_framebuffer.GetExtent().height);
+	//model_scene_.UpdateCameraData(scene pos, look, 1.0f * swapchain_framebuffer.GetExtent().width / swapchain_framebuffer.GetExtent().height);
 
 	model_scene_.UpdateData();
 	ui_scene_.UpdateData();

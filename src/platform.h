@@ -33,9 +33,7 @@ namespace render::platform
 
 	VkExtent2D GetWindowExtent(const Window& window);
 
-	void GetMouseDelta(int& x_delta, int& y_delta);
-
-	std::array<bool, 'z' - 'a' + 1>& GetButtonState();
+	const InputState& GetInputState();
 }
 
 

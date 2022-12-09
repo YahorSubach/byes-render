@@ -29,7 +29,7 @@ namespace render
 		FrameHandler& operator=(const FrameHandler&) = delete;
 		FrameHandler& operator=(FrameHandler&&) = default;
 		
-		bool Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index, glm::vec3 pos, glm::vec3 look);
+		bool Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index);
 
 		VkSemaphore GetImageAvailableSemaphore() const;
 

@@ -10,15 +10,9 @@ namespace render::platform
 #ifdef WIN32
 	using Window = HWND;
 
-	int mouse_x = 0;
-	int mouse_y = 0;
-
 	bool consume_mouse_input = false;
 
-	std::array<bool, 'z' - 'a' + 1> buttons;
-
-	constexpr int kVkCharStart = 0x41;
-
+	InputState input_state = {};
 
 	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -83,9 +77,9 @@ namespace render::platform
 		{
 			consume_mouse_input = false;
 
-			for (auto&& button : buttons)
+			for (auto&& button : input_state.button_states)
 			{
-				button = false;
+				button = 0;
 			}
 
 			break;
@@ -105,9 +99,9 @@ namespace render::platform
 
 		case WM_KEYDOWN:
 		{
-			if (wParam >= kVkCharStart && wParam < (kVkCharStart + 'z' - 'a' + 1))
+			if (wParam < 0xFF)
 			{
-				buttons[wParam - kVkCharStart] = true;
+				input_state.button_states[wParam] = 1;
 				break;
 			}
 
@@ -137,9 +131,9 @@ namespace render::platform
 		
 		case WM_KEYUP:
 		{
-			if (wParam >= kVkCharStart && wParam < (kVkCharStart + 'z' - 'a' + 1))
+			if (wParam < 0xFF)
 			{
-				buttons[wParam - kVkCharStart] = false;
+				input_state.button_states[wParam] = 0;
 				break;
 			}
 
@@ -172,8 +166,8 @@ namespace render::platform
 				if (x == rect_x_center && y == rect_y_center)
 					break;
 
-				mouse_x += (x - rect_x_center);
-				mouse_y += (y - rect_y_center);
+				input_state.mouse_position.first += (x - rect_x_center);
+				input_state.mouse_position.second+= (y - rect_y_center);
 
 				SetCursorPos(rect_x_center, rect_y_center);
 			}
@@ -325,27 +319,16 @@ namespace render::platform
 		return extent;
 	}
 
-	int last_mouse_x = 0;
-	int last_mouse_y = 0;
-
-	void GetMouseDelta(int& x_delta, int& y_delta)
+	const InputState& GetInputState()
 	{
-		x_delta = mouse_x - last_mouse_x;
-		y_delta = mouse_y - last_mouse_y;
+		input_state.mouse_delta = 
+		{	input_state.mouse_position.first - input_state.mouse_position_prev.first, 
+			input_state.mouse_position.second - input_state.mouse_position_prev.second };
 
-		last_mouse_x = mouse_x;
-		last_mouse_y = mouse_y;
+		input_state.mouse_position_prev = input_state.mouse_position;
+
+		return input_state;
 	}
-
-
-
-	std::array<bool, 'z' - 'a' + 1>& GetButtonState()
-	{
-		return buttons;
-	}
-
-
-
 
 #endif
 }

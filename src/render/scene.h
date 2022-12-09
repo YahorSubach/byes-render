@@ -87,8 +87,6 @@ namespace render
 
 		const std::vector<ModelDescSetHolder>& GetModels() const;
 
-		void UpdateCameraData(glm::vec3 pos, glm::vec3 look, float aspect);
-
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;

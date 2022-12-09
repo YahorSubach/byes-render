@@ -229,9 +229,6 @@ namespace render
 
 			std::vector<FrameHandler> frames;
 
-			float yaw = glm::pi<float>() * 5 / 4;
-			float pitch = -glm::pi<float>() /4;
-
 			glm::vec3 position(2, 2, 1.7);
 
 			uint32_t current_frame_index = -1;
@@ -287,12 +284,9 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui));
+					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_));
 				}
 
-				auto last_update_time = std::chrono::steady_clock::now();
-
-				glm::vec3 pos_velocity = glm::vec3(0, 0, 0);
 
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
@@ -315,84 +309,7 @@ namespace render
 						continue;
 					}
 
-
-					int mouse_x_delta;
-					int mouse_y_delta;
-
-					platform::GetMouseDelta(mouse_x_delta, mouse_y_delta);
-					auto&& buttons = platform::GetButtonState();
-
-					yaw += (1.0f * mouse_x_delta / 500);
-					pitch += (-1.0f * mouse_y_delta / 500);
-					if (pitch > 1.505f)
-						pitch = 1.505f;
-					if (pitch < -1.505f)
-						pitch = -1.505f;
-
-					glm::vec3 look = glm::normalize(glm::vec3(glm::sin(yaw) * glm::cos(pitch), glm::cos(yaw) * glm::cos(pitch), glm::sin(pitch)));
-
-					glm::vec3 walk = glm::vec3(look.x, look.y, 0);
-
-					auto current_time = std::chrono::steady_clock::now();
-
-					auto time_delta = current_time - last_update_time;
-					last_update_time = current_time;
-
-					auto time_delta_s = std::chrono::duration_cast<std::chrono::duration<float>>(time_delta).count();
-
-					glm::vec3 vec = glm::vec3(0,0,0);
-					bool update_pos = false;
-
-
-					if (buttons['w' - 'a'])
-					{
-						vec += glm::normalize(walk);
-						update_pos = true;
-					}
-
-					if (buttons['s' - 'a'])
-					{
-						vec -= glm::normalize(walk);
-						update_pos = true;
-					}
-
-					if (buttons['d' - 'a'])
-					{
-						vec += glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>() / 2), glm::cos(yaw + glm::pi<float>() / 2), 0));
-						update_pos = true;
-					}
-
-					if (buttons['a' - 'a'])
-					{
-						vec -= glm::normalize(glm::vec3(glm::sin(yaw + glm::pi<float>() / 2), glm::cos(yaw + glm::pi<float>() / 2), 0));
-						update_pos = true;
-					}
-
-					glm::vec3 acc = glm::vec3(0,0,0);
-
-
-
-					if (glm::length(pos_velocity) > glm::epsilon<float>())
-					{
-						acc = 6.0f * glm::normalize(-pos_velocity);
-
-						if (glm::length(acc) * time_delta_s > glm::length(pos_velocity))
-						{
-							acc *= (glm::length(pos_velocity) / (glm::length(acc) * time_delta_s));
-						}
-					}
-
-					if (glm::length(vec) > glm::epsilon<float>())
-					{
-						acc += 12.0f * glm::normalize(vec);
-					}
-
-					pos_velocity += time_delta_s * acc;
-					position += time_delta_s * pos_velocity;
-
-
-
-					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], swapchain.GetImage(image_index), image_index, position, look);
+					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], swapchain.GetImage(image_index), image_index);
 				}
 
 				vkDeviceWaitIdle(device_cfg_.logical_device);
@@ -806,11 +723,21 @@ namespace render
 		return impl_->GetScene();
 	}
 
+	const InputState& RenderEngine::GetInputState()
+	{
+		return platform::GetInputState();
+	}
+
 	class Scene::SceneImpl
 	{
 	public:
 		Camera camera;
 	};
+
+	Scene::Scene()
+	{
+		impl_ = std::make_unique<SceneImpl>();
+	}
 
 	Camera& Scene::GetActiveCamera()
 	{
