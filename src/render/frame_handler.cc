@@ -15,7 +15,7 @@
 
 render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, 
 	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, 
-	const ui::UI& ui, const Scene& scene) :
+	const ui::UI& ui, const Scene& scene, const DebugGeometry& debug_geometry) :
 	RenderObjBase(device_cfg), swapchain_(swapchain.GetHandle()), graphics_queue_(device_cfg.graphics_queue),
 	command_buffer_(device_cfg.graphics_cmd_pool->GetCommandBuffer()),
 	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
@@ -26,9 +26,8 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	render_graph_handler_(device_cfg, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
 	ui_scene_(device_cfg, ui),
 	ui_(ui),
-	viewport_vertex_buffer_(device_cfg_, 6 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
-	debug_lines_position_buffer_(device_cfg_, (6 + 41 * 4) * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
-	debug_lines_color_buffer_(device_cfg_, (6 + 41 * 4) * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+	viewport_vertex_buffer_(device_cfg_, 6 * sizeof(glm::vec3)),
+	debug_geometry_(debug_geometry)
 {
 	std::vector<glm::vec3> viewport_vertex_data = {
 	{-1, -1, 0},
@@ -42,49 +41,7 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 
 	viewport_vertex_buffer_.LoadData(viewport_vertex_data.data(), viewport_vertex_data.size() * sizeof(glm::vec3));
 
-	std::vector<glm::vec3> debug_lines_position_data = {
-		{0, 0, 0},
-		{1, 0, 0},
 
-		{0, 0, 0},
-		{0, 1, 0},
-
-		{0, 0, 0},
-		{0, 0, 1},
-	};
-
-	std::vector<glm::vec3> debug_lines_color_data = {
-		{1, 0, 0},
-		{1, 0, 0},
-
-		{0, 1, 0},
-		{0, 1, 0},
-
-		{0, 0, 1},
-		{0, 0, 1},
-	};
-
-	for (int i = -20; i < 21; i++)
-	{
-		debug_lines_position_data.push_back({0.5 * i, -10, -0.1 });
-		debug_lines_position_data.push_back({ 0.5 * i, 10, -0.1 });
-
-		debug_lines_color_data.push_back({ 0.7, 0.7, 0.7});
-		debug_lines_color_data.push_back({ 0.7, 0.7, 0.7 });
-	}
-
-	for (int i = -20; i < 21; i++)
-	{
-		debug_lines_position_data.push_back({ -10, 0.5 * i, -0.1 });
-		debug_lines_position_data.push_back({ 10, 0.5 * i, -0.1 });
-
-		debug_lines_color_data.push_back({ 0.7, 0.7, 0.7 });
-		debug_lines_color_data.push_back({ 0.7, 0.7, 0.7 });
-	}
-
-
-	debug_lines_position_buffer_.LoadData(debug_lines_position_data.data(), debug_lines_position_data.size() * sizeof(glm::vec3));
-	debug_lines_color_buffer_.LoadData(debug_lines_color_data.data(), debug_lines_color_data.size() * sizeof(glm::vec3));
 
 	model_scene_.UpdateData();
 	ui_scene_.UpdateData();
@@ -283,15 +240,31 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 		{
 			RenderModelCategory::kViewport,
 			render_setup_.GetPipeline(PipelineId::kDebugLines),
-			6 + 41 * 4,
+			debug_geometry_.coords_lines_vertex_cnt,
 			{}
 		}
 	);
 
-	render_models.back().vertex_buffers.push_back(debug_lines_position_buffer_.GetHandle());
-	render_models.back().vertex_buffers.push_back(debug_lines_color_buffer_.GetHandle());
+	render_models.back().vertex_buffers.push_back(debug_geometry_.coords_lines_position_buffer_.GetHandle());
+	render_models.back().vertex_buffers.push_back(debug_geometry_.coords_lines_color_buffer_.GetHandle());
 	render_models.back().vertex_buffers_offsets.push_back(0);
 	render_models.back().vertex_buffers_offsets.push_back(0);
+
+
+	render_models.push_back(RenderModel
+		{
+			RenderModelCategory::kViewport,
+			render_setup_.GetPipeline(PipelineId::kDebugLines),
+			debug_geometry_.debug_lines_vertex_cnt,
+			{}
+		}
+	);
+
+	render_models.back().vertex_buffers.push_back(debug_geometry_.debug_lines_position_buffer_.GetHandle());
+	render_models.back().vertex_buffers.push_back(debug_geometry_.debug_lines_color_buffer_.GetHandle());
+	render_models.back().vertex_buffers_offsets.push_back(0);
+	render_models.back().vertex_buffers_offsets.push_back(0);
+
 
 	auto scene_descriptor_sets = model_scene_.GetRenderNode().GetDescriptorSets();
 	scene_descriptor_sets.insert(ui_scene_.GetDescriptorSets().begin(), ui_scene_.GetDescriptorSets().end());
@@ -321,4 +294,87 @@ render::FrameHandler::~FrameHandler()
 		vkDestroyFence(device_cfg_.logical_device, cmd_buffer_fence_, nullptr);
 		vkDestroySemaphore(device_cfg_.logical_device, render_finished_semaphore_, nullptr);
 	}
+}
+
+std::pair<render::DebugGeometry::Point, render::DebugGeometry::Point> render::DebugGeometry::Point::operator>>(const Point& rhs)
+{
+	return { *this, rhs };
+}
+
+render::DebugGeometry::DebugGeometry(const DeviceConfiguration& device_cfg):
+	coords_lines_position_buffer_(device_cfg, sizeof(glm::vec3) * 256),
+	coords_lines_color_buffer_(device_cfg, sizeof(glm::vec3) * 256),
+	coords_lines_vertex_cnt(0),
+	debug_lines_position_buffer_(device_cfg, sizeof(glm::vec3) * 256),
+	debug_lines_color_buffer_(device_cfg, sizeof(glm::vec3) * 256),
+	debug_lines_vertex_cnt(0)
+{
+
+	std::vector<glm::vec3> coords_lines_position_data = {
+	{0, 0, 0},
+	{1, 0, 0},
+
+	{0, 0, 0},
+	{0, 1, 0},
+
+	{0, 0, 0},
+	{0, 0, 1},
+	};
+
+	std::vector<glm::vec3> coords_lines_color_data = {
+		{1, 0, 0},
+		{1, 0, 0},
+
+		{0, 1, 0},
+		{0, 1, 0},
+
+		{0, 0, 1},
+		{0, 0, 1},
+	};
+
+	for (int i = -20; i < 21; i++)
+	{
+		coords_lines_position_data.push_back({ 0.5 * i, -10, -0.1 });
+		coords_lines_position_data.push_back({ 0.5 * i, 10, -0.1 });
+
+		coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+		coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+	}
+
+	for (int i = -20; i < 21; i++)
+	{
+		coords_lines_position_data.push_back({ -10, 0.5 * i, -0.1 });
+		coords_lines_position_data.push_back({ 10, 0.5 * i, -0.1 });
+
+		coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+		coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+	}
+
+
+	coords_lines_position_buffer_.LoadData(coords_lines_position_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
+	coords_lines_color_buffer_.LoadData(coords_lines_color_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
+
+	coords_lines_vertex_cnt = coords_lines_position_data.size();
+}
+
+void render::DebugGeometry::SetDebugLines(const std::vector<Line>& lines)
+{
+	std::vector<glm::vec3> debug_lines_position_data;
+	debug_lines_position_data.reserve(2 * lines.size());
+	std::vector<glm::vec3> debug_lines_color_data;
+	debug_lines_color_data.reserve(2 * lines.size());
+
+	for (auto&& line : lines)
+	{
+		debug_lines_position_data.push_back(line.first.position);
+		debug_lines_position_data.push_back(line.second.position);
+
+		debug_lines_color_data.push_back(line.first.color);
+		debug_lines_color_data.push_back(line.second.color);
+	}
+	
+	debug_lines_position_buffer_.LoadData(debug_lines_position_data.data(), debug_lines_position_data.size() * sizeof(glm::vec3));
+	debug_lines_color_buffer_.LoadData(debug_lines_color_data.data(), debug_lines_color_data.size() * sizeof(glm::vec3));
+
+	debug_lines_vertex_cnt = debug_lines_position_data.size();
 }

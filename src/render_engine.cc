@@ -201,6 +201,8 @@ namespace render
 			device_cfg_.transfer_cmd_pool = transfer_command_pool_ptr_.get();
 
 			vk_init_success_ = true;
+
+			debug_geometry_ = std::make_unique<DebugGeometry>(device_cfg_);
 		}
 
 
@@ -282,9 +284,10 @@ namespace render
 				frames.clear();
 				frames.reserve(kFramesCount);
 
+
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_));
+					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_, *debug_geometry_));
 				}
 
 
@@ -319,6 +322,22 @@ namespace render
 		}
 
 		Scene& GetScene() { return scene_; }
+
+		void SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>> lines)
+		{
+			std::vector<DebugGeometry::Line> debug_lines;
+
+			for (auto&& line : lines)
+			{
+				debug_lines.push_back({
+					{line.first.position,line.first.color},
+					{line.second.position,line.second.color}
+					}
+				);
+			}
+
+			debug_geometry_->SetDebugLines(debug_lines);
+		}
 
 		~RenderEngineImpl()
 		{
@@ -698,6 +717,8 @@ namespace render
 
 		Scene scene_;
 
+		std::unique_ptr<DebugGeometry> debug_geometry_;
+
 		//VkSemaphore image_available_semaphore_;
 		//VkSemaphore render_finished_semaphore_;
 };
@@ -705,6 +726,11 @@ namespace render
 	RenderEngine::RenderEngine(InitParam param)
 	{
 		impl_ = std::make_unique<RenderEngineImpl>(param);
+	}
+
+	void RenderEngine::SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>>& lines)
+	{
+		impl_->SetDebugLines(lines);
 	}
 
 	RenderEngine::~RenderEngine() = default;

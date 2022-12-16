@@ -283,7 +283,7 @@ bool render::Image::InitHandle() const
 
 	if (pixels_data_)
 	{
-		Buffer staging_buffer(device_cfg_, pixels_data_->size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		StagingBuffer staging_buffer(device_cfg_, pixels_data_->size());
 		staging_buffer.LoadData(pixels_data_->data(), pixels_data_->size());
 		pixels_data_.reset();
 

@@ -16,12 +16,41 @@
 namespace render
 {
 
+	class DebugGeometry
+	{
+	public:
+
+		struct Point
+		{
+			glm::vec3 position;
+			glm::vec3 color;
+
+			std::pair<Point, Point> operator>>(const Point&);
+		};
+
+		using Line = std::pair<Point, Point>;
+		
+		DebugGeometry(const DeviceConfiguration& device_cfg);
+
+		void SetDebugLines(const std::vector<Line>& lines);
+
+		GPULocalVertexBuffer coords_lines_position_buffer_;
+		GPULocalVertexBuffer coords_lines_color_buffer_;
+		unsigned int coords_lines_vertex_cnt;
+
+
+		GPULocalVertexBuffer debug_lines_position_buffer_;
+		GPULocalVertexBuffer debug_lines_color_buffer_;
+		unsigned int debug_lines_vertex_cnt;
+	};
+
+
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
 		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, 
 			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
-			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene);
+			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene, const DebugGeometry& debug_geometry);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;
@@ -59,10 +88,9 @@ namespace render
 		ModelSceneDescSetHolder model_scene_;
 		RenderGraphHandler render_graph_handler_;
 		UIScene ui_scene_;
-		Buffer viewport_vertex_buffer_;
+		GPULocalVertexBuffer viewport_vertex_buffer_;
 
-		Buffer debug_lines_position_buffer_;
-		Buffer debug_lines_color_buffer_;
+		const DebugGeometry& debug_geometry_;
 	};
 }
 

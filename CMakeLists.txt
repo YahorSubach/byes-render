@@ -28,6 +28,8 @@ if(Vulkan_FOUND)
 			include/render/render_engine.h)
 
 	target_include_directories(render_engine PUBLIC include)
+	target_include_directories(render_engine PUBLIC submodules/glm)
+
 	target_include_directories(render_engine PRIVATE src)
 	target_include_directories(render_engine PRIVATE submodules)
 

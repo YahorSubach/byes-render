@@ -2,10 +2,12 @@
 #define RENDER_ENGINE_RENDER_VKVF_H_
 
 #include <array>
+#include <vector>
 #include <cmath>
 #include <memory>
 #include <windows.h>
 
+#include "glm/vec3.hpp"
 
 
 namespace render
@@ -14,68 +16,68 @@ namespace render
 	using InitParam = HINSTANCE;
 #endif
 
-	struct Vec3
-	{
-		float x;
-		float y;
-		float z;
+	//struct Vec3
+	//{
+	//	float x;
+	//	float y;
+	//	float z;
 
-		Vec3 operator+ (const Vec3& rhs) const
-		{
-			return { x + rhs.x, y + rhs.y , z + rhs.z };
-		}
+	//	Vec3 operator+ (const Vec3& rhs) const
+	//	{
+	//		return { x + rhs.x, y + rhs.y , z + rhs.z };
+	//	}
 
-		Vec3 operator- (const Vec3& rhs) const
-		{
-			return { x - rhs.x, y - rhs.y , z - rhs.z };
-		}
+	//	Vec3 operator- (const Vec3& rhs) const
+	//	{
+	//		return { x - rhs.x, y - rhs.y , z - rhs.z };
+	//	}
 
-		Vec3 operator- () const
-		{
-			return { -x, -y, -z };
-		}
+	//	Vec3 operator- () const
+	//	{
+	//		return { -x, -y, -z };
+	//	}
 
-		Vec3& operator+= (const Vec3& rhs)
-		{
-			x += rhs.x;
-			y += rhs.y;
-			z += rhs.z;
-			return *this;
-		}
+	//	Vec3& operator+= (const Vec3& rhs)
+	//	{
+	//		x += rhs.x;
+	//		y += rhs.y;
+	//		z += rhs.z;
+	//		return *this;
+	//	}
 
-		Vec3& operator-= (const Vec3& rhs)
-		{
-			x -= rhs.x;
-			y -= rhs.y;
-			z -= rhs.z;
-			return *this;
-		}
+	//	Vec3& operator-= (const Vec3& rhs)
+	//	{
+	//		x -= rhs.x;
+	//		y -= rhs.y;
+	//		z -= rhs.z;
+	//		return *this;
+	//	}
 
-		float length()
-		{
-			return std::sqrt(x * x + y * y + z * z);
-		}
+	//	float length()
+	//	{
+	//		return std::sqrt(x * x + y * y + z * z);
+	//	}
 
-		friend Vec3 operator*(float a, const Vec3& vec)
-		{
-			return { a * vec.x, a * vec.y, a * vec.z };
-		}
+	//	friend Vec3 operator*(float a, const Vec3& vec)
+	//	{
+	//		return { a * vec.x, a * vec.y, a * vec.z };
+	//	}
 
-		Vec3& operator*=(float a)
-		{
-			x *= a;
-			y *= a;
-			z *= a;
-			return *this;
-		}
+	//	Vec3& operator*=(float a)
+	//	{
+	//		x *= a;
+	//		y *= a;
+	//		z *= a;
+	//		return *this;
+	//	}
 
-	};
+	//};
 
 	struct Camera
 	{
-		Vec3 position;
-		Vec3 orientation;
-		Vec3 up;
+		glm::vec3 position;
+		glm::vec3 orientation;
+		glm::vec3 up;
 	};
 
 	struct Scene
@@ -99,6 +101,9 @@ namespace render
 		std::pair<int, int> mouse_delta;
 	};
 
+
+
+
 	class RenderEngine
 	{
 	public:
@@ -110,6 +115,14 @@ namespace render
 		Scene& GetCurrentScene();
 
 		const InputState& GetInputState();
+
+		struct DebugPoint
+		{
+			glm::vec3 position;
+			glm::vec3 color;
+		};
+
+		void SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>>& lines);
 
 		~RenderEngine();
 

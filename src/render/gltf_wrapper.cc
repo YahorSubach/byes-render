@@ -23,7 +23,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const st
 
 		for (auto&& buffer : gltf_model_.buffers)
 		{
-			buffers_.push_back(GPULocalBuffer(device_cfg, gltf_model_.buffers[0].data.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
+			buffers_.push_back(GPULocalBuffer(device_cfg, gltf_model_.buffers[0].data.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
 			buffers_.back().LoadData(buffer.data.data(), buffer.data.size());
 		}
 

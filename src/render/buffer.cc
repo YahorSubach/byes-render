@@ -37,15 +37,7 @@ VkDeviceMemory render::Buffer::GetBufferMemory()
     return memory_->GetMemoryHandle();
 }
 
-void render::Buffer::LoadData(const void* data, size_t size)
-{
-	//TODO add checking buffer type
 
-    void* mapped_data;
-    vkMapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
-    memcpy(mapped_data, data, static_cast<size_t>(size));
-    vkUnmapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle());
-}
 
 render::Buffer::~Buffer()
 {
@@ -57,7 +49,7 @@ render::Buffer::~Buffer()
 
 void render::GPULocalBuffer::LoadData(const void* data, size_t size)
 {
-    Buffer staging_buffer(device_cfg_, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {});
+    StagingBuffer staging_buffer(device_cfg_, size);
 
     staging_buffer.LoadData(data, size);
 
@@ -70,4 +62,20 @@ void render::GPULocalBuffer::LoadData(const void* data, size_t size)
         vkCmdCopyBuffer(command_buffer, staging_buffer.GetHandle(), GetHandle(), 1, &copy_region);
 
         });
+}
+
+void render::StagingBuffer::LoadData(const void* data, size_t size)
+{
+    void* mapped_data;
+    vkMapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
+    memcpy(mapped_data, data, static_cast<size_t>(size));
+    vkUnmapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle());
+}
+
+void render::UniformBuffer::LoadData(const void* data, size_t size)
+{
+    void* mapped_data;
+    vkMapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
+    memcpy(mapped_data, data, static_cast<size_t>(size));
+    vkUnmapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle());
 }

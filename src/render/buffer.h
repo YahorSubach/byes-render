@@ -31,10 +31,10 @@ namespace render
 
 		VkDeviceMemory GetBufferMemory();
 
-		virtual void LoadData(const void* data, size_t size);
+		//virtual void LoadData(const void* data, size_t size) = 0;
 
 		virtual ~Buffer() override;
-	private:
+	protected:
 		std::unique_ptr<Memory> memory_;
 		uint64_t size_;
 	};
@@ -56,13 +56,29 @@ namespace render
 		uint64_t count;
 	};
 
+	class StagingBuffer : public Buffer
+	{
+	public:
+		StagingBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage = 0, const std::vector<uint32_t>& queue_famaly_indices = {}) :
+			Buffer(device_cfg, size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_famaly_indices) {}
+
+		virtual void LoadData(const void* data, size_t size);
+	};
+
 	class GPULocalBuffer : public Buffer
 	{
 	public:
-		GPULocalBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, const std::vector<uint32_t>& queue_famaly_indices) :
-			Buffer(device_cfg, size, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_famaly_indices) {}
+		GPULocalBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage = 0, const std::vector<uint32_t>& queue_famaly_indices = {}) :
+			Buffer(device_cfg, size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_famaly_indices) {}
 
-		virtual void LoadData(const void* data, size_t size) override;
+		virtual void LoadData(const void* data, size_t size);
+	};
+
+	class GPULocalVertexBuffer : public GPULocalBuffer
+	{
+	public:
+		GPULocalVertexBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size) :
+			GPULocalBuffer(device_cfg, size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) {}
 	};
 
 	class UniformBuffer : public Buffer
@@ -72,6 +88,8 @@ namespace render
 
 		UniformBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size) :
 			Buffer(device_cfg, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {}) {}
+
+		virtual void LoadData(const void* data, size_t size);
 
 		UniformBuffer(const UniformBuffer&) = delete;
 		UniformBuffer(UniformBuffer&&) = default;

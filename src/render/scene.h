@@ -119,8 +119,6 @@ namespace render
 
 		Image env_image_;
 
-		
-
 		Sampler diffuse_sampler_;
 		Sampler nearest_sampler_;
 		Sampler shadow_sampler_;

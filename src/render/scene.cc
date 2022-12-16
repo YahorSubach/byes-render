@@ -124,13 +124,6 @@ const std::vector<render::ModelDescSetHolder>& render::ModelSceneDescSetHolder::
 	return models_;
 }
 
-//void render::ModelSceneDescSetHolder::UpdateCameraData(glm::vec3 pos, glm::vec3 look, float aspect)
-//{
-//	camera_data_.position = glm::vec4(pos, 1.0f);
-//	glm::mat4 proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 200.0f);
-//	proj[1][1] *= -1;
-//	camera_data_.proj_view_mat = proj * glm::lookAt(pos, pos + look, glm::vec3(0.0f, 0.0f, 1.0f));
-//}
 
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
@@ -229,7 +222,7 @@ void render::ModelSceneDescSetHolder::AttachDescriptorSets(DescriptorSetsManager
 
 render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): 
 	DescriptorSetHolder(device_cfg), ui_(ui), screen_panel_(0,0,ui.GetExtent().width, ui.GetExtent().height), 
-	text_block_(ui, 20, 20, 30, U"Привет, теперь текст на русском!")
+	text_block_(ui, 20, 20, 30, U"!")
 {
 	ui_polygones_.reserve(64);
 	ui_polygones_geom_.reserve(64);
