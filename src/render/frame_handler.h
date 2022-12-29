@@ -32,6 +32,8 @@ namespace render
 		
 		DebugGeometry(const DeviceConfiguration& device_cfg);
 
+		void Update();
+
 		void SetDebugLines(const std::vector<Line>& lines);
 
 		GPULocalVertexBuffer coords_lines_position_buffer_;
@@ -42,6 +44,12 @@ namespace render
 		GPULocalVertexBuffer debug_lines_position_buffer_;
 		GPULocalVertexBuffer debug_lines_color_buffer_;
 		unsigned int debug_lines_vertex_cnt;
+
+		std::atomic_bool ready_to_write;
+		std::atomic_bool ready_to_read;
+
+		std::vector<glm::vec3> debug_lines_position_data_;
+		std::vector<glm::vec3> debug_lines_color_data_;
 	};
 
 
@@ -50,7 +58,7 @@ namespace render
 	public:
 		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, 
 			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
-			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene, const DebugGeometry& debug_geometry);
+			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene, DebugGeometry& debug_geometry);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;
@@ -90,7 +98,7 @@ namespace render
 		UIScene ui_scene_;
 		GPULocalVertexBuffer viewport_vertex_buffer_;
 
-		const DebugGeometry& debug_geometry_;
+		DebugGeometry& debug_geometry_;
 	};
 }
 

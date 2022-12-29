@@ -15,7 +15,7 @@
 
 render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, 
 	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, 
-	const ui::UI& ui, const Scene& scene, const DebugGeometry& debug_geometry) :
+	const ui::UI& ui, const Scene& scene, DebugGeometry& debug_geometry) :
 	RenderObjBase(device_cfg), swapchain_(swapchain.GetHandle()), graphics_queue_(device_cfg.graphics_queue),
 	command_buffer_(device_cfg.graphics_cmd_pool->GetCommandBuffer()),
 	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
@@ -235,6 +235,7 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 	render_models.back().vertex_buffers.push_back(viewport_vertex_buffer_.GetHandle());
 	render_models.back().vertex_buffers_offsets.push_back(0);
 
+	debug_geometry_.Update();
 
 	render_models.push_back(RenderModel
 		{
@@ -309,72 +310,92 @@ render::DebugGeometry::DebugGeometry(const DeviceConfiguration& device_cfg):
 	debug_lines_color_buffer_(device_cfg, sizeof(glm::vec3) * 256),
 	debug_lines_vertex_cnt(0)
 {
+	ready_to_write.store(true);
+	ready_to_read.store(false);
+}
 
-	std::vector<glm::vec3> coords_lines_position_data = {
-	{0, 0, 0},
-	{1, 0, 0},
-
-	{0, 0, 0},
-	{0, 1, 0},
-
-	{0, 0, 0},
-	{0, 0, 1},
-	};
-
-	std::vector<glm::vec3> coords_lines_color_data = {
-		{1, 0, 0},
+void render::DebugGeometry::Update()
+{
+	if (coords_lines_vertex_cnt == 0)
+	{
+		std::vector<glm::vec3> coords_lines_position_data = {
+		{0, 0, 0},
 		{1, 0, 0},
 
+		{0, 0, 0},
 		{0, 1, 0},
-		{0, 1, 0},
 
+		{0, 0, 0},
 		{0, 0, 1},
-		{0, 0, 1},
-	};
+		};
 
-	for (int i = -20; i < 21; i++)
-	{
-		coords_lines_position_data.push_back({ 0.5 * i, -10, -0.1 });
-		coords_lines_position_data.push_back({ 0.5 * i, 10, -0.1 });
+		std::vector<glm::vec3> coords_lines_color_data = {
+			{1, 0, 0},
+			{1, 0, 0},
 
-		coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
-		coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+			{0, 1, 0},
+			{0, 1, 0},
+
+			{0, 0, 1},
+			{0, 0, 1},
+		};
+
+		for (int i = -20; i < 21; i++)
+		{
+			coords_lines_position_data.push_back({ 0.5 * i, -10, -0.1 });
+			coords_lines_position_data.push_back({ 0.5 * i, 10, -0.1 });
+
+			coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+			coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+		}
+
+		for (int i = -20; i < 21; i++)
+		{
+			coords_lines_position_data.push_back({ -10, 0.5 * i, -0.1 });
+			coords_lines_position_data.push_back({ 10, 0.5 * i, -0.1 });
+
+			coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+			coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+		}
+
+
+		coords_lines_position_buffer_.LoadData(coords_lines_position_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
+		coords_lines_color_buffer_.LoadData(coords_lines_color_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
+
+		coords_lines_vertex_cnt = coords_lines_position_data.size();
 	}
 
-	for (int i = -20; i < 21; i++)
+	if (ready_to_read.load(std::memory_order_acquire))
 	{
-		coords_lines_position_data.push_back({ -10, 0.5 * i, -0.1 });
-		coords_lines_position_data.push_back({ 10, 0.5 * i, -0.1 });
+		debug_lines_position_buffer_.LoadData(debug_lines_position_data_.data(), debug_lines_position_data_.size() * sizeof(glm::vec3));
+		debug_lines_color_buffer_.LoadData(debug_lines_color_data_.data(), debug_lines_color_data_.size() * sizeof(glm::vec3));
 
-		coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
-		coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+		debug_lines_vertex_cnt = debug_lines_position_data_.size();
+
+		ready_to_read.store(false, std::memory_order_relaxed);
+		ready_to_write.store(true, std::memory_order_release);
 	}
-
-
-	coords_lines_position_buffer_.LoadData(coords_lines_position_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
-	coords_lines_color_buffer_.LoadData(coords_lines_color_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
-
-	coords_lines_vertex_cnt = coords_lines_position_data.size();
 }
 
 void render::DebugGeometry::SetDebugLines(const std::vector<Line>& lines)
 {
-	std::vector<glm::vec3> debug_lines_position_data;
-	debug_lines_position_data.reserve(2 * lines.size());
-	std::vector<glm::vec3> debug_lines_color_data;
-	debug_lines_color_data.reserve(2 * lines.size());
 
-	for (auto&& line : lines)
+	if (ready_to_write.load(std::memory_order_acquire))
 	{
-		debug_lines_position_data.push_back(line.first.position);
-		debug_lines_position_data.push_back(line.second.position);
 
-		debug_lines_color_data.push_back(line.first.color);
-		debug_lines_color_data.push_back(line.second.color);
+		debug_lines_position_data_.resize(0);
+		debug_lines_color_data_.resize(0);
+
+		for (auto&& line : lines)
+		{
+			debug_lines_position_data_.push_back(line.first.position);
+			debug_lines_position_data_.push_back(line.second.position);
+
+			debug_lines_color_data_.push_back(line.first.color);
+			debug_lines_color_data_.push_back(line.second.color);
+		}
+
+		ready_to_write.store(false, std::memory_order_relaxed);
+		ready_to_read.store(true, std::memory_order_release);
 	}
-	
-	debug_lines_position_buffer_.LoadData(debug_lines_position_data.data(), debug_lines_position_data.size() * sizeof(glm::vec3));
-	debug_lines_color_buffer_.LoadData(debug_lines_color_data.data(), debug_lines_color_data.size() * sizeof(glm::vec3));
-
-	debug_lines_vertex_cnt = debug_lines_position_data.size();
 }
