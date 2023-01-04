@@ -55,7 +55,7 @@ namespace render
 	class LazyRenderObj : public RenderObjBase<HandleType>
 	{
 	public:
-		LazyRenderObj(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg) {}
+		LazyRenderObj(const DeviceConfiguration& device_cfg) : RenderObjBase<HandleType>(device_cfg) {}
 
 		LazyRenderObj(const LazyRenderObj&) = delete;
 		LazyRenderObj(LazyRenderObj&& rhs) = default;
@@ -65,7 +65,7 @@ namespace render
 
 		[[nodiscard]] bool Construct() const
 		{
-			assert(handle_ == VK_NULL_HANDLE);
+			assert(RenderObjBase<HandleType>::handle_ == VK_NULL_HANDLE);
 
 			bool constructed_ = InitHandle();
 			return constructed_;
@@ -73,12 +73,12 @@ namespace render
 
 		virtual HandleType GetHandle() const 
 		{
-			if (handle_ == VK_NULL_HANDLE)
+			if (RenderObjBase<HandleType>::handle_ == VK_NULL_HANDLE)
 			{
 				assert(Construct());
 			}
 
-			return handle_; 
+			return RenderObjBase<HandleType>::handle_;
 		}
 
 	protected:

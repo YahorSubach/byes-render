@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.9)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -29,6 +29,7 @@ if(Vulkan_FOUND)
 
 	target_include_directories(render_engine PUBLIC include)
 	target_include_directories(render_engine PUBLIC submodules/glm)
+	target_include_directories(render_engine PUBLIC submodules/tinygltf)
 
 	target_include_directories(render_engine PRIVATE src)
 	target_include_directories(render_engine PRIVATE submodules)

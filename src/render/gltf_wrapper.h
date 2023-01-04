@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <span>
 #include <optional>
 
 #include "tinygltf/tiny_gltf.h"
@@ -20,7 +21,7 @@ namespace render
 	{
 	public:
 
-		GLTFWrapper(const DeviceConfiguration& device_cfg, const std::string& path);
+		GLTFWrapper(const DeviceConfiguration& device_cfg, const tinygltf::Model& gltf_model);
 		GLTFWrapper(const GLTFWrapper&) = delete;
 		GLTFWrapper(GLTFWrapper&&) = default;
 
@@ -33,13 +34,13 @@ namespace render
 	private:
 
 		int GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, const std::string& name) const;
-		BufferAccessor BuildBufferAccessor(int acc_ind) const;
+		BufferAccessor BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const;
 		
 		template<typename ElementType>
-		std::vector<ElementType> BuildVectorFromAccessorIndex(int acc_ind) const
+		static std::span<const ElementType> BuildVectorFromAccessorIndex(const tinygltf::Model& gltf_model, int acc_ind)
 		{
-			auto&& buffer_acc = gltf_model_.accessors[acc_ind];
-			auto&& buffer_view = gltf_model_.bufferViews[buffer_acc.bufferView];
+			auto&& buffer_acc = gltf_model.accessors[acc_ind];
+			auto&& buffer_view = gltf_model.bufferViews[buffer_acc.bufferView];
 
 			auto overriden_stride = buffer_view.byteStride;
 			auto element_size = tinygltf::GetNumComponentsInType(buffer_acc.type) * tinygltf::GetComponentSizeInBytes(buffer_acc.componentType);
@@ -51,16 +52,13 @@ namespace render
 			auto offset = buffer_view.byteOffset + buffer_acc.byteOffset;
 
 
-			const ElementType* begin = reinterpret_cast<const ElementType*>(gltf_model_.buffers[buffer_view.buffer].data.data() + offset);
+			const ElementType* begin = reinterpret_cast<const ElementType*>(gltf_model.buffers[buffer_view.buffer].data.data() + offset);
 			const ElementType* end = begin + (buffer_acc.count);
 
-			std::vector<ElementType> result(begin, end);
+			std::span<const ElementType> result(begin, end);
 
 			return result;
 		}
-
-
-		tinygltf::Model gltf_model_;
 
 		std::vector<GPULocalBuffer> buffers_;
 		std::vector<Image> images_;

@@ -103,7 +103,7 @@ namespace render
 
 		void UpdateDataInternal()
 		{
-			BindingDesc::Data new_data;
+			typename BindingDesc::Data new_data;
 			FillData(new_data);
 
 			data_.Update(new_data);
@@ -178,9 +178,9 @@ namespace render
 
 		void AttachDescriptorSetsInternal(DescriptorSetsManager& manager)
 		{
-			VkDescriptorSet desc_set = DescriptorSetBindingsCollection<T1>::AttachDescriptorSetsInternal(device_cfg_, manager);
+			VkDescriptorSet desc_set = DescriptorSetBindingsCollection<T1>::AttachDescriptorSetsInternal(DescriptorSetHolderInternal<Ts...>::device_cfg_, manager);
 
-			descriptor_sets_[T1] = desc_set;
+			DescriptorSetHolderInternal<Ts...>::descriptor_sets_[T1] = desc_set;
 			
 			DescriptorSetHolderInternal<Ts...>::AttachDescriptorSetsInternal(manager);
 		}
@@ -218,18 +218,18 @@ namespace render
 	{
 	public:
 
-		DescriptorSetHolder(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal(device_cfg) {}
+		DescriptorSetHolder(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>(device_cfg) {}
 
 	//protected:
 
 		void UpdateData()
 		{
-			DescriptorSetHolderInternal::UpdateDataInternal();
+			DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>::UpdateDataInternal();
 		}
 
 		void AttachDescriptorSets(DescriptorSetsManager& manager)
 		{
-			DescriptorSetHolderInternal::AttachDescriptorSetsInternal(manager);
+			DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>::AttachDescriptorSetsInternal(manager);
 		}
 	};
 }
