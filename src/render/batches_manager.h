@@ -39,6 +39,7 @@ namespace render
 		const ImageView& GetEnvImageView() const;
 
 		void Update();
+		void Add(const tinygltf::Model& model);
 
 	private:
 

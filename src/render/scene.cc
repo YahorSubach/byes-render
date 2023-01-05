@@ -100,12 +100,12 @@ render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfigurati
 
 {
 
-	models_.reserve(batch_manager.GetMeshes().size());
+	model_descriptor_sets_holders_.reserve(batch_manager.GetMeshes().size());
 
 	for (auto&& mesh : batch_manager.GetMeshes())
 	{
-		models_.push_back(ModelDescSetHolder(device_cfg, mesh));
-		children_nodes_.push_back(models_.back().GetRenderNode());
+		model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg, mesh));
+		children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
 	}
 
 	light_data_.near_plane = 0.1f;
@@ -121,7 +121,7 @@ render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfigurati
 
 const std::vector<render::ModelDescSetHolder>& render::ModelSceneDescSetHolder::GetModels() const
 {
-	return models_;
+	return model_descriptor_sets_holders_;
 }
 
 
@@ -197,7 +197,7 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 render::SceneRenderNode render::ModelSceneDescSetHolder::GetRenderNode()
 {
 	children_nodes_.clear();
-	for (auto&& poly : models_)
+	for (auto&& poly : model_descriptor_sets_holders_)
 		children_nodes_.push_back(poly.GetRenderNode());
 	return SceneRenderNode(*this, children_nodes_);
 }
@@ -205,7 +205,7 @@ render::SceneRenderNode render::ModelSceneDescSetHolder::GetRenderNode()
 void render::ModelSceneDescSetHolder::UpdateData()
 {
 	DescriptorSetHolder::UpdateData();
-	for (auto&& child_model : models_)
+	for (auto&& child_model : model_descriptor_sets_holders_)
 	{
 		child_model.UpdateData();
 	}
@@ -214,10 +214,16 @@ void render::ModelSceneDescSetHolder::UpdateData()
 void render::ModelSceneDescSetHolder::AttachDescriptorSets(DescriptorSetsManager& manager)
 {
 	DescriptorSetHolder::AttachDescriptorSets(manager);
-	for (auto&& child_model : models_)
+	for (auto&& child_model : model_descriptor_sets_holders_)
 	{
 		child_model.AttachDescriptorSets(manager);
 	}
+}
+
+void render::ModelSceneDescSetHolder::AddModel(const render::Mesh& model)
+{
+	model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg_, model));
+	children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
 }
 
 render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): 

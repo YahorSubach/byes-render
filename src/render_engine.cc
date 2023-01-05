@@ -40,6 +40,8 @@
 
 #include "render/ui/ui.h"
 
+#include "sync_util.h"
+
 namespace render
 {
 
@@ -82,7 +84,7 @@ namespace render
 		RenderEngineImpl(const RenderEngineImpl&) = delete;
 		RenderEngineImpl& operator=(const RenderEngineImpl&) = delete;
 
-		RenderEngineImpl(InitParam param)
+		RenderEngineImpl(InitParam param) : external_command_queue_(32)
 		{
 			vk_init_success_ = false;
 
@@ -313,6 +315,18 @@ namespace render
 					}
 
 					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], swapchain.GetImage(image_index), image_index);
+
+					if (external_command_queue_.Size() > 0)
+					{
+						LoadCommand command = external_command_queue_.Pop();
+						batches_manager.Add(*command.model);
+
+						for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
+						{
+							frames[frame_ind].AddModel(batches_manager.GetMeshes().back().get());
+						}
+
+					}
 				}
 
 				vkDeviceWaitIdle(device_cfg_.logical_device);
@@ -343,6 +357,8 @@ namespace render
 		{
 
 		}
+
+		byes::sync_util::ConcQueue1P1C<LoadCommand> external_command_queue_;
 
 	private:
 
@@ -731,6 +747,11 @@ namespace render
 	void RenderEngine::SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>>& lines)
 	{
 		impl_->SetDebugLines(lines);
+	}
+
+	void RenderEngine::QueueCommand(const RenderCommand& render_command)
+	{
+		impl_->external_command_queue_.Push(std::get<LoadCommand>(render_command));
 	}
 
 	RenderEngine::~RenderEngine() = default;

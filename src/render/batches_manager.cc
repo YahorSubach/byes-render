@@ -306,6 +306,19 @@ void render::BatchesManager::Update()
 	}
 }
 
+void render::BatchesManager::Add(const tinygltf::Model& model)
+{
+	gltf_wrappers_.push_back(GLTFWrapper(device_cfg_, model));
+
+	auto&& wrapper = gltf_wrappers_.back();
+
+
+	for (auto&& mesh : wrapper.meshes)
+	{
+		meshes_.push_back(mesh);
+	}
+}
+
 glm::mat4 render::Node::GetGlobalTransformMatrix() const
 {
 	if (parent)

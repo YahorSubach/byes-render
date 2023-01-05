@@ -2,76 +2,20 @@
 #define RENDER_ENGINE_RENDER_VKVF_H_
 
 #include <array>
+#include <variant>
 #include <vector>
 #include <cmath>
 #include <memory>
 #include <windows.h>
 
 #include "glm/vec3.hpp"
-
+#include "tiny_gltf.h"
 
 namespace render
 {
 #ifdef WIN32
 	using InitParam = HINSTANCE;
 #endif
-
-	//struct Vec3
-	//{
-	//	float x;
-	//	float y;
-	//	float z;
-
-	//	Vec3 operator+ (const Vec3& rhs) const
-	//	{
-	//		return { x + rhs.x, y + rhs.y , z + rhs.z };
-	//	}
-
-	//	Vec3 operator- (const Vec3& rhs) const
-	//	{
-	//		return { x - rhs.x, y - rhs.y , z - rhs.z };
-	//	}
-
-	//	Vec3 operator- () const
-	//	{
-	//		return { -x, -y, -z };
-	//	}
-
-	//	Vec3& operator+= (const Vec3& rhs)
-	//	{
-	//		x += rhs.x;
-	//		y += rhs.y;
-	//		z += rhs.z;
-	//		return *this;
-	//	}
-
-	//	Vec3& operator-= (const Vec3& rhs)
-	//	{
-	//		x -= rhs.x;
-	//		y -= rhs.y;
-	//		z -= rhs.z;
-	//		return *this;
-	//	}
-
-	//	float length()
-	//	{
-	//		return std::sqrt(x * x + y * y + z * z);
-	//	}
-
-	//	friend Vec3 operator*(float a, const Vec3& vec)
-	//	{
-	//		return { a * vec.x, a * vec.y, a * vec.z };
-	//	}
-
-	//	Vec3& operator*=(float a)
-	//	{
-	//		x *= a;
-	//		y *= a;
-	//		z *= a;
-	//		return *this;
-	//	}
-
-	//};
 
 	struct Camera
 	{
@@ -101,7 +45,12 @@ namespace render
 		std::pair<int, int> mouse_delta;
 	};
 
+	struct LoadCommand
+	{
+		std::shared_ptr<tinygltf::Model> model;
+	};
 
+	using RenderCommand = std::variant<LoadCommand>;
 
 
 	class RenderEngine
@@ -123,6 +72,7 @@ namespace render
 		};
 
 		void SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>>& lines);
+		void QueueCommand(const RenderCommand& render_command);
 
 		~RenderEngine();
 

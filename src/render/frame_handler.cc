@@ -52,6 +52,10 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	handle_ = (void*)(1);
 }
 
+void render::FrameHandler::AddModel(const render::Mesh& model)
+{
+	model_scene_.AddModel(model);
+}
 
 bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index)
 {

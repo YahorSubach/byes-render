@@ -102,6 +102,8 @@ namespace render
 
 		void AttachDescriptorSets(DescriptorSetsManager& manager);
 
+		void AddModel(const render::Mesh& model);
+
 		stl_util::NullableRef<const Image> g_albedo_image;
 		stl_util::NullableRef<const Image> g_position_image;
 		stl_util::NullableRef<const Image> g_normal_image;
@@ -111,7 +113,7 @@ namespace render
 
 	private:
 		
-		std::vector<ModelDescSetHolder> models_;
+		std::vector<ModelDescSetHolder> model_descriptor_sets_holders_;
 		std::vector<PrimitivesHolderRenderNode> children_nodes_;
 
 		DescriptorSet<DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data camera_data_;
