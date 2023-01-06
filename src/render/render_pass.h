@@ -24,7 +24,7 @@ namespace render
 		//	kPresent
 		//};
 
-		//using SwapchainInteractionFlags = stl_util::EnumFlags<SwapchainInteraction>;
+		//using SwapchainInteractionFlags = util::EnumFlags<SwapchainInteraction>;
 
 		struct Attachment
 		{

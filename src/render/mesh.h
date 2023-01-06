@@ -14,6 +14,7 @@
 #include "buffer.h"
 #include "image.h"
 #include "stl_util.h"
+#include "render/vertex_buffer.h"
 
 namespace render
 {
@@ -26,9 +27,9 @@ namespace render
 
 	struct Material
 	{
-		stl_util::NullableRef<const Image> albedo;
-		stl_util::NullableRef<const Image> metallic_roughness;
-		stl_util::NullableRef<const Image> normal_map;
+		util::NullableRef<const Image> albedo;
+		util::NullableRef<const Image> metallic_roughness;
+		util::NullableRef<const Image> normal_map;
 
 		uint32_t flags = 0;
 	};
@@ -37,18 +38,9 @@ namespace render
 	{
 		BufferAccessor indices;
 
-		BufferAccessor positions;
-		BufferAccessor normals;
-		BufferAccessor tangents;
-		BufferAccessor tex_coords;
-		BufferAccessor joints;
-		BufferAccessor weights;
+		std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
 
 		Material material;
-
-		std::vector<BufferAccessor> vertex_buffers;
-
-		RenderModelType type = RenderModelType::kStatic;
 	};
 
 	struct Node
@@ -57,29 +49,30 @@ namespace render
 		glm::quat rotation;
 		glm::vec3 scale;
 		
-		glm::mat4 node_matrix;
+		glm::mat4 local_transform;
 		
 		
-		stl_util::NullableRef<Node> parent;
+		util::NullableRef<Node> parent;
 
 		glm::mat4 GetGlobalTransformMatrix() const;
 	};
 
 
 
-	struct Bone
+	struct Joint
 	{
-		Node& node;
-
+		Node node;
 		glm::mat4 inverse_bind_matrix;
+	};
+
+	struct Skin
+	{
+		std::vector<Joint> joints;
 	};
 
 	struct Mesh
 	{
-		Node& node;
-
-		std::vector<Bone> joints;
-
+		//std::vector<Bone> joints;
 		std::vector<Primitive> primitives;
 	};
 

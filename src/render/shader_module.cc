@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "vertex_buffer.h"
+
 render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const std::string& shader_path, const std::array<DescriptorSetLayout, kDescriptorSetTypesCount>& descriptor_sets_layouts) : RenderObjBase(device_cfg)
 {
 	std::ifstream file("../shaders/" + shader_path + ".spv", std::ios::ate | std::ios::binary);
@@ -250,42 +252,56 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 				{
 					processed_text >> token;
 
-					if (token == "in" && !processed_text.eof())
+					if (token == "in" && !processed_text.eof() && shader_type_ == ShaderType::Vertex)
 					{
 						processed_text >> token;
 						std::string type = token;
 						std::string component;
+						std::string buffer_type_token;
+
+						if (!processed_text.eof())
+						{
+							processed_text >> token;
+							buffer_type_token = token;
+							std::transform(buffer_type_token.begin(), buffer_type_token.end(), buffer_type_token.begin(), ::toupper);
+						}
+
 						if (!processed_text.eof())
 						{
 							processed_text >> token;
 							component = token;
 						}
 
+						auto&& vertex_buffer_names_to_types = GetVertexBufferNamesToTypes();
+
+						assert(vertex_buffer_names_to_types.count(buffer_type_token) > 0);
+
+						VertexBufferType buffer_type = vertex_buffer_names_to_types.at(buffer_type_token);
 
 						if (type == "float")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 1, { {location, VertexBindingAttributeDesc{VK_FORMAT_R32_SFLOAT, 0} } } });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 1, { {location, VertexBindingAttributeDesc{VK_FORMAT_R32_SFLOAT, 0, buffer_type} } } });
 						else
 						if (type == "vec2")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 2, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32_SFLOAT, 0}}} });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 2, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32_SFLOAT, 0, buffer_type}}} });
 						else
 						if (type == "vec3")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 3, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32_SFLOAT, 0}}} });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 3, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32_SFLOAT, 0, buffer_type}}} });
 						else
 						if (type == "vec4")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_SFLOAT, 0}}} });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(float) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_SFLOAT, 0, buffer_type}}} });
 						else
 						if (type == "uvec2")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 2, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32_UINT, 0}}} });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 2, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32_UINT, 0, buffer_type}}} });
 						else
 						if (type == "uvec3")
-							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 3, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32_UINT, 0}}} });
+							input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 3, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32_UINT, 0, buffer_type}}} });
 						else
 						if (type == "uvec4")
 						{
 							if(component == "byte")
-								input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint8_t) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R8G8B8A8_UINT, 0}}} });
+								input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint8_t) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R8G8B8A8_UINT, 0, buffer_type}}} });
 							else
-								input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_UINT, 0}}} });
+								input_bindings_descs_.emplace(location, VertexBindingDesc{ sizeof(uint32_t) * 4, {{location, VertexBindingAttributeDesc{VK_FORMAT_R32G32B32A32_UINT, 0, buffer_type}}} });
 						}
 						else throw std::runtime_error("Unsupported input type");
 

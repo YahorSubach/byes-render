@@ -18,6 +18,14 @@
 namespace render
 {
 
+	struct Model
+	{
+		Node& node;
+		util::NullableRef<Mesh> mesh;
+		util::NullableRef<Skin> skin;
+	};
+
+
 	class RenderNodeBase
 	{
 	public:
@@ -58,8 +66,8 @@ namespace render
 	{
 	public:
 
-		ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Mesh& mesh);
-		const Mesh& GetMesh() const;
+		ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Model& model);
+		const Model& GetModel() const;
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
@@ -74,8 +82,8 @@ namespace render
 		PrimitivesHolderRenderNode GetRenderNode();
 
 	private:
-		const Mesh& mesh_;
-		Sampler diffuse_sampler_;
+		const Model& model_;
+		std::optional<Sampler> diffuse_sampler_;
 	};
 
 
@@ -83,7 +91,7 @@ namespace render
 	{
 	public:
 
-		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Scene& scene);
+		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const Scene& scene);
 
 		const std::vector<ModelDescSetHolder>& GetModels() const;
 
@@ -102,22 +110,19 @@ namespace render
 
 		void AttachDescriptorSets(DescriptorSetsManager& manager);
 
-		void AddModel(const render::Mesh& model);
+		//void AddModel(const render::Mesh& model);
 
-		stl_util::NullableRef<const Image> g_albedo_image;
-		stl_util::NullableRef<const Image> g_position_image;
-		stl_util::NullableRef<const Image> g_normal_image;
-		stl_util::NullableRef<const Image> g_metal_rough_image;
+		util::NullableRef<const Image> g_albedo_image;
+		util::NullableRef<const Image> g_position_image;
+		util::NullableRef<const Image> g_normal_image;
+		util::NullableRef<const Image> g_metal_rough_image;
 
-		stl_util::NullableRef<const Image> shadowmap_image;
+		util::NullableRef<const Image> shadowmap_image;
 
 	private:
 		
 		std::vector<ModelDescSetHolder> model_descriptor_sets_holders_;
 		std::vector<PrimitivesHolderRenderNode> children_nodes_;
-
-		DescriptorSet<DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data camera_data_;
-		DescriptorSet<DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data light_data_;
 
 		Image env_image_;
 

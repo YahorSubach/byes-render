@@ -21,7 +21,7 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	render_finished_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
 	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-	model_scene_(device_cfg, batches_manager, scene),
+	model_scene_(device_cfg, scene),
 	render_setup_(render_setup),
 	render_graph_handler_(device_cfg, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
 	ui_scene_(device_cfg, ui),
@@ -52,10 +52,10 @@ render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const 
 	handle_ = (void*)(1);
 }
 
-void render::FrameHandler::AddModel(const render::Mesh& model)
-{
-	model_scene_.AddModel(model);
-}
+//void render::FrameHandler::AddModel(const render::Mesh& model)
+//{
+//	model_scene_.AddModel(model);
+//}
 
 bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index)
 {
@@ -194,8 +194,11 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 
 			for (auto&& vertex_buffer : primitive.vertex_buffers)
 			{
-				render_models.back().vertex_buffers.push_back(vertex_buffer.buffer->GetHandle());
-				render_models.back().vertex_buffers_offsets.push_back(vertex_buffer.offset);
+				if (vertex_buffer)
+				{
+					render_models.back().vertex_buffers.push_back(vertex_buffer->buffer->GetHandle());
+					render_models.back().vertex_buffers_offsets.push_back(vertex_buffer->offset);
+				}
 			}
 		}
 	}
@@ -218,8 +221,11 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 
 			for (auto&& vertex_buffer : primitive.vertex_buffers)
 			{
-				render_models.back().vertex_buffers.push_back(vertex_buffer.buffer->GetHandle());
-				render_models.back().vertex_buffers_offsets.push_back(vertex_buffer.offset);
+				if (vertex_buffer)
+				{
+					render_models.back().vertex_buffers.push_back(vertex_buffer->buffer->GetHandle());
+					render_models.back().vertex_buffers_offsets.push_back(vertex_buffer->offset);
+				}
 			}
 		}
 	}

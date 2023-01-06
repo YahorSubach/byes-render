@@ -58,7 +58,7 @@ namespace render
 
 		VkDescriptorImageInfo vk_image_info_;
 
-		stl_util::NullableRef<const Sampler> sampler_;
+		util::NullableRef<const Sampler> sampler_;
 
 	public:
 

@@ -37,13 +37,13 @@ namespace render
 
 		RenderGraph2 render_graph_;
 
-		stl_util::NullableRef<const RenderPass> swapchain_render_pass_;
+		util::NullableRef<const RenderPass> swapchain_render_pass_;
 
 		std::map<PipelineId, GraphicsPipeline> pipelines_;
 
-		stl_util::NullableRef<render::RenderNode> g_build_node;
-		stl_util::NullableRef<render::RenderNode> g_collect_node;
-		stl_util::NullableRef<render::RenderNode> ui_node;
+		util::NullableRef<render::RenderNode> g_build_node;
+		util::NullableRef<render::RenderNode> g_collect_node;
+		util::NullableRef<render::RenderNode> ui_node;
 
 		//std::map<RenderPassId, RenderPass> render_passes_;
 	};

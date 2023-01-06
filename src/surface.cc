@@ -32,7 +32,7 @@ render::Surface::~Surface()
 
 VkSurfaceFormatKHR render::Surface::GetSurfaceFormat(const VkPhysicalDevice& physical_device) const
 {
-	auto formats = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfaceFormatsKHR, physical_device, handle_);
+	auto formats = util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfaceFormatsKHR, physical_device, handle_);
 
 	if (formats.size() == 0)
 		throw std::runtime_error("No surface formats detected. Epic fail:(");
@@ -50,7 +50,7 @@ VkSurfaceFormatKHR render::Surface::GetSurfaceFormat(const VkPhysicalDevice& phy
 
 VkPresentModeKHR render::Surface::GetSurfacePresentMode(const VkPhysicalDevice& physical_device) const
 {
-	auto presentat_modes = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfacePresentModesKHR, physical_device, handle_);
+	auto presentat_modes = util::GetSizeThenAlocThenGetDataPtrPtr(vkGetPhysicalDeviceSurfacePresentModesKHR, physical_device, handle_);
 	
 	for (auto mode : presentat_modes)
 	{

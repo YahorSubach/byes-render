@@ -27,7 +27,7 @@ namespace render
 	};
 
 
-	using RenderModelCategoryFlags = stl_util::EnumFlags<RenderModelCategory>;
+	using RenderModelCategoryFlags = util::enums::Flags<RenderModelCategory>;
 
 	class GraphicsPipeline;
 
@@ -88,7 +88,7 @@ namespace render
 
 			RenderNode& node;
 
-			stl_util::NullableRef<Dependency> depends_on;
+			util::NullableRef<Dependency> depends_on;
 
 			DescriptorSetForwarder operator>>(DescriptorSetType desc_type);
 			Attachment& operator>>(render::RenderNode& node_to_forward);
@@ -211,7 +211,7 @@ namespace render
 	//	struct RenderPassNode
 	//	{
 	//		RenderModelCategoryFlags category_flags;
-	//		stl_util::NullableRef<const Framebuffer> framebuffer;
+	//		util::NullableRef<const Framebuffer> framebuffer;
 	//		std::vector<std::reference_wrapper<const GraphicsPipeline>> pipelines;
 	//	};
 
@@ -222,7 +222,7 @@ namespace render
 	//		struct Dependency
 	//		{
 	//			const RenderBatch& batch;
-	//			stl_util::NullableRef<const Image> image;
+	//			util::NullableRef<const Image> image;
 	//			bool as_samped;
 	//		};
 

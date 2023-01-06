@@ -48,7 +48,7 @@ render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surfac
 
 			if (vkCreateSwapchainKHR(device_cfg_.logical_device, &create_info, nullptr, &handle_) == VK_SUCCESS)
 			{
-				auto image_handles = stl_util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_cfg_.logical_device, handle_);
+				auto image_handles = util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_cfg_.logical_device, handle_);
 
 				images_.reserve(16);
 				image_views_.reserve(16);

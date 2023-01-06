@@ -1,19 +1,18 @@
-#ifndef RENDER_ENGINE_RENDER_STL_UTIL_H_
-#define RENDER_ENGINE_RENDER_STL_UTIL_H_
+#ifndef RENDER_ENGINE_RENDER_util_H_
+#define RENDER_ENGINE_RENDER_util_H_
 
 #include <algorithm>
 #include <any>
 #include <functional>
 #include <optional>
 
-namespace render::stl_util
+namespace render::util
 {
 	struct ContainerCheckResult
 	{
 		std::any result_data;
 		operator bool() { return !result_data.has_value(); }
 	};
-
 
 	template<class SourceContainer, class DestinationContainer, class Checker>
 	ContainerCheckResult All(const SourceContainer& values_to_check, const DestinationContainer& container_to_check_in, const Checker& checker)
@@ -62,7 +61,7 @@ namespace render::stl_util
 	auto GetSizeThenAlocThenGetDataPtrPtr(Function function, StaticArgs ... static_args)
 	{
 		std::function ffunction = function;
-		
+
 		using FunctionType = decltype(ffunction);
 
 		const int nargs = function_traits<FunctionType>::nargs;
@@ -126,53 +125,62 @@ namespace render::stl_util
 	template<typename ReferencedType>
 	NullableRef<ReferencedType> MakeNullableRef(ReferencedType& ref) { return NullableRef<ReferencedType>(ref); }
 
-
-	template<class EnumType, class StorageType = unsigned int>
-	class EnumFlags
+	namespace enums
 	{
-	public:
-		EnumFlags(): value_(0) {}
-		
-		EnumFlags(EnumType value) : value_(0)
-		{
-			Set(value);
-		}
 
-		EnumFlags(std::initializer_list<EnumType> values): value_(0)
+		template<class EnumType, class StorageType = unsigned int>
+		class Flags
 		{
-			for (auto&& value : values)
+		public:
+			Flags() : value_(0) {}
+
+			Flags(EnumType value) : value_(0)
 			{
 				Set(value);
 			}
-		}
 
-		template<typename T1, typename ... Ts>
-		bool Check(T1 first_value, Ts ... values) const
+			Flags(std::initializer_list<EnumType> values) : value_(0)
+			{
+				for (auto&& value : values)
+				{
+					Set(value);
+				}
+			}
+
+			template<typename T1, typename ... Ts>
+			bool Check(T1 first_value, Ts ... values) const
+			{
+				return Check(first_value) && Check(values...);
+			}
+
+			template<>
+			bool Check(EnumType check_value) const
+			{
+				return (value_ & (1 << static_cast<StorageType>(check_value))) != 0;
+			}
+
+			template<typename T1, typename ... Ts>
+			void Set(T1 first_value, Ts ... values)
+			{
+				Set(first_value);
+				Set(values...);
+			}
+
+			template<>
+			void Set(EnumType set_value)
+			{
+				value_ |= (1 << static_cast<StorageType>(set_value));
+			}
+
+		private:
+			StorageType value_;
+		};
+
+		template<class EnumType>
+		EnumType Next(const EnumType& current)
 		{
-			return Check(first_value) && Check(values...);
+			return static_cast<EnumType>(static_cast<int>(current) + 1);
 		}
-
-		template<>
-		bool Check(EnumType check_value) const
-		{
-			return (value_ & (1 << static_cast<StorageType>(check_value))) != 0;
-		}
-
-		template<typename T1, typename ... Ts>
-		void Set(T1 first_value, Ts ... values)
-		{
-			Set(first_value);
-			Set(values...);
-		}
-
-		template<>
-		void Set(EnumType set_value)
-		{
-			value_ |= (1 << static_cast<StorageType>(set_value));
-		}
-
-	private:
-		StorageType value_;
-	};
+	}
 }
-#endif  // RENDER_ENGINE_RENDER_STL_UTIL_H_
+#endif  // RENDER_ENGINE_RENDER_util_H_

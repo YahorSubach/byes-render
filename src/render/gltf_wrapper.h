@@ -14,6 +14,7 @@
 #include "render/buffer.h"
 #include "render/image.h"
 #include "render/image_view.h"
+#include "render/vertex_buffer.h"
 
 namespace render
 {
@@ -28,12 +29,13 @@ namespace render
 
 		std::vector<Node> nodes;
 		std::vector<Mesh> meshes;
+		std::vector<Skin> skins;
 
 		std::map<std::string, Animation> animations;
 		
 	private:
 
-		int GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, const std::string& name) const;
+		int GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index = -1) const;
 		BufferAccessor BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const;
 		
 		template<typename ElementType>

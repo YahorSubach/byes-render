@@ -1,5 +1,5 @@
-#ifndef RENDER_ENGINE_RENDER_VERTEX_BUFFER_H_
-#define RENDER_ENGINE_RENDER_VERTEX_BUFFER_H_
+#ifndef RENDER_ENGINE_RENDER_BUFFER_H_
+#define RENDER_ENGINE_RENDER_BUFFER_H_
 
 #include <vector>
 #include <array>
@@ -44,12 +44,12 @@ namespace render
 		BufferAccessor(const Buffer& buffer, uint32_t stride, uint64_t offset, uint64_t count) :buffer(buffer), stride(stride), offset(offset), count(count) {}
 		//BufferAccessor(const Buffer& buffer) :BufferAccessor(buffer, 0, 0, buffer.GetSize()) {}
 
-		BufferAccessor() :stride(0), offset(0), count(0) {}
+		//BufferAccessor() :stride(0), offset(0), count(0) {}
 
 		template<typename T>
 		BufferAccessor(const Buffer& buffer) : BufferAccessor(buffer, sizeof(T), 0, buffer.GetSize() / sizeof(T)) {}
 
-		stl_util::NullableRef<const Buffer> buffer;
+		util::NullableRef<const Buffer> buffer;
 		uint32_t stride;
 
 		uint64_t offset;
@@ -98,4 +98,4 @@ namespace render
 		UniformBuffer& operator=(UniformBuffer&&) = default;
 	};
 }
-#endif  // RENDER_ENGINE_RENDER_VERTEX_BUFFER_H_
+#endif  // RENDER_ENGINE_RENDER_BUFFER_H_

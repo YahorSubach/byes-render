@@ -88,7 +88,7 @@ namespace render
 		Sampler* texture_sampler;
 		Sampler* shadowmap_sampler;
 
-		stl_util::NullableRef<Image> default_image;
+		util::NullableRef<Image> default_image;
 
 		Format presentation_format;
 		Format depth_map_format = VK_FORMAT_D32_SFLOAT;

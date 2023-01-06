@@ -9,6 +9,7 @@
 #include "render/object_base.h"
 #include "render/descriptor_set.h"
 #include "render/descriptor_set_layout.h"
+#include "render/vertex_buffer.h"
 
 namespace render
 {
@@ -20,6 +21,7 @@ namespace render
 		{
 			uint32_t format;
 			uint32_t offset;
+			VertexBufferType type;
 		};
 
 		struct VertexBindingDesc

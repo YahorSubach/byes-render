@@ -28,7 +28,7 @@ namespace render::ui
 		glm::vec2 atlas_position;
 		glm::vec2 atlas_width_height;
 		
-		stl_util::NullableRef<const Image> bitmap;
+		util::NullableRef<const Image> bitmap;
 	};
 
 	class UI: public RenderObjBase<void*>

@@ -322,7 +322,7 @@ void render::BatchesManager::Add(const tinygltf::Model& model)
 glm::mat4 render::Node::GetGlobalTransformMatrix() const
 {
 	if (parent)
-		return parent->GetGlobalTransformMatrix() * node_matrix;
+		return parent->GetGlobalTransformMatrix() * local_transform;
 
-	return node_matrix;
+	return local_transform;
 }

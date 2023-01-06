@@ -6,18 +6,18 @@ render::Sampler::Sampler(const DeviceConfiguration& device_cfg, uint32_t mipmap_
 
 }
 
-render::Sampler::Sampler(const DeviceConfiguration& device_cfg, stl_util::NullableRef<const Image> image) : RenderObjBase(device_cfg)
-{
-	uint32_t mipmap_cnt = 0;
-	AddressMode address_mode = AddressMode::kRepeat;
-
-	if (image)
-	{
-		mipmap_cnt = image->GetMipMapLevelsCount();
-	}
-
-	Init(mipmap_cnt, address_mode);
-}
+//render::Sampler::Sampler(const DeviceConfiguration& device_cfg, util::NullableRef<const Image> image) : RenderObjBase(device_cfg)
+//{
+//	uint32_t mipmap_cnt = 0;
+//	AddressMode address_mode = AddressMode::kRepeat;
+//
+//	if (image)
+//	{
+//		mipmap_cnt = image->GetMipMapLevelsCount();
+//	}
+//
+//	Init(mipmap_cnt, address_mode);
+//}
 
 void render::Sampler::Init(uint32_t mipmap_cnt, AddressMode address_mode, bool use_nearest_filtering)
 {

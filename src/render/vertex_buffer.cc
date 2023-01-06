@@ -1,3 +1,4 @@
+#include "vertex_buffer.h"
 //#include "vertex_buffer.h"
 //
 //render::VertexBuffer::VertexBuffer(const VkDevice& device, const VkPhysicalDevice& physical_device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& queue_famaly_indeces) :RenderObjBase(device), physical_device_(physical_device)
@@ -85,3 +86,50 @@
 //
 //    return memory_type_index;
 //}
+
+namespace render
+{
+
+
+	const std::map<VertexBufferType, std::string>& GetVertexBufferTypesToNamesWithInit()
+	{
+		static std::map<VertexBufferType, std::string> vertex_buffer_types_to_names;
+
+		if (vertex_buffer_types_to_names.empty())
+		{
+			#define ENUM_OP(x) vertex_buffer_types_to_names[VertexBufferType::k##x] = #x;
+			#include "vertex_buffer_types.inl"
+			#undef ENUM_OP
+		}
+
+		return vertex_buffer_types_to_names;
+	}
+
+	const std::map<std::string, VertexBufferType>& GetVertexBufferNamesToTypesWithInit()
+	{
+		static std::map<std::string, VertexBufferType> vertex_buffer_names_to_types;
+
+		if (vertex_buffer_names_to_types.empty())
+		{
+#define ENUM_OP(x) vertex_buffer_names_to_types[#x] = VertexBufferType::k##x;
+#include "vertex_buffer_types.inl"
+#undef ENUM_OP
+		}
+
+		return vertex_buffer_names_to_types;
+	}
+
+	const std::map<VertexBufferType, std::string>& vertex_buffer_types_to_names_ref = GetVertexBufferTypesToNamesWithInit();
+	const std::map<std::string, VertexBufferType>& vertex_buffer_names_to_types_ref = GetVertexBufferNamesToTypesWithInit();
+
+
+	const std::map<VertexBufferType, std::string>& GetVertexBufferTypesToNames()
+	{
+		return vertex_buffer_types_to_names_ref;
+	}
+
+	const std::map<std::string, VertexBufferType>& GetVertexBufferNamesToTypes()
+	{
+		return vertex_buffer_names_to_types_ref;
+	}
+}

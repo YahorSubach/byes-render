@@ -211,7 +211,7 @@ const render::ui::Glyph& render::ui::UI::GetGlyph(char32_t character, int font_s
         //    face->glyph->bitmap.width,
         //    face->glyph->bitmap.rows,
 
-        //    contains_bitmap ? stl_util::MakeNullableRef(font_data.glyph_images.at(character)) : std::nullopt
+        //    contains_bitmap ? util::MakeNullableRef(font_data.glyph_images.at(character)) : std::nullopt
         //};
 
         //font_data.glyphs.emplace(character, glyph);

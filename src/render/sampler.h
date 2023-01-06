@@ -21,7 +21,7 @@ namespace render
 		};
 
 		Sampler(const DeviceConfiguration& device_cfg, uint32_t mipmap_cnt = 0, AddressMode address_mode = AddressMode::kRepeat, bool use_nearest_filtering = false);
-		Sampler(const DeviceConfiguration& device_cfg, stl_util::NullableRef<const Image> image);
+		//Sampler(const DeviceConfiguration& device_cfg, util::NullableRef<const Image> image);
 
 		Sampler(const Sampler&) = delete;
 		Sampler(Sampler&&) = default;

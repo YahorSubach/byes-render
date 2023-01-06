@@ -36,6 +36,7 @@
 #include "render/image_view.h"
 #include "render/render_setup.h"
 #include "render/sampler.h"
+#include "render/scene.h"
 #include "render/swapchain.h"
 
 #include "render/ui/ui.h"
@@ -44,6 +45,7 @@
 
 namespace render
 {
+	const uint32_t kFramesCount = 4;
 
 	class VkDeviceWrapper
 	{
@@ -94,7 +96,7 @@ namespace render
 				return;
 			}
 
-			if (!stl_util::All(platform::GetRequiredInstanceExtensions(), vk_instance_extensions_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
+			if (!util::All(platform::GetRequiredInstanceExtensions(), vk_instance_extensions_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
 			{
 				LOG(err, "Required platform Extension missing");
 				return;
@@ -106,7 +108,7 @@ namespace render
 				return;
 			}
 
-			if (!stl_util::All(GetValidationLayers(), vk_instance_layers_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.layerName) == 0; }))
+			if (!util::All(GetValidationLayers(), vk_instance_layers_, [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.layerName) == 0; }))
 			{
 				LOG(err, "Instance Layers missing");
 				return;
@@ -635,7 +637,7 @@ namespace render
 		{
 			VkDeviceCreateInfo logical_device_create_info{};
 
-			if (stl_util::All(GetRequiredDeviceExtensions(), vk_physical_devices_extensions_[physical_device], [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
+			if (util::All(GetRequiredDeviceExtensions(), vk_physical_devices_extensions_[physical_device], [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
 			{
 				logical_device_create_info.enabledExtensionCount = static_cast<uint32_t>(GetRequiredDeviceExtensions().size());
 				logical_device_create_info.ppEnabledExtensionNames = GetRequiredDeviceExtensions().data();
@@ -727,7 +729,7 @@ namespace render
 		std::unique_ptr<CommandPool> graphics_command_pool_ptr_;
 		std::unique_ptr<CommandPool> transfer_command_pool_ptr_;
 
-		const uint32_t kFramesCount = 4;
+
 
 		std::thread render_thread_;
 
@@ -779,6 +781,11 @@ namespace render
 	{
 	public:
 		Camera camera;
+		std::array<ModelSceneDescSetHolder, kFramesCount> scene_decriptor_sets_holder;
+		void AddModel(Model model);
+		const std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>>& GetModels() { return models; }
+	private:
+		std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>> models;
 	};
 
 	Scene::Scene()
@@ -793,5 +800,9 @@ namespace render
 	const Camera& Scene::GetActiveCamera() const
 	{
 		return impl_->camera;
+	}
+	void Scene::SceneImpl::AddModel(Model model)
+	{
+
 	}
 }

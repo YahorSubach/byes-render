@@ -217,7 +217,7 @@
 //			VkImage                    image;
 //			VkImageSubresourceRange    subresourceRange;
 //
-//			stl_util::NullableRef<const Image> barrier_image = dependency.image;
+//			util::NullableRef<const Image> barrier_image = dependency.image;
 //
 //			if (!barrier_image)
 //			{
@@ -585,7 +585,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 
 			stop = false;
 
-			stl_util::NullableRef<const Framebuffer> framebuffer = swapchain_framebuffer;
+			util::NullableRef<const Framebuffer> framebuffer = swapchain_framebuffer;
 			std::map<DescriptorSetType, VkDescriptorSet> node_desc_set;
 			if (auto&& it = node_data_.find(node_name); it != node_data_.end())
 			{
@@ -696,7 +696,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 		for (auto&& dependency : dependencies)
 		{
 
-			stl_util::NullableRef<const Image> barrier_image = attachment_images_.at(dependency.get().from_attachment.name).image;
+			util::NullableRef<const Image> barrier_image = attachment_images_.at(dependency.get().from_attachment.name).image;
 
 			if (!barrier_image)
 			{

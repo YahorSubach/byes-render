@@ -66,7 +66,7 @@ namespace render
 		FrameHandler& operator=(const FrameHandler&) = delete;
 		FrameHandler& operator=(FrameHandler&&) = default;
 		
-		void AddModel(const render::Mesh& model);
+		//void AddModel(const render::Mesh& model);
 
 		bool Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index);
 

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <array>
+#include <map>
 
 #include "vulkan/vulkan.h"
 #include "glm/glm/glm.hpp"
@@ -12,6 +13,24 @@
 
 namespace render
 {
+
+	enum class VertexBufferType
+	{
+
+#define ENUM_OP(val) k##val, 
+#include "render/vertex_buffer_types.inl"
+#undef ENUM_OP
+
+		Count,
+
+		Begin = kPOSITION,
+		End = Count
+	};
+
+	const uint32_t kVertexBufferTypesCount = static_cast<uint32_t>(VertexBufferType::Count);
+
+	const std::map<VertexBufferType, std::string>& GetVertexBufferTypesToNames();
+	const std::map<std::string, VertexBufferType>& GetVertexBufferNamesToTypes();
 
 	class VertexBuffer : public RenderObjBase<VkBuffer>
 	{

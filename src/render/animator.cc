@@ -127,9 +127,9 @@ void render::Animator::Update(TimePoint explicit_current_time)
 
 		node.rotation = glm::normalize(glm::quat(val.w, val.x, val.y, val.z));
 
-		node.node_matrix = glm::translate(glm::identity<glm::mat4>(), node.translation);
-		node.node_matrix *= glm::toMat4(node.rotation);
-		node.node_matrix = glm::scale(node.node_matrix, node.scale);
+		node.local_transform = glm::translate(glm::identity<glm::mat4>(), node.translation);
+		node.local_transform *= glm::toMat4(node.rotation);
+		node.local_transform = glm::scale(node.local_transform, node.scale);
 
 		channel_index++;
 	}
@@ -142,9 +142,9 @@ void render::Animator::Update(TimePoint explicit_current_time)
 
 		node.translation = val;
 
-		node.node_matrix = glm::translate(glm::identity<glm::mat4>(), node.translation);
-		node.node_matrix *= glm::toMat4(node.rotation);
-		node.node_matrix = glm::scale(node.node_matrix, node.scale);
+		node.local_transform = glm::translate(glm::identity<glm::mat4>(), node.translation);
+		node.local_transform *= glm::toMat4(node.rotation);
+		node.local_transform = glm::scale(node.local_transform, node.scale);
 
 		channel_index++;
 	}

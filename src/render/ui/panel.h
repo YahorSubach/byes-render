@@ -18,7 +18,7 @@ namespace render::ui
 		Panel(int x, int y, int width, int height);
 		Panel(const Panel& panel);
 		
-		stl_util::NullableRef<const Panel> parent_;
+		util::NullableRef<const Panel> parent_;
 
 		int x_ = 0;
 		int y_ = 0;
@@ -31,7 +31,7 @@ namespace render::ui
 		glm::mat4 local_transform;
 		std::vector<Panel> children;
 
-		stl_util::NullableRef<const Image> image_;
+		util::NullableRef<const Image> image_;
 
 		void CollectRender(glm::mat4 parent_transform, std::vector<std::pair<glm::mat4, std::pair<glm::vec2, glm::vec2>>>& to_render);
 

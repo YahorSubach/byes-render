@@ -43,7 +43,7 @@ namespace render
 			kLineTopology
 		};
 
-		using Params = stl_util::EnumFlags<EParams>;
+		using Params = util::enums::Flags<EParams>;
 
 		GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module,
 			const std::array<Extent, kExtentTypeCnt>& extents, Params params = {});

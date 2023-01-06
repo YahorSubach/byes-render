@@ -1,6 +1,6 @@
 //#include "command_buffer_filler.h"
 //
-//#include <stl_util.h>
+//#include <util.h>
 //
 //render::CommandBufferFiller::CommandBufferFiller(const RenderSetup& render_setup, const FramebufferCollection& framebuffer_collection) : render_setup_(render_setup), framebuffer_collection_(framebuffer_collection)
 //{
@@ -72,7 +72,7 @@
 //				std::vector<VkBuffer> vert_bufs;
 //				std::vector<VkDeviceSize> offsets;
 //
-//				stl_util::size<uint32_t>(offsets);
+//				util::size<uint32_t>(offsets);
 //
 //				for (auto&& buf : child.GetPrimitives().begin()->vertex_buffers)
 //				{

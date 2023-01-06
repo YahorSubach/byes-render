@@ -9,6 +9,8 @@
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <glm/glm/gtc/type_ptr.hpp>
 
+#include "stl_util.h"
+
 render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const tinygltf::Model& gltf_model)
 {
 	tinygltf::TinyGLTF loader;
@@ -63,13 +65,13 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 		{
 			auto&& node = gltf_model.nodes[i];
 
-			nodes[i].node_matrix = glm::identity<glm::mat4>();
+			nodes[i].local_transform = glm::identity<glm::mat4>();
 
 
 			if (node.translation.size() == 3)
 			{
 				nodes[i].translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
-				nodes[i].node_matrix = glm::translate(nodes[i].node_matrix, nodes[i].translation);
+				nodes[i].local_transform = glm::translate(nodes[i].local_transform, nodes[i].translation);
 			}
 
 			nodes[i].rotation = glm::quat(1, 0, 0, 0);
@@ -80,7 +82,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 
 				nodes[i].rotation = rot_quat;
 
-				nodes[i].node_matrix = nodes[i].node_matrix * glm::mat4_cast(rot_quat);
+				nodes[i].local_transform = nodes[i].local_transform * glm::mat4_cast(rot_quat);
 				//nodes.back().node_matrix = glm::rotate(nodes.back().node_matrix, 1. glm::vec3());
 			}
 
@@ -88,7 +90,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 			if (node.scale.size() == 3)
 			{
 				nodes[i].scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
-				nodes[i].node_matrix = glm::scale(nodes[i].node_matrix, nodes[i].scale);
+				nodes[i].local_transform = glm::scale(nodes[i].local_transform, nodes[i].scale);
 			}
 		}
 
@@ -101,6 +103,80 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 			}
 		}
 
+
+		meshes.resize(gltf_model.meshes.size());
+		for (int mesh_index = 0; mesh_index < meshes.size(); mesh_index++)
+		{
+			const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[mesh_index];
+
+			for (auto&& gltf_primitive : gltf_mesh.primitives)
+			{
+
+				Primitive primitive
+				{
+					BuildBufferAccessor(gltf_model, gltf_primitive.indices),
+				};
+
+				for (VertexBufferType vertex_buffer_type = VertexBufferType::Begin; vertex_buffer_type != VertexBufferType::End; vertex_buffer_type = util::enums::Next(vertex_buffer_type))
+				{
+					if (int buffer_view_index = GetBufferViewIndexFromAttributes(gltf_primitive.attributes, vertex_buffer_type); buffer_view_index >= 0)
+					{
+						primitive.vertex_buffers[u32(vertex_buffer_type)] = BuildBufferAccessor(gltf_model, buffer_view_index);
+					}
+					else if (buffer_view_index = GetBufferViewIndexFromAttributes(gltf_primitive.attributes, vertex_buffer_type, 0); buffer_view_index >= 0)
+					{
+						primitive.vertex_buffers[u32(vertex_buffer_type)] = BuildBufferAccessor(gltf_model, buffer_view_index);
+					}
+				}
+
+				if (gltf_primitive.material >= 0)
+				{
+					tinygltf::Material gltf_material = gltf_model.materials[gltf_primitive.material];
+
+					if (gltf_material.pbrMetallicRoughness.baseColorTexture.index >= 0)
+					{
+						primitive.material.albedo = images_[gltf_model.textures[gltf_material.pbrMetallicRoughness.baseColorTexture.index].source];
+					}
+
+					if (gltf_material.emissiveTexture.index >= 0)
+					{
+						primitive.material.albedo = images_[gltf_model.textures[gltf_material.emissiveTexture.index].source];
+						primitive.material.flags |= (1 << 0);
+					}
+
+					if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
+					{
+						primitive.material.metallic_roughness = images_[gltf_model.textures[gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
+					}
+
+					if (gltf_material.normalTexture.index >= 0)
+					{
+						primitive.material.normal_map = images_[gltf_model.textures[gltf_material.normalTexture.index].source];
+					}
+				}
+
+				//auto&& tmp = *(primitive.positions.buffer);
+
+				//if (primitive.positions.buffer) primitive.vertex_buffers.push_back(primitive.positions);
+				//if (primitive.normals.buffer) primitive.vertex_buffers.push_back(primitive.normals);
+				//if (primitive.tangents.buffer)
+				//{
+				//	primitive.vertex_buffers.push_back(primitive.tangents);
+				//	primitive.material.flags |= (1 << 1);
+				//}
+				//else primitive.vertex_buffers.push_back(primitive.normals);
+				//if (primitive.tex_coords.buffer) primitive.vertex_buffers.push_back(primitive.tex_coords);
+				//if (primitive.joints.buffer) { primitive.vertex_buffers.push_back(primitive.joints);  primitive.type = RenderModelType::kSkinned; }
+				//if (primitive.weights.buffer) primitive.vertex_buffers.push_back(primitive.weights);
+
+
+				meshes.back().primitives.push_back(primitive);
+			}
+
+		}
+
+		skins.resize(gltf_model.skins.size());
+
 		for (int i = 0; i < gltf_model.nodes.size(); i++)
 		{
 			auto&& gltf_node = gltf_model.nodes[i];
@@ -110,66 +186,9 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 
 				const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
 
-				meshes.push_back(Mesh{ nodes[i] });
-
-				for (auto&& gltf_primitive : gltf_mesh.primitives)
-				{
+				//meshes.push_back(Mesh{ nodes[i] });
 
 
-					Primitive primitive
-					{
-						BuildBufferAccessor(gltf_model, gltf_primitive.indices),
-						BuildBufferAccessor(gltf_model, GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "POSITION")),
-						BuildBufferAccessor(gltf_model, GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "NORMAL")),
-						BuildBufferAccessor(gltf_model, GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "TANGENT")),
-						BuildBufferAccessor(gltf_model, GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "TEXCOORD_0")),
-						BuildBufferAccessor(gltf_model, GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "JOINTS_0")),
-						BuildBufferAccessor(gltf_model, GetBufferViewIndexFromAttributes(gltf_primitive.attributes, "WEIGHTS_0")),
-					};
-
-					if (gltf_primitive.material >= 0)
-					{
-						tinygltf::Material gltf_material = gltf_model.materials[gltf_primitive.material];
-
-						if (gltf_material.pbrMetallicRoughness.baseColorTexture.index >= 0)
-						{
-							primitive.material.albedo = images_[gltf_model.textures[gltf_material.pbrMetallicRoughness.baseColorTexture.index].source];
-						}
-
-						if (gltf_material.emissiveTexture.index >= 0)
-						{
-							primitive.material.albedo = images_[gltf_model.textures[gltf_material.emissiveTexture.index].source];
-							primitive.material.flags |= (1 << 0);
-						}
-
-						if (gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0)
-						{
-							primitive.material.metallic_roughness = images_[gltf_model.textures[gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index].source];
-						}
-
-						if (gltf_material.normalTexture.index >= 0)
-						{
-							primitive.material.normal_map = images_[gltf_model.textures[gltf_material.normalTexture.index].source];
-						}
-					}
-
-					auto&& tmp = *(primitive.positions.buffer);
-
-					if (primitive.positions.buffer) primitive.vertex_buffers.push_back(primitive.positions);
-					if (primitive.normals.buffer) primitive.vertex_buffers.push_back(primitive.normals);
-					if (primitive.tangents.buffer)
-					{
-						primitive.vertex_buffers.push_back(primitive.tangents);
-						primitive.material.flags |= (1 << 1);
-					}
-					else primitive.vertex_buffers.push_back(primitive.normals);
-					if (primitive.tex_coords.buffer) primitive.vertex_buffers.push_back(primitive.tex_coords);
-					if (primitive.joints.buffer) { primitive.vertex_buffers.push_back(primitive.joints);  primitive.type = RenderModelType::kSkinned; }
-					if (primitive.weights.buffer) primitive.vertex_buffers.push_back(primitive.weights);
-
-
-					meshes.back().primitives.push_back(primitive);
-				}
 
 				if(gltf_node.skin != -1)
 				{
@@ -196,7 +215,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 
 					for (int i = 0; i < gltf_skin.joints.size(); i++)
 					{
-						meshes.back().joints.push_back(Bone{ nodes[gltf_skin.joints[i]], inverce_matrices[i] });
+						skins[gltf_node.skin].joints.push_back(Joint{ nodes[gltf_skin.joints[i]], inverce_matrices[i] });
 					}
 				}
 
@@ -271,11 +290,24 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 
 }
 
-int render::GLTFWrapper::GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, const std::string& name) const
+int render::GLTFWrapper::GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index) const
 {
-	if (auto&& it = attributes.find(name); it != attributes.end())
+	std::string name = GetVertexBufferTypesToNames().at(vertex_buffer_type);
+
+	if (index < 0)
 	{
-		return it->second;
+		if (auto&& it = attributes.find(name); it != attributes.end())
+		{
+			return it->second;
+		}
+	}
+	else
+	{
+		std::string indexed_name = name + "_" + std::to_string(index);
+		if (auto&& it = attributes.find(indexed_name); it != attributes.end())
+		{
+			return it->second;
+		}
 	}
 
 	return -1;
@@ -284,19 +316,16 @@ int render::GLTFWrapper::GetBufferViewIndexFromAttributes(const std::map<std::st
 
 render::BufferAccessor render::GLTFWrapper::BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const
 {
-	if (acc_ind >= 0)
-	{
-		auto overriden_stride = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteStride;
-		auto element_size = tinygltf::GetNumComponentsInType(gltf_model.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model.accessors[acc_ind].componentType);
+	assert(acc_ind >= 0);
 
-		auto actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
+	auto overriden_stride = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteStride;
+	auto element_size = tinygltf::GetNumComponentsInType(gltf_model.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model.accessors[acc_ind].componentType);
 
-		auto offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
+	auto actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
 
-		BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, u32(gltf_model.accessors[acc_ind].count));
+	auto offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
 
-		return buffer_accessor;
-	}
+	BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, u32(gltf_model.accessors[acc_ind].count));
 
-	return BufferAccessor();
+	return buffer_accessor;
 }

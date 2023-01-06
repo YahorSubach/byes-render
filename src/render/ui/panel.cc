@@ -41,7 +41,7 @@ void render::ui::Panel::AddChild(const Panel& panel)
 
 void render::ui::Panel::SetParent(const Panel& parent)
 {
-    parent_ = stl_util::NullableRef<const Panel>(parent);
+    parent_ = util::NullableRef<const Panel>(parent);
 
     local_transform = glm::translate(glm::identity<glm::mat4>(), glm::vec3(1.0f * x_ / parent_->width_, 1.0f * y_ / parent_->height_, 1.0f));
     local_transform = glm::scale(local_transform, glm::vec3(1.0f * width_ / parent_->width_, 1.0f * height_ / parent_->height_, 1.0f));
@@ -80,7 +80,7 @@ render::ui::TextBlock::TextBlock(const UI& ui, int x, int y, int font_size, cons
 
 render::ui::GlyphPanel::GlyphPanel(int x, int y, int font_size, render::ui::Glyph glyph): Panel(x,y,glyph.advance,font_size), character_panel_(glyph.bitmap_x, glyph.bitmap_y, glyph.bitmap_width, glyph.bitmap_heigth)
 {
-    character_panel_.image_ = stl_util::NullableRef<const Image>(glyph.bitmap);
+    character_panel_.image_ = util::NullableRef<const Image>(glyph.bitmap);
 
     character_panel_.atlas_position = glyph.atlas_position;
     character_panel_.atlas_width_heigth = glyph.atlas_width_height;

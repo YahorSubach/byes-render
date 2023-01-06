@@ -3,25 +3,30 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 
-render::ModelDescSetHolder::ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Mesh& mesh): 
-	DescriptorSetHolder(device_cfg), mesh_(mesh), diffuse_sampler_(Sampler(device_cfg, mesh_.primitives[0].material.albedo))
-{}
-
-const render::Mesh& render::ModelDescSetHolder::GetMesh() const
+render::ModelDescSetHolder::ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Model& model): 
+	DescriptorSetHolder(device_cfg), model_(model)
 {
-	return mesh_;
+	diffuse_sampler_ = Sampler(device_cfg, model_.mesh->primitives[0].material.albedo->GetMipMapLevelsCount());
+}
+
+const render::Model& render::ModelDescSetHolder::GetModel() const
+{
+	return model_;
 }
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
 {
-	data.flags = mesh_.primitives[0].material.flags;
+	if (model_.mesh)
+	{
+		data.flags = model_.mesh->primitives[0].material.flags;
+	}
 }
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
 {
-	if (mesh_.primitives[0].material.albedo)
+	if (model_.mesh && model_.mesh->primitives[0].material.albedo)
 	{
-		data.albedo = mesh_.primitives[0].material.albedo;
+		data.albedo = model_.mesh->primitives[0].material.flags;
 	}
 	else
 	{
@@ -33,13 +38,15 @@ void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::Descript
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
 {
-	if (mesh_.primitives[0].material.metallic_roughness)
+
+
+	if (model_.mesh->primitives[0].material.metallic_roughness)
 	{
-		data.metallic_roughness = mesh_.primitives[0].material.metallic_roughness;
+		data.metallic_roughness = model_.mesh->primitives[0].material.metallic_roughness;
 	}
-	else if(mesh_.primitives[0].material.albedo)
+	else if(model_.mesh->primitives[0].material.albedo)
 	{
-		data.metallic_roughness = mesh_.primitives[0].material.albedo;
+		data.metallic_roughness = model_.mesh->primitives[0].material.albedo;
 	}
 	else
 	{
@@ -51,9 +58,9 @@ void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::Descript
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
 {
-	if (mesh_.primitives[0].material.normal_map)
+	if (model_.mesh->primitives[0].material.normal_map)
 	{
-		data.normal_map = mesh_.primitives[0].material.normal_map;
+		data.normal_map = model_.mesh->primitives[0].material.normal_map;
 	}
 	else
 	{
@@ -72,9 +79,9 @@ void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::Descript
 		mat = glm::identity<glm::mat4>();
 	}
 
-	for (auto&& joint : mesh_.joints)
+	for (auto&& joint : model_.skin->joints)
 	{
-		glm::mat4 joint_transform = glm::inverse(mesh_.node.GetGlobalTransformMatrix()) * joint.node.GetGlobalTransformMatrix() * joint.inverse_bind_matrix;
+		glm::mat4 joint_transform = glm::inverse(model_.node.GetGlobalTransformMatrix()) * joint.node.GetGlobalTransformMatrix() * joint.inverse_bind_matrix;
 		data.matrices[ind] = joint_transform;
 		ind++;
 	}
@@ -84,39 +91,31 @@ void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::Descript
 
 void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
 {
-	data.model_mat = mesh_.node.GetGlobalTransformMatrix();
+	data.model_mat = model_.node.GetGlobalTransformMatrix();
 }
 
 render::PrimitivesHolderRenderNode render::ModelDescSetHolder::GetRenderNode()
 {
-	return PrimitivesHolderRenderNode(*this, mesh_.primitives);
+	return PrimitivesHolderRenderNode(*this, model_.mesh->primitives);
 }
 
 
-render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const BatchesManager& batch_manager, const Scene& scene):
+render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const Scene& scene):
 	DescriptorSetHolder(device_cfg), env_image_(device_cfg, Image::BuiltinImageType::kBlack),
 	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), nearest_sampler_(device_cfg, 10, Sampler::AddressMode::kRepeat, true), 
 	shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder), scene_(scene)
 
 {
 
-	model_descriptor_sets_holders_.reserve(batch_manager.GetMeshes().size());
+	//model_descriptor_sets_holders_.reserve(batch_manager.GetMeshes().size());
 
-	for (auto&& mesh : batch_manager.GetMeshes())
-	{
-		model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg, mesh));
-		children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
-	}
-
-	light_data_.near_plane = 0.1f;
-	light_data_.far_plane = 100.f;
+	//for (auto&& mesh : batch_manager.GetMeshes())
+	//{
+	//	model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg, mesh));
+	//	children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
+	//}
 
 
-	light_data_.position = glm::vec4(2.0f, 1.0f, 4.0f, 1.0f);
-	light_data_.proj_mat = glm::perspective(glm::radians(60.0f), 1.f, light_data_.near_plane, light_data_.far_plane);
-	light_data_.proj_mat[1][1] *= -1;
-	
-	light_data_.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 }	
 
 const std::vector<render::ModelDescSetHolder>& render::ModelSceneDescSetHolder::GetModels() const
@@ -130,10 +129,10 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 {
 	Camera camera = scene_.GetActiveCamera();
 
-	camera_data_.position.x = camera.position.x;
-	camera_data_.position.y = camera.position.y;
-	camera_data_.position.z = camera.position.z;
-	camera_data_.position.w = 1.0f;
+	data.position.x = camera.position.x;
+	data.position.y = camera.position.y;
+	data.position.z = camera.position.z;
+	data.position.w = 1.0f;
 
 	glm::vec3 position;
 	glm::vec3 orientation;
@@ -148,14 +147,20 @@ void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::Des
 
 	glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
 	proj[1][1] *= -1;
-	camera_data_.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
-
-	data = camera_data_;
+	data.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
 {
-	data = light_data_;
+	data.near_plane = 0.1f;
+	data.far_plane = 100.f;
+
+
+	data.position = glm::vec4(2.0f, 1.0f, 4.0f, 1.0f);
+	data.proj_mat = glm::perspective(glm::radians(60.0f), 1.f, data.near_plane, data.far_plane);
+	data.proj_mat[1][1] *= -1;
+
+	data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 }
 
 void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
@@ -220,11 +225,11 @@ void render::ModelSceneDescSetHolder::AttachDescriptorSets(DescriptorSetsManager
 	}
 }
 
-void render::ModelSceneDescSetHolder::AddModel(const render::Mesh& model)
-{
-	model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg_, model));
-	children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
-}
+//void render::ModelSceneDescSetHolder::AddModel(const render::Mesh& model)
+//{
+//	model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg_, model));
+//	children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
+//}
 
 render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): 
 	DescriptorSetHolder(device_cfg), ui_(ui), screen_panel_(0,0,ui.GetExtent().width, ui.GetExtent().height), 
@@ -284,12 +289,10 @@ render::UIPoly::UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, 
 	DescriptorSetHolder(device_cfg), ui_(ui), transform_(transform), atlas_position_(atlas_position), atlas_width_height_(atlas_width_height)
 {
 
-	Primitive prim;
-	prim.positions = ui.GetVertexBuffers()[0];
-	prim.tex_coords = ui.GetVertexBuffers()[1];
-	prim.indices = ui.GetIndexBuffer();
+	Primitive prim{ ui.GetIndexBuffer() };
+	prim.vertex_buffers[u32(VertexBufferType::kPOSITION)] = ui.GetVertexBuffers()[0];
+	prim.vertex_buffers[u32(VertexBufferType::kTEXCOORD)] = ui.GetVertexBuffers()[1];
 
-	prim.vertex_buffers = { prim.positions , prim.tex_coords };
 	primitives_.push_back(prim);
 }
 
