@@ -45,8 +45,6 @@
 
 namespace render
 {
-	const uint32_t kFramesCount = 4;
-
 	class VkDeviceWrapper
 	{
 	public:
@@ -775,34 +773,5 @@ namespace render
 	const InputState& RenderEngine::GetInputState()
 	{
 		return platform::GetInputState();
-	}
-
-	class Scene::SceneImpl
-	{
-	public:
-		Camera camera;
-		std::array<ModelSceneDescSetHolder, kFramesCount> scene_decriptor_sets_holder;
-		void AddModel(Model model);
-		const std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>>& GetModels() { return models; }
-	private:
-		std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>> models;
-	};
-
-	Scene::Scene()
-	{
-		impl_ = std::make_unique<SceneImpl>();
-	}
-
-	Camera& Scene::GetActiveCamera()
-	{
-		return impl_->camera;
-	}
-	const Camera& Scene::GetActiveCamera() const
-	{
-		return impl_->camera;
-	}
-	void Scene::SceneImpl::AddModel(Model model)
-	{
-
 	}
 }

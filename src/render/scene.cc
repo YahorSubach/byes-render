@@ -3,314 +3,354 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 
-render::ModelDescSetHolder::ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Model& model): 
-	DescriptorSetHolder(device_cfg), model_(model)
-{
-	diffuse_sampler_ = Sampler(device_cfg, model_.mesh->primitives[0].material.albedo->GetMipMapLevelsCount());
-}
-
-const render::Model& render::ModelDescSetHolder::GetModel() const
-{
-	return model_;
-}
-
-void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
-{
-	if (model_.mesh)
-	{
-		data.flags = model_.mesh->primitives[0].material.flags;
-	}
-}
-
-void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
-{
-	if (model_.mesh && model_.mesh->primitives[0].material.albedo)
-	{
-		data.albedo = model_.mesh->primitives[0].material.flags;
-	}
-	else
-	{
-		data.albedo = device_cfg_.default_image;
-	}
-
-	data.albedo_sampler = diffuse_sampler_;
-}
-
-void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
+namespace render
 {
 
-
-	if (model_.mesh->primitives[0].material.metallic_roughness)
+	ModelDescSetHolder::ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Model& model) :
+		DescriptorSetsHolder(device_cfg), model_(model)
 	{
-		data.metallic_roughness = model_.mesh->primitives[0].material.metallic_roughness;
-	}
-	else if(model_.mesh->primitives[0].material.albedo)
-	{
-		data.metallic_roughness = model_.mesh->primitives[0].material.albedo;
-	}
-	else
-	{
-		data.metallic_roughness = device_cfg_.default_image;
+		diffuse_sampler_ = Sampler(device_cfg, model_.mesh->primitives[0].material.albedo->GetMipMapLevelsCount());
 	}
 
-	data.metallic_roughness_sampler = diffuse_sampler_;
-}
-
-void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
-{
-	if (model_.mesh->primitives[0].material.normal_map)
+	const Model& ModelDescSetHolder::GetModel() const
 	{
-		data.normal_map = model_.mesh->primitives[0].material.normal_map;
-	}
-	else
-	{
-		data.normal_map = device_cfg_.default_image;
+		return model_;
 	}
 
-	data.normal_map_sampler = diffuse_sampler_;
-}
-
-void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
-{
-	int ind = 0;
-
-	for (auto&& mat : data.matrices)
+	void ModelDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kMaterial>::Binding<0>::Data& data)
 	{
-		mat = glm::identity<glm::mat4>();
+		if (model_.mesh)
+		{
+			data.flags = model_.mesh->primitives[0].material.flags;
+		}
 	}
 
-	for (auto&& joint : model_.skin->joints)
+	void ModelDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kMaterial>::Binding<1>::Data& data)
 	{
-		glm::mat4 joint_transform = glm::inverse(model_.node.GetGlobalTransformMatrix()) * joint.node.GetGlobalTransformMatrix() * joint.inverse_bind_matrix;
-		data.matrices[ind] = joint_transform;
-		ind++;
+		if (model_.mesh && model_.mesh->primitives[0].material.albedo)
+		{
+			data.albedo = model_.mesh->primitives[0].material.flags;
+		}
+		else
+		{
+			data.albedo = device_cfg_.default_image;
+		}
+
+		data.albedo_sampler = diffuse_sampler_;
 	}
 
-	//data.use = mesh_.primitives[0].type == RenderModelType::kSkinned;
-}
-
-void render::ModelDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
-{
-	data.model_mat = model_.node.GetGlobalTransformMatrix();
-}
-
-render::PrimitivesHolderRenderNode render::ModelDescSetHolder::GetRenderNode()
-{
-	return PrimitivesHolderRenderNode(*this, model_.mesh->primitives);
-}
+	void ModelDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kMaterial>::Binding<2>::Data& data)
+	{
 
 
-render::ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const Scene& scene):
-	DescriptorSetHolder(device_cfg), env_image_(device_cfg, Image::BuiltinImageType::kBlack),
-	diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), nearest_sampler_(device_cfg, 10, Sampler::AddressMode::kRepeat, true), 
-	shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder), scene_(scene)
+		if (model_.mesh->primitives[0].material.metallic_roughness)
+		{
+			data.metallic_roughness = model_.mesh->primitives[0].material.metallic_roughness;
+		}
+		else if (model_.mesh->primitives[0].material.albedo)
+		{
+			data.metallic_roughness = model_.mesh->primitives[0].material.albedo;
+		}
+		else
+		{
+			data.metallic_roughness = device_cfg_.default_image;
+		}
 
-{
+		data.metallic_roughness_sampler = diffuse_sampler_;
+	}
 
-	//model_descriptor_sets_holders_.reserve(batch_manager.GetMeshes().size());
+	void ModelDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kMaterial>::Binding<3>::Data& data)
+	{
+		if (model_.mesh->primitives[0].material.normal_map)
+		{
+			data.normal_map = model_.mesh->primitives[0].material.normal_map;
+		}
+		else
+		{
+			data.normal_map = device_cfg_.default_image;
+		}
 
-	//for (auto&& mesh : batch_manager.GetMeshes())
+		data.normal_map_sampler = diffuse_sampler_;
+	}
+
+	void ModelDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
+	{
+		int ind = 0;
+
+		for (auto&& mat : data.matrices)
+		{
+			mat = glm::identity<glm::mat4>();
+		}
+
+		for (auto&& joint : model_.skin->joints)
+		{
+			glm::mat4 joint_transform = glm::inverse(model_.node.GetGlobalTransformMatrix()) * joint.node.GetGlobalTransformMatrix() * joint.inverse_bind_matrix;
+			data.matrices[ind] = joint_transform;
+			ind++;
+		}
+
+		//data.use = mesh_.primitives[0].type == RenderModelType::kSkinned;
+	}
+
+	void ModelDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
+	{
+		data.model_mat = model_.node.GetGlobalTransformMatrix();
+	}
+
+	PrimitivesHolderRenderNode ModelDescSetHolder::GetRenderNode()
+	{
+		return PrimitivesHolderRenderNode(*this, model_.mesh->primitives);
+	}
+
+
+	ModelSceneDescSetHolder::ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const Scene& scene) :
+		DescriptorSetsHolder(device_cfg), env_image_(device_cfg, Image::BuiltinImageType::kBlack),
+		diffuse_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat), nearest_sampler_(device_cfg, 10, Sampler::AddressMode::kRepeat, true),
+		shadow_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToBorder), scene_(scene)
+
+	{
+
+		//model_descriptor_sets_holders_.reserve(batch_manager.GetMeshes().size());
+
+		//for (auto&& mesh : batch_manager.GetMeshes())
+		//{
+		//	model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg, mesh));
+		//	children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
+		//}
+
+
+	}
+
+	const std::vector<ModelDescSetHolder>& ModelSceneDescSetHolder::GetModels() const
+	{
+		return model_descriptor_sets_holders_;
+	}
+
+
+
+	void ModelSceneDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
+	{
+		Camera camera = scene_.GetActiveCamera();
+
+		data.position.x = camera.position.x;
+		data.position.y = camera.position.y;
+		data.position.z = camera.position.z;
+		data.position.w = 1.0f;
+
+		glm::vec3 position;
+		glm::vec3 orientation;
+
+		position.x = camera.position.x;
+		position.y = camera.position.y;
+		position.z = camera.position.z;
+
+		orientation.x = camera.orientation.x;
+		orientation.y = camera.orientation.y;
+		orientation.z = camera.orientation.z;
+
+		glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
+		proj[1][1] *= -1;
+		data.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
+	void ModelSceneDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
+	{
+		data.near_plane = 0.1f;
+		data.far_plane = 100.f;
+
+
+		data.position = glm::vec4(2.0f, 1.0f, 4.0f, 1.0f);
+		data.proj_mat = glm::perspective(glm::radians(60.0f), 1.f, data.near_plane, data.far_plane);
+		data.proj_mat[1][1] *= -1;
+
+		data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
+	void ModelSceneDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
+	{
+		data.environement = env_image_;
+		data.environement_sampler = diffuse_sampler_;
+	}
+
+	//void ModelSceneDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
 	//{
-	//	model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg, mesh));
+	//	data.shadow_map = shadowmap_image;
+	//	data.shadow_map_sampler = shadow_sampler_;
+	//}
+
+	//void ModelSceneDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kGBuffers>::Binding<0>::Data& data)
+	//{
+	//	data.albedo = g_albedo_image;
+	//	data.albedo_sampler = nearest_sampler_;
+	//}
+	//
+	//void ModelSceneDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kGBuffers>::Binding<1>::Data& data)
+	//{
+	//	data.position = g_position_image;
+	//	data.position_sampler = nearest_sampler_;
+	//}
+	//
+	//void ModelSceneDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kGBuffers>::Binding<2>::Data& data)
+	//{
+	//	data.normal = g_normal_image;
+	//	data.normal_sampler = nearest_sampler_;
+	//}
+	//
+	//void ModelSceneDescSetHolder::FillData(DescriptorSet<DescriptorSetType::kGBuffers>::Binding<3>::Data& data)
+	//{
+	//	data.metallic_roughness = g_metal_rough_image;
+	//	data.metallic_roughness_sampler = nearest_sampler_;
+	//}
+
+	SceneRenderNode ModelSceneDescSetHolder::GetRenderNode()
+	{
+		children_nodes_.clear();
+		for (auto&& poly : model_descriptor_sets_holders_)
+			children_nodes_.push_back(poly.GetRenderNode());
+		return SceneRenderNode(*this, children_nodes_);
+	}
+
+	void ModelSceneDescSetHolder::UpdateData()
+	{
+		DescriptorSetsHolder::UpdateData();
+		for (auto&& child_model : model_descriptor_sets_holders_)
+		{
+			child_model.UpdateData();
+		}
+	}
+
+	void ModelSceneDescSetHolder::AttachDescriptorSets(DescriptorSetsManager& manager)
+	{
+		DescriptorSetsHolder::AttachDescriptorSets(manager);
+		for (auto&& child_model : model_descriptor_sets_holders_)
+		{
+			child_model.AttachDescriptorSets(manager);
+		}
+	}
+
+	//void ModelSceneDescSetHolder::AddModel(const Mesh& model)
+	//{
+	//	model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg_, model));
 	//	children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
 	//}
 
-
-}	
-
-const std::vector<render::ModelDescSetHolder>& render::ModelSceneDescSetHolder::GetModels() const
-{
-	return model_descriptor_sets_holders_;
-}
-
-
-
-void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
-{
-	Camera camera = scene_.GetActiveCamera();
-
-	data.position.x = camera.position.x;
-	data.position.y = camera.position.y;
-	data.position.z = camera.position.z;
-	data.position.w = 1.0f;
-
-	glm::vec3 position;
-	glm::vec3 orientation;
-	
-	position.x = camera.position.x;
-	position.y = camera.position.y;
-	position.z = camera.position.z;
-	
-	orientation.x = camera.orientation.x;
-	orientation.y = camera.orientation.y;
-	orientation.z = camera.orientation.z;
-
-	glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
-	proj[1][1] *= -1;
-	data.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
-}
-
-void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
-{
-	data.near_plane = 0.1f;
-	data.far_plane = 100.f;
-
-
-	data.position = glm::vec4(2.0f, 1.0f, 4.0f, 1.0f);
-	data.proj_mat = glm::perspective(glm::radians(60.0f), 1.f, data.near_plane, data.far_plane);
-	data.proj_mat[1][1] *= -1;
-
-	data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-}
-
-void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
-{
-	data.environement = env_image_;
-	data.environement_sampler = diffuse_sampler_;
-}
-
-//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data)
-//{
-//	data.shadow_map = shadowmap_image;
-//	data.shadow_map_sampler = shadow_sampler_;
-//}
-
-//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data)
-//{
-//	data.albedo = g_albedo_image;
-//	data.albedo_sampler = nearest_sampler_;
-//}
-//
-//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data)
-//{
-//	data.position = g_position_image;
-//	data.position_sampler = nearest_sampler_;
-//}
-//
-//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data)
-//{
-//	data.normal = g_normal_image;
-//	data.normal_sampler = nearest_sampler_;
-//}
-//
-//void render::ModelSceneDescSetHolder::FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data)
-//{
-//	data.metallic_roughness = g_metal_rough_image;
-//	data.metallic_roughness_sampler = nearest_sampler_;
-//}
-
-render::SceneRenderNode render::ModelSceneDescSetHolder::GetRenderNode()
-{
-	children_nodes_.clear();
-	for (auto&& poly : model_descriptor_sets_holders_)
-		children_nodes_.push_back(poly.GetRenderNode());
-	return SceneRenderNode(*this, children_nodes_);
-}
-
-void render::ModelSceneDescSetHolder::UpdateData()
-{
-	DescriptorSetHolder::UpdateData();
-	for (auto&& child_model : model_descriptor_sets_holders_)
+	UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui) :
+		DescriptorSetsHolder(device_cfg), ui_(ui), screen_panel_(0, 0, ui.GetExtent().width, ui.GetExtent().height),
+		text_block_(ui, 20, 20, 30, U"!")
 	{
-		child_model.UpdateData();
+		ui_polygones_.reserve(64);
+		ui_polygones_geom_.reserve(64);
+
+		screen_panel_.AddChild(text_block_);
+		std::vector<std::pair<glm::mat4, std::pair<glm::vec2, glm::vec2>>> to_render;
+		screen_panel_.CollectRender(glm::identity<glm::mat4>(), to_render);
+
+		for (auto&& [transform, atlas] : to_render)
+		{
+			ui_polygones_.push_back(UIPoly(device_cfg_, ui_, transform, atlas.first, atlas.second));
+			ui_polygones_geom_.push_back(ui_polygones_.back());
+		}
+	}
+
+	void UIScene::FillData(DescriptorSet<DescriptorSetType::kTexture>::Binding<0>::Data& data)
+	{
+		data.texture = ui_.GetAtlas();
+		data.texture_sampler = ui_.GetUISampler();
+	}
+
+
+
+	SceneRenderNode UIScene::GetRenderNode()
+	{
+		children_nodes_.clear();
+		for (auto&& poly : ui_polygones_)
+			children_nodes_.push_back(poly.GetRenderNode());
+		return SceneRenderNode(*this, children_nodes_);
+	}
+
+	void UIScene::UpdateData()
+	{
+		DescriptorSetsHolder::UpdateData();
+		for (auto&& child_model : ui_polygones_)
+		{
+			child_model.UpdateData();
+		}
+	}
+
+	void UIScene::AttachDescriptorSets(DescriptorSetsManager& manager)
+	{
+		DescriptorSetsHolder::AttachDescriptorSets(manager);
+		for (auto&& child_model : ui_polygones_)
+		{
+			child_model.AttachDescriptorSets(manager);
+		}
+	}
+
+
+
+	UIPoly::UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, glm::vec2 atlas_position, glm::vec2 atlas_width_height) :
+		DescriptorSetsHolder(device_cfg), ui_(ui), transform_(transform), atlas_position_(atlas_position), atlas_width_height_(atlas_width_height)
+	{
+
+		Primitive prim{ ui.GetIndexBuffer() };
+		prim.vertex_buffers[u32(VertexBufferType::kPOSITION)] = ui.GetVertexBuffers()[0];
+		prim.vertex_buffers[u32(VertexBufferType::kTEXCOORD)] = ui.GetVertexBuffers()[1];
+
+		primitives_.push_back(prim);
+	}
+
+	void UIPoly::FillData(DescriptorSet<DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
+	{
+		data.model_mat = transform_;
+	}
+
+	void UIPoly::FillData(DescriptorSet<DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data)
+	{
+		data.atlas_position = atlas_position_;
+		data.width_heigth = atlas_width_height_;
+		data.color = glm::vec4(0.5, 1.0, 0.5, 1.0);
+	}
+
+	PrimitivesHolderRenderNode UIPoly::GetRenderNode()
+	{
+		return PrimitivesHolderRenderNode(*this, primitives_);
+	}
+
+
+	class Scene::SceneImpl
+	{
+	public:
+		Camera camera;
+		std::array<ModelSceneDescSetHolder, kFramesCount> scene_decriptor_sets_holder;
+		void AddModel(Model model);
+		const std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>>& GetModels() { return models; }
+
+		struct DescritorSetsHolderImpl : public descriptor_sets_holder::Holder<Scene, DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>
+		{
+			void FillData(const Scene& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
+			void FillData(const Scene& scene, render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
+			void FillData(const Scene& scene, render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
+		};
+
+	private:
+		std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>> models;
+	};
+
+	Scene::Scene()
+	{
+		impl_ = std::make_unique<SceneImpl>();
+	}
+
+	Camera& Scene::GetActiveCamera()
+	{
+		return impl_->camera;
+	}
+	const Camera& Scene::GetActiveCamera() const
+	{
+		return impl_->camera;
+	}
+	void Scene::SceneImpl::AddModel(Model model)
+	{
+
 	}
 }
-
-void render::ModelSceneDescSetHolder::AttachDescriptorSets(DescriptorSetsManager& manager)
-{
-	DescriptorSetHolder::AttachDescriptorSets(manager);
-	for (auto&& child_model : model_descriptor_sets_holders_)
-	{
-		child_model.AttachDescriptorSets(manager);
-	}
-}
-
-//void render::ModelSceneDescSetHolder::AddModel(const render::Mesh& model)
-//{
-//	model_descriptor_sets_holders_.push_back(ModelDescSetHolder(device_cfg_, model));
-//	children_nodes_.push_back(model_descriptor_sets_holders_.back().GetRenderNode());
-//}
-
-render::UIScene::UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui): 
-	DescriptorSetHolder(device_cfg), ui_(ui), screen_panel_(0,0,ui.GetExtent().width, ui.GetExtent().height), 
-	text_block_(ui, 20, 20, 30, U"!")
-{
-	ui_polygones_.reserve(64);
-	ui_polygones_geom_.reserve(64);
-
-	screen_panel_.AddChild(text_block_);
-	std::vector<std::pair<glm::mat4, std::pair<glm::vec2, glm::vec2>>> to_render;
-	screen_panel_.CollectRender(glm::identity<glm::mat4>(), to_render);
-
-	for (auto&& [transform, atlas] : to_render)
-	{
-		ui_polygones_.push_back(UIPoly(device_cfg_, ui_, transform, atlas.first, atlas.second));
-		ui_polygones_geom_.push_back(ui_polygones_.back());
-	}
-}
-
-void render::UIScene::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
-{
-	data.texture = ui_.GetAtlas();
-	data.texture_sampler = ui_.GetUISampler();
-}
-
-
-
-render::SceneRenderNode render::UIScene::GetRenderNode()
-{
-	children_nodes_.clear();
-	for (auto&& poly : ui_polygones_)
-		children_nodes_.push_back(poly.GetRenderNode());
-	return SceneRenderNode(*this, children_nodes_);
-}
-
-void render::UIScene::UpdateData()
-{
-	DescriptorSetHolder::UpdateData();
-	for (auto&& child_model : ui_polygones_)
-	{
-		child_model.UpdateData();
-	}
-}
-
-void render::UIScene::AttachDescriptorSets(DescriptorSetsManager& manager)
-{
-	DescriptorSetHolder::AttachDescriptorSets(manager);
-	for (auto&& child_model : ui_polygones_)
-	{
-		child_model.AttachDescriptorSets(manager);
-	}
-}
-
-
-
-render::UIPoly::UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, glm::vec2 atlas_position, glm::vec2 atlas_width_height): 
-	DescriptorSetHolder(device_cfg), ui_(ui), transform_(transform), atlas_position_(atlas_position), atlas_width_height_(atlas_width_height)
-{
-
-	Primitive prim{ ui.GetIndexBuffer() };
-	prim.vertex_buffers[u32(VertexBufferType::kPOSITION)] = ui.GetVertexBuffers()[0];
-	prim.vertex_buffers[u32(VertexBufferType::kTEXCOORD)] = ui.GetVertexBuffers()[1];
-
-	primitives_.push_back(prim);
-}
-
-void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
-{
-	data.model_mat = transform_;
-}
-
-void render::UIPoly::FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data)
-{
-	data.atlas_position = atlas_position_;
-	data.width_heigth = atlas_width_height_;
-	data.color = glm::vec4(0.5, 1.0, 0.5, 1.0);
-}
-
-render::PrimitivesHolderRenderNode render::UIPoly::GetRenderNode()
-{
-	return PrimitivesHolderRenderNode(*this, primitives_);
-}
-
-

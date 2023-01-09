@@ -23,118 +23,125 @@ namespace render
 		Node& node;
 		util::NullableRef<Mesh> mesh;
 		util::NullableRef<Skin> skin;
+
+		struct DescritorSetsHolderImpl : public descriptor_sets_holder::Holder<Model, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>
+		{
+			void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
+			void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
+			void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
+		};
 	};
 
 
-	class RenderNodeBase
-	{
-	public:
-		RenderNodeBase(DescriptorSetHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder) : desc_set_holder_(desc_set_holder) {}
-		const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const { return desc_set_holder_.GetDescriptorSets(); }
+	//class RenderNodeBase
+	//{
+	//public:
+	//	RenderNodeBase(DescriptorSetsHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder) : desc_set_holder_(desc_set_holder) {}
+	//	const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const { return desc_set_holder_.GetDescriptorSets(); }
 
-	protected:
-		DescriptorSetHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder_;
-	};
+	//protected:
+	//	DescriptorSetsHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder_;
+	//};
 
-	class PrimitivesHolderRenderNode : public RenderNodeBase
-	{
+	//class PrimitivesHolderRenderNode : public RenderNodeBase
+	//{
 
-	public:
+	//public:
 
-		PrimitivesHolderRenderNode(DescriptorSetHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder, const std::vector<Primitive>& primitives) : RenderNodeBase(desc_set_holder), primitives_(primitives) {}
-		
-		const std::vector<Primitive>& GetPrimitives() const { return primitives_; }
-	
-	protected:
-		const std::vector<Primitive>& primitives_;
-	
-	};
+	//	PrimitivesHolderRenderNode(DescriptorSetsHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder, const std::vector<Primitive>& primitives) : RenderNodeBase(desc_set_holder), primitives_(primitives) {}
+	//	
+	//	const std::vector<Primitive>& GetPrimitives() const { return primitives_; }
+	//
+	//protected:
+	//	const std::vector<Primitive>& primitives_;
+	//
+	//};
 
-	class SceneRenderNode : public RenderNodeBase
-	{
-	public:
+	//class SceneRenderNode : public RenderNodeBase
+	//{
+	//public:
 
-		SceneRenderNode(DescriptorSetHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder, const std::vector<PrimitivesHolderRenderNode>& children) : RenderNodeBase(desc_set_holder), children_(children) {}
+	//	SceneRenderNode(DescriptorSetsHolderInternal<DescriptorSetType::ListEnd>& desc_set_holder, const std::vector<PrimitivesHolderRenderNode>& children) : RenderNodeBase(desc_set_holder), children_(children) {}
 
-		const std::vector<PrimitivesHolderRenderNode>& GetChildren() const { return children_; }
+	//	const std::vector<PrimitivesHolderRenderNode>& GetChildren() const { return children_; }
 
-	protected:
-		const std::vector<PrimitivesHolderRenderNode>& children_;
-	};
+	//protected:
+	//	const std::vector<PrimitivesHolderRenderNode>& children_;
+	//};
 
-	class ModelDescSetHolder : public DescriptorSetHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>
-	{
-	public:
+	//class ModelDescSetHolder : public DescriptorSetsHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>
+	//{
+	//public:
 
-		ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Model& model);
-		const Model& GetModel() const;
+	//	ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Model& model);
+	//	const Model& GetModel() const;
 
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
+	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
+	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
+	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
+	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
 
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
+	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
 
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
-
-
-		PrimitivesHolderRenderNode GetRenderNode();
-
-	private:
-		const Model& model_;
-		std::optional<Sampler> diffuse_sampler_;
-	};
+	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 
 
-	class ModelSceneDescSetHolder : public DescriptorSetHolder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>
-	{
-	public:
+	//	PrimitivesHolderRenderNode GetRenderNode();
 
-		ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const Scene& scene);
-
-		const std::vector<ModelDescSetHolder>& GetModels() const;
-
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data) override;
-
-		SceneRenderNode GetRenderNode();
-
-		void UpdateData();
-
-		void AttachDescriptorSets(DescriptorSetsManager& manager);
-
-		//void AddModel(const render::Mesh& model);
-
-		util::NullableRef<const Image> g_albedo_image;
-		util::NullableRef<const Image> g_position_image;
-		util::NullableRef<const Image> g_normal_image;
-		util::NullableRef<const Image> g_metal_rough_image;
-
-		util::NullableRef<const Image> shadowmap_image;
-
-	private:
-		
-		std::vector<ModelDescSetHolder> model_descriptor_sets_holders_;
-		std::vector<PrimitivesHolderRenderNode> children_nodes_;
-
-		Image env_image_;
-
-		Sampler diffuse_sampler_;
-		Sampler nearest_sampler_;
-		Sampler shadow_sampler_;
-
-		const Scene& scene_;
-	};
+	//private:
+	//	const Model& model_;
+	//	std::optional<Sampler> diffuse_sampler_;
+	//};
 
 
-	class UIPoly : public DescriptorSetHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kBitmapAtlas>
+	//class ModelSceneDescSetHolder : public DescriptorSetsHolder<Scene, DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>
+	//{
+	//public:
+
+	//	ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const Scene& scene);
+
+	//	const std::vector<ModelDescSetHolder>& GetModels() const;
+
+	//	void FillData(const Scene& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
+	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
+	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
+	//	//void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
+	//	//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
+	//	//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data) override;
+	//	//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data) override;
+	//	//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data) override;
+
+	//	SceneRenderNode GetRenderNode();
+
+	//	void UpdateData();
+
+	//	void AttachDescriptorSets(DescriptorSetsManager& manager);
+
+	//	//void AddModel(const render::Mesh& model);
+
+	//	util::NullableRef<const Image> g_albedo_image;
+	//	util::NullableRef<const Image> g_position_image;
+	//	util::NullableRef<const Image> g_normal_image;
+	//	util::NullableRef<const Image> g_metal_rough_image;
+
+	//	util::NullableRef<const Image> shadowmap_image;
+
+	//private:
+	//	
+	//	std::vector<ModelDescSetHolder> model_descriptor_sets_holders_;
+	//	std::vector<PrimitivesHolderRenderNode> children_nodes_;
+
+	//	Image env_image_;
+
+	//	Sampler diffuse_sampler_;
+	//	Sampler nearest_sampler_;
+	//	Sampler shadow_sampler_;
+
+	//	const Scene& scene_;
+	//};
+
+
+	/*class UIPoly : public DescriptorSetsHolder<DescriptorSetType::kModelMatrix, DescriptorSetType::kBitmapAtlas>
 	{
 		const ui::UI& ui_;
 		std::vector<Primitive> primitives_;
@@ -153,7 +160,7 @@ namespace render
 		PrimitivesHolderRenderNode GetRenderNode();
 	};
 
-	class UIScene : public DescriptorSetHolder<DescriptorSetType::kTexture>
+	class UIScene : public DescriptorSetsHolder<DescriptorSetType::kTexture>
 	{
 		const ui::UI& ui_;
 
@@ -175,7 +182,7 @@ namespace render
 		void AttachDescriptorSets(DescriptorSetsManager& manager);
 
 		std::vector<PrimitivesHolderRenderNode> children_nodes_;
-	};
+	};*/
 }
 
 #endif  // RENDER_ENGINE_RENDER_SCENE_H_

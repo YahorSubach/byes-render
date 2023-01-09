@@ -6,6 +6,8 @@
 
 #include "vulkan/vulkan.h"
 
+#include "common.h"
+
 #include "render/buffer.h"
 #include "render/image_view.h"
 #include "render/object_base.h"
@@ -14,223 +16,234 @@
 
 namespace render
 {
-	template<typename DataType, DescriptorBindingType BindingType>
-	class DescriptorSetBindingData;
-
-	template<typename DataType>
-	class DescriptorSetBindingData<DataType, DescriptorBindingType::kUniform>
+	namespace descriptor_sets_holder
 	{
-		UniformBuffer uniform_buffer_;
 
-		VkDescriptorBufferInfo vk_buffer_info_;
-	public:
 
-		DescriptorSetBindingData(const DeviceConfiguration& device_cfg) : uniform_buffer_(device_cfg, sizeof(DataType)) {}
+		template<typename DataType, DescriptorBindingType BindingType>
+		class BindingData;
 
-		void Update(const DataType& new_data)
+		template<typename DataType>
+		class BindingData<DataType, DescriptorBindingType::kUniform>
 		{
-			uint32_t size = sizeof(DataType);
+			UniformBuffer uniform_buffer_;
 
-			void* mapped_data;
-			vkMapMemory(uniform_buffer_.GetDeviceCfg().logical_device, uniform_buffer_.GetBufferMemory(), 0, size, 0, &mapped_data);
-			memcpy(mapped_data, &new_data, size);
-			vkUnmapMemory(uniform_buffer_.GetDeviceCfg().logical_device, uniform_buffer_.GetBufferMemory());
-		}
+			VkDescriptorBufferInfo vk_buffer_info_;
+		public:
 
-		void FillWriteDescriptorSet(VkWriteDescriptorSet& write_desc_set)
+			BindingData(const DeviceConfiguration& device_cfg) : uniform_buffer_(device_cfg, sizeof(DataType)) {}
+
+			void Update(const DataType& new_data)
+			{
+				uint32_t size = sizeof(DataType);
+
+				void* mapped_data;
+				vkMapMemory(uniform_buffer_.GetDeviceCfg().logical_device, uniform_buffer_.GetBufferMemory(), 0, size, 0, &mapped_data);
+				memcpy(mapped_data, &new_data, size);
+				vkUnmapMemory(uniform_buffer_.GetDeviceCfg().logical_device, uniform_buffer_.GetBufferMemory());
+			}
+
+			void FillWriteDescriptorSet(VkWriteDescriptorSet& write_desc_set)
+			{
+				vk_buffer_info_.buffer = uniform_buffer_.GetHandle();
+				vk_buffer_info_.offset = 0;
+				vk_buffer_info_.range = sizeof(DataType);
+
+				write_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write_desc_set.dstArrayElement = 0;
+				write_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				write_desc_set.descriptorCount = 1;
+				write_desc_set.pBufferInfo = &vk_buffer_info_;
+			}
+		};
+
+		template<typename DataType>
+		class BindingData<DataType, DescriptorBindingType::kSampler>
 		{
-			vk_buffer_info_.buffer = uniform_buffer_.GetHandle();
-			vk_buffer_info_.offset = 0;
-			vk_buffer_info_.range = sizeof(DataType);
+			ImageView image_view_;
 
-			write_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			write_desc_set.dstArrayElement = 0;
-			write_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			write_desc_set.descriptorCount = 1;
-			write_desc_set.pBufferInfo = &vk_buffer_info_;
-		}
-	};
+			VkDescriptorImageInfo vk_image_info_;
 
-	template<typename DataType>
-	class DescriptorSetBindingData<DataType, DescriptorBindingType::kSampler>
-	{
-		ImageView image_view_;
+			util::NullableRef<const Sampler> sampler_;
 
-		VkDescriptorImageInfo vk_image_info_;
+		public:
 
-		util::NullableRef<const Sampler> sampler_;
+			BindingData(const DeviceConfiguration& device_cfg) : image_view_(device_cfg) {}
 
-	public:
+			void Update(const DataType& new_data)
+			{
+				image_view_.Assign(*(new_data.GetImage()));
+				sampler_ = new_data.GetSampler();
+				//image_view_.AddUsageFlag(VK_IMAGE_USAGE_SAMPLED_BIT);
+			}
 
-		DescriptorSetBindingData(const DeviceConfiguration& device_cfg) : image_view_(device_cfg) {}
+			void FillWriteDescriptorSet(VkWriteDescriptorSet& write_desc_set)
+			{
+				vk_image_info_.imageLayout = image_view_.GetFormat() == image_view_.GetDeviceCfg().depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		void Update(const DataType& new_data)
+				vk_image_info_.imageView = image_view_.GetHandle();
+				vk_image_info_.sampler = sampler_->GetHandle();
+
+				write_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write_desc_set.dstArrayElement = 0;
+				write_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				write_desc_set.descriptorCount = 1;
+				write_desc_set.pImageInfo = &vk_image_info_;
+			}
+		};
+
+		template<typename DescribedObjectType, DescriptorSetType Type, int BindingIndex>
+		class Binding : public Binding<DescribedObjectType, Type, BindingIndex - 1>
 		{
-			image_view_.Assign(*(new_data.GetImage()));
-			sampler_ = new_data.GetSampler();
-			//image_view_.AddUsageFlag(VK_IMAGE_USAGE_SAMPLED_BIT);
-		}
+			using DescriptorSetDesc = typename DescriptorSet<Type>;
+			using BindingDesc = typename DescriptorSetDesc::template Binding<BindingIndex>;
+			using BindingDataType = typename BindingDesc::Data;
 
-		void FillWriteDescriptorSet(VkWriteDescriptorSet& write_desc_set)
+			BindingData<BindingDataType, BindingDesc::type> data_;
+
+		public:
+
+			Binding(const DeviceConfiguration& device_cfg) : Binding<Type, BindingIndex - 1>(device_cfg), data_(device_cfg) {}
+
+			virtual void FillData(const DescribedObjectType& object, BindingDataType& data) = 0;
+
+			void UpdateDataInternal()
+			{
+				typename BindingDesc::Data new_data;
+				FillData(new_data);
+
+				data_.Update(new_data);
+
+				Binding<Type, BindingIndex - 1>::UpdateDataInternal();
+			}
+
+			void FillDescriptorSetWrites(VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet>& descriptor_set_writes)
+			{
+				descriptor_set_writes[BindingIndex].dstSet = descriptor_set;
+				descriptor_set_writes[BindingIndex].dstBinding = BindingIndex;
+
+				data_.FillWriteDescriptorSet(write_descriptor_sets[BindingIndex]);
+
+				Binding<Type, BindingIndex - 1>::FillDescriptorSetWrites(descriptor_set, descriptor_set_writes);
+			}
+		};
+
+		template<typename DescribedObjectType, DescriptorSetType Type>
+		class Binding<DescribedObjectType, Type, -1>
 		{
-			vk_image_info_.imageLayout = image_view_.GetFormat() == image_view_.GetDeviceCfg().depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				
-			vk_image_info_.imageView = image_view_.GetHandle();
-			vk_image_info_.sampler = sampler_->GetHandle();
+		public:
 
-			write_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			write_desc_set.dstArrayElement = 0;
-			write_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			write_desc_set.descriptorCount = 1;
-			write_desc_set.pImageInfo = &vk_image_info_;
-		}
-	};
+			Binding(const DeviceConfiguration& device_cfg) {}
 
-	template<DescriptorSetType Type, int BindingIndex>
-	class DescriptorSetBinding : public DescriptorSetBinding<Type, BindingIndex-1>
-	{
-		using DescriptorSetDesc = typename DescriptorSet<Type>;
-		using BindingDesc = typename DescriptorSetDesc::template Binding<BindingIndex>;
-		using BindingDataType = typename BindingDesc::Data;
+			void UpdateDataInternal() {}
 
-		DescriptorSetBindingData<BindingDataType, BindingDesc::type> data_;
+			void FillDescriptorSetWrites(VkDescriptorSet descriptor_set, std::vector<VkWriteDescriptorSet>& write_descriptor_sets) {}
+		};
 
-	public:
-		
-		DescriptorSetBinding(const DeviceConfiguration& device_cfg) : DescriptorSetBinding<Type, BindingIndex - 1>(device_cfg), data_(device_cfg) {}
-
-		virtual void FillData(BindingDataType& data) = 0;
-
-		void UpdateDataInternal()
+		template<typename DescribedObjectType, DescriptorSetType Type>
+		struct Bindings : public Binding<DescribedObjectType, Type, DescriptorSet<Type>::binding_count - 1>
 		{
-			typename BindingDesc::Data new_data;
-			FillData(new_data);
+		public:
 
-			data_.Update(new_data);
+			Bindings(const DeviceConfiguration& device_cfg) : Binding<Type, DescriptorSet<Type>::binding_count - 1>(device_cfg) {}
 
-			DescriptorSetBinding<Type, BindingIndex - 1>::UpdateDataInternal();
-		}
+			void FillDescriptorSetWrites(VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet> write_descriptor_sets)
+			{
+				Binding<Type, DescriptorSet<Type>::binding_count - 1>::FillDescriptorSetWrites(desc_set, writes);
+			}
 
-		void FillWriteDescriptorSets(VkDescriptorSet descriptor_set, std::vector<VkWriteDescriptorSet>& write_descriptor_sets)
+			void UpdateDataInternal(const DescribedObjectType& object)
+			{
+				Binding<Type, DescriptorSet<Type>::binding_count - 1>::UpdateDataInternal();
+			}
+		};
+
+
+
+
+		//--------------------------------------------------------------------------------------------------------------------------
+
+
+
+		template<typename DescribedObjectType, DescriptorSetType T1, DescriptorSetType... Ts>
+		class HolderInternal : public HolderInternal<DescribedObjectType, Ts...>, public Bindings<DescribedObjectType, T1>
 		{
-			write_descriptor_sets[BindingIndex].dstSet = descriptor_set;
-			write_descriptor_sets[BindingIndex].dstBinding = BindingIndex;
+		public:
 
-			data_.FillWriteDescriptorSet(write_descriptor_sets[BindingIndex]);
+			HolderInternal(const DeviceConfiguration& device_cfg) : HolderInternal<DescribedObjectType, Ts...>(device_cfg), Bindings<DescribedObjectType, T1>(device_cfg)
+			{}
 
-			DescriptorSetBinding<Type, BindingIndex - 1>::FillWriteDescriptorSets(descriptor_set, write_descriptor_sets);
-		}
-	};
+		protected:
 
-	template<DescriptorSetType Type>
-	class DescriptorSetBinding<Type, -1>
-	{
-	public:
+			int FillDescriptorSetWrites(DescriptorSetsManager& manager, std::span<VkWriteDescriptorSet> write_descriptor_sets)
+			{
+				int writes_filled_cnt = 0;
 
-		DescriptorSetBinding(const DeviceConfiguration& device_cfg) {}
+				for (int frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
+				{
+					VkDescriptorSet vk_descriptor_set = manager.GetFreeDescriptor(Type);
 
-		void UpdateDataInternal() {}
+					Bindings<DescribedObjectType, T1>::FillDescriptorSetWrites(vk_descriptor_set, write_descriptor_sets);
+					writes_filled_cnt += DescriptorSet<T1>::binding_count;
 
-		void FillWriteDescriptorSets(VkDescriptorSet descriptor_set, std::vector<VkWriteDescriptorSet>& write_descriptor_sets) {}
-	};
+					auto next_span = std::span(write_descriptor_sets.data() + DescriptorSet<T1>::binding_count, write_descriptor_sets.size() - DescriptorSet<T1>::binding_count);
+					writes_filled_cnt += HolderInternal<DescribedObjectType, Ts...>::FillDescriptorSetWrites(manager, next_span);
+				}
 
-	template<DescriptorSetType Type>
-	struct DescriptorSetBindingsCollection : public DescriptorSetBinding<Type, DescriptorSet<Type>::binding_count - 1>
-	{
-	public:
+			}
 
-		DescriptorSetBindingsCollection(const DeviceConfiguration& device_cfg) : DescriptorSetBinding<Type, DescriptorSet<Type>::binding_count - 1>(device_cfg) {}
+			void UpdateDataInternal(const DescribedObjectType& object)
+			{
+				Bindings<DescribedObjectType, T1>::UpdateDataInternal();
+				HolderInternal<DescribedObjectType, Ts...>::UpdateDataInternal();
+			}
+		};
 
-		VkDescriptorSet AttachDescriptorSetsInternal(const DeviceConfiguration& device_cfg, DescriptorSetsManager& manager)
+		template<typename DescribedObjectType>
+		class HolderInternal<DescribedObjectType, DescriptorSetType::ListEnd> : public RenderObjBase<void*>
 		{
-			VkDescriptorSet desc_set = manager.GetFreeDescriptor(Type);
-			std::vector<VkWriteDescriptorSet> writes(DescriptorSet<Type>::binding_count);
+		public:
 
-			DescriptorSetBinding<Type, DescriptorSet<Type>::binding_count - 1>::FillWriteDescriptorSets(desc_set, writes);
+			HolderInternal(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg) {}
 
-			vkUpdateDescriptorSets(device_cfg.logical_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+			const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets(uint32_t frame_index) const
+			{
+				return descriptor_sets_per_frame_[frame_index];
+			}
 
-			return desc_set;
-		}
+		protected:
 
-		void UpdateDataInternal()
+			int FillDescriptorSetWrites(std::span<VkWriteDescriptorSet> write_descriptor_sets) { return 0; }
+			void UpdateDataInternal(const DescribedObjectType& object) {}
+
+			std::array<std::map<DescriptorSetType, VkDescriptorSet>, kFramesCount> descriptor_sets_per_frame_;
+		};
+
+		template<typename DescribedObjectType, DescriptorSetType... Ts>
+		class Holder : public HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>
 		{
-			DescriptorSetBinding<Type, DescriptorSet<Type>::binding_count - 1>::UpdateDataInternal();
-		}
-	};
+		public:
 
+			DescriptorSetsHolder(const DeviceConfiguration& device_cfg, DescriptorSetsManager& manager) : HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>(device_cfg)
+			{
+				AttachDescriptorSets(manager);
+			}
 
+			void UpdateData(const DescribedObjectType& object)
+			{
+				HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>::UpdateDataInternal(const DescribedObjectType & object);
+			}
 
+		private:
 
-	//--------------------------------------------------------------------------------------------------------------------------
-
-
-
-	template<DescriptorSetType T1, DescriptorSetType... Ts>
-	class DescriptorSetHolderInternal : public DescriptorSetHolderInternal<Ts...>, public DescriptorSetBindingsCollection<T1>
-	{
-	public:
-
-		DescriptorSetHolderInternal(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal<Ts...>(device_cfg), DescriptorSetBindingsCollection<T1>(device_cfg)
-		{}
-
-	protected:
-
-		void AttachDescriptorSetsInternal(DescriptorSetsManager& manager)
-		{
-			VkDescriptorSet desc_set = DescriptorSetBindingsCollection<T1>::AttachDescriptorSetsInternal(DescriptorSetHolderInternal<Ts...>::device_cfg_, manager);
-
-			DescriptorSetHolderInternal<Ts...>::descriptor_sets_[T1] = desc_set;
-			
-			DescriptorSetHolderInternal<Ts...>::AttachDescriptorSetsInternal(manager);
-		}
-
-		void UpdateDataInternal()
-		{
-			DescriptorSetBindingsCollection<T1>::UpdateDataInternal();
-			DescriptorSetHolderInternal<Ts...>::UpdateDataInternal();
-		}
-	};
-
-	template<>
-	class DescriptorSetHolderInternal<DescriptorSetType::ListEnd> : public RenderObjBase<void*>
-	{
-	public:
-
-		DescriptorSetHolderInternal(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg) {}
-
-		const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets() const
-		{
-			return descriptor_sets_;
-		}
-
-	protected:
-
-
-		virtual void AttachDescriptorSetsInternal(DescriptorSetsManager& manager) {}
-		virtual void UpdateDataInternal() {}
-
-		std::map<DescriptorSetType, VkDescriptorSet> descriptor_sets_;
-	};
-
-	template<DescriptorSetType... Ts>
-	class DescriptorSetHolder : public DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>
-	{
-	public:
-
-		DescriptorSetHolder(const DeviceConfiguration& device_cfg) : DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>(device_cfg) {}
-
-	//protected:
-
-		void UpdateData()
-		{
-			DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>::UpdateDataInternal();
-		}
-
-		void AttachDescriptorSets(DescriptorSetsManager& manager)
-		{
-			DescriptorSetHolderInternal<Ts..., DescriptorSetType::ListEnd>::AttachDescriptorSetsInternal(manager);
-		}
-	};
+			void AttachDescriptorSets(DescriptorSetsManager& manager)
+			{
+				//TODO: calc preciesly
+				std::array<VkWriteDescriptorSet, 64> writes;
+				int writes_filled_cnt = HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>::FillDescriptorSetWrites(manager, writes);
+				vkUpdateDescriptorSets(device_cfg.logical_device, writes_filled_cnt, writes.data(), 0, nullptr);
+			}
+		};
+	}
 }
 #endif  // RENDER_ENGINE_RENDER_DESCRIPTOR_SET_HOLDER_H_
