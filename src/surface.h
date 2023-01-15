@@ -13,7 +13,7 @@ namespace render
 	class Surface: public RenderObjBase<VkSurfaceKHR>
 	{
 	public:
-		Surface(platform::Window window_handle, const VkInstance& instance, const DeviceConfiguration& device_cfg);
+		Surface(platform::Window window_handle, const VkInstance& instance, const Global& global);
 
 		Surface(const Surface&) = delete;
 		Surface(Surface&&) = default;

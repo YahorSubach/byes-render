@@ -18,8 +18,8 @@ namespace render
 	class Buffer : public RenderObjBase<VkBuffer>
 	{
 	public:
-		Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indices);
-		Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags);
+		Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indices);
+		Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags);
 
 		Buffer(const Buffer&) = delete;
 		Buffer(Buffer&&) = default;
@@ -59,8 +59,8 @@ namespace render
 	class StagingBuffer : public Buffer
 	{
 	public:
-		StagingBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage = 0, const std::vector<uint32_t>& queue_famaly_indices = {}) :
-			Buffer(device_cfg, size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_famaly_indices) {}
+		StagingBuffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage = 0, const std::vector<uint32_t>& queue_famaly_indices = {}) :
+			Buffer(global, size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_famaly_indices) {}
 
 		virtual void LoadData(const void* data, size_t size);
 	};
@@ -68,8 +68,8 @@ namespace render
 	class GPULocalBuffer : public Buffer
 	{
 	public:
-		GPULocalBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage = 0, const std::vector<uint32_t>& queue_famaly_indices = {}) :
-			Buffer(device_cfg, size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_famaly_indices) {}
+		GPULocalBuffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage = 0, const std::vector<uint32_t>& queue_famaly_indices = {}) :
+			Buffer(global, size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, queue_famaly_indices) {}
 
 		virtual void LoadData(const void* data, size_t size);
 	};
@@ -77,8 +77,8 @@ namespace render
 	class GPULocalVertexBuffer : public GPULocalBuffer
 	{
 	public:
-		GPULocalVertexBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size) :
-			GPULocalBuffer(device_cfg, size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) {}
+		GPULocalVertexBuffer(const Global& global, VkDeviceSize size) :
+			GPULocalBuffer(global, size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) {}
 	};
 
 	class UniformBuffer : public Buffer
@@ -86,8 +86,8 @@ namespace render
 	public:
 
 
-		UniformBuffer(const DeviceConfiguration& device_cfg, VkDeviceSize size) :
-			Buffer(device_cfg, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {}) {}
+		UniformBuffer(const Global& global, VkDeviceSize size) :
+			Buffer(global, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {}) {}
 
 		virtual void LoadData(const void* data, size_t size);
 

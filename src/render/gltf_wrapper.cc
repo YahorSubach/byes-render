@@ -11,7 +11,9 @@
 
 #include "stl_util.h"
 
-render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const tinygltf::Model& gltf_model)
+#include "global.h"
+
+render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager)
 {
 	tinygltf::TinyGLTF loader;
 	std::string err;
@@ -21,11 +23,11 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 
 //	if (load_result)
 //	{
-		std::vector<uint32_t> queue_indices = { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index };
+		std::vector<uint32_t> queue_indices = { global.graphics_queue_index, global.transfer_queue_index };
 
 		for (auto&& buffer : gltf_model.buffers)
 		{
-			buffers_.push_back(GPULocalBuffer(device_cfg, gltf_model.buffers[0].data.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
+			buffers_.push_back(GPULocalBuffer(global, gltf_model.buffers[0].data.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
 			buffers_.back().LoadData(buffer.data.data(), buffer.data.size());
 		}
 
@@ -34,8 +36,8 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 			auto&& buffer_view = gltf_model.bufferViews[image.bufferView];
 			auto&& buffer = gltf_model.buffers[buffer_view.buffer];
 
-			//images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, buffer.data.data() + buffer_view.byteOffset, {ImageProperty::kShaderInput, ImageProperty::kMipMap }));
-			images_.push_back(Image(device_cfg, VK_FORMAT_R8G8B8A8_UNORM, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
+			//images_.push_back(Image(global, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, buffer.data.data() + buffer_view.byteOffset, {ImageProperty::kShaderInput, ImageProperty::kMipMap }));
+			images_.push_back(Image(global, VK_FORMAT_R8G8B8A8_UNORM, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
 
 
 			for (int i = 0; i < image.height; i++)
@@ -56,7 +58,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 
 
 
-			images_views_.push_back(ImageView(device_cfg, images_.back()));
+			images_views_.push_back(ImageView(global, images_.back()));
 		}
 
 		nodes.resize(gltf_model.nodes.size());
@@ -105,6 +107,7 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 
 
 		meshes.resize(gltf_model.meshes.size());
+
 		for (int mesh_index = 0; mesh_index < meshes.size(); mesh_index++)
 		{
 			const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[mesh_index];
@@ -180,16 +183,15 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 		for (int i = 0; i < gltf_model.nodes.size(); i++)
 		{
 			auto&& gltf_node = gltf_model.nodes[i];
+			auto&& node = nodes[i];
 
 			if (gltf_node.mesh != -1)
 			{
+				models.push_back({global, manager, node, meshes[gltf_node.mesh], });
 
 				const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
 
-				//meshes.push_back(Mesh{ nodes[i] });
-
-
-
+				
 				if(gltf_node.skin != -1)
 				{
 					auto&& gltf_skin = gltf_model.skins[gltf_node.skin];
@@ -218,67 +220,67 @@ render::GLTFWrapper::GLTFWrapper(const DeviceConfiguration& device_cfg, const ti
 						skins[gltf_node.skin].joints.push_back(Joint{ nodes[gltf_skin.joints[i]], inverce_matrices[i] });
 					}
 				}
+			}
 
-				for (auto&& anim : gltf_model.animations)
+			
+			for (auto&& anim : gltf_model.animations)
+			{
+				Animation animation;
+
+				for (int channel_ind = 0; channel_ind < anim.channels.size(); channel_ind++)
 				{
-					Animation animation;
+					int sampler_ind = anim.channels[channel_ind].sampler;
 
-					for (int channel_ind = 0;  channel_ind < anim.channels.size(); channel_ind++)
+					std::span<const float> times = BuildVectorFromAccessorIndex<float>(gltf_model, anim.samplers[sampler_ind].input);
+
+					if (anim.channels[channel_ind].target_path == "translation")
 					{
-						int sampler_ind = anim.channels[channel_ind].sampler;
+						std::span<const glm::vec3> values = BuildVectorFromAccessorIndex<glm::vec3>(gltf_model, anim.samplers[sampler_ind].output);
+						AnimSampler<glm::vec3> sampler;
+						sampler.node_index = anim.channels[channel_ind].target_node;
+						sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;
 
-						std::span<const float> times = BuildVectorFromAccessorIndex<float>(gltf_model, anim.samplers[sampler_ind].input);
-
-						if (anim.channels[channel_ind].target_path == "translation")
+						for (int i = 0; i < values.size(); i++)
 						{
-							std::span<const glm::vec3> values = BuildVectorFromAccessorIndex<glm::vec3>(gltf_model, anim.samplers[sampler_ind].output);
-							AnimSampler<glm::vec3> sampler;
-							sampler.node_index = anim.channels[channel_ind].target_node;
-							sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;
-
-							for (int i = 0; i < values.size(); i++)
-							{
-								int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
-								sampler.frames.push_back({ std::chrono::milliseconds(ms_time), values[i] });
-							}
-
-							animation.translations.push_back(sampler);
+							int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
+							sampler.frames.push_back({ std::chrono::milliseconds(ms_time), values[i] });
 						}
-						else if (anim.channels[channel_ind].target_path == "scale")
-						{
-							std::span<const glm::vec3> values = BuildVectorFromAccessorIndex<glm::vec3>(gltf_model, anim.samplers[sampler_ind].output);
-							AnimSampler<glm::vec3> sampler;
-							sampler.node_index = anim.channels[channel_ind].target_node;
-							sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;
 
-							for (int i = 0; i < values.size(); i++)
-							{
-								int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
-								sampler.frames.push_back({ std::chrono::milliseconds(ms_time), values[i] });
-							}
-
-							animation.scales.push_back(sampler);
-						}
-						else if (anim.channels[channel_ind].target_path == "rotation")
-						{
-							std::span<const glm::vec4> values = BuildVectorFromAccessorIndex<glm::vec4>(gltf_model, anim.samplers[sampler_ind].output);
-							AnimSampler<glm::quat> sampler;
-							sampler.node_index = anim.channels[channel_ind].target_node;
-							sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;
-
-							for (int i = 0; i < values.size(); i++)
-							{
-								int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
-								sampler.frames.push_back({ std::chrono::milliseconds(ms_time), glm::quat(values[i].w,values[i].x,values[i].y,values[i].z) });
-							}
-
-							animation.rotations.push_back(sampler);
-						}
+						animation.translations.push_back(sampler);
 					}
+					else if (anim.channels[channel_ind].target_path == "scale")
+					{
+						std::span<const glm::vec3> values = BuildVectorFromAccessorIndex<glm::vec3>(gltf_model, anim.samplers[sampler_ind].output);
+						AnimSampler<glm::vec3> sampler;
+						sampler.node_index = anim.channels[channel_ind].target_node;
+						sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;
 
-					animations.emplace(anim.name, animation);
+						for (int i = 0; i < values.size(); i++)
+						{
+							int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
+							sampler.frames.push_back({ std::chrono::milliseconds(ms_time), values[i] });
+						}
+
+						animation.scales.push_back(sampler);
+					}
+					else if (anim.channels[channel_ind].target_path == "rotation")
+					{
+						std::span<const glm::vec4> values = BuildVectorFromAccessorIndex<glm::vec4>(gltf_model, anim.samplers[sampler_ind].output);
+						AnimSampler<glm::quat> sampler;
+						sampler.node_index = anim.channels[channel_ind].target_node;
+						sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;
+
+						for (int i = 0; i < values.size(); i++)
+						{
+							int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
+							sampler.frames.push_back({ std::chrono::milliseconds(ms_time), glm::quat(values[i].w,values[i].x,values[i].y,values[i].z) });
+						}
+
+						animation.rotations.push_back(sampler);
+					}
 				}
 
+				animations.emplace(anim.name, animation);
 			}
 		}
 

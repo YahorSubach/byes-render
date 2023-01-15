@@ -20,8 +20,8 @@ namespace render
 			kClampToBorder,
 		};
 
-		Sampler(const DeviceConfiguration& device_cfg, uint32_t mipmap_cnt = 0, AddressMode address_mode = AddressMode::kRepeat, bool use_nearest_filtering = false);
-		//Sampler(const DeviceConfiguration& device_cfg, util::NullableRef<const Image> image);
+		Sampler(const Global& global, uint32_t mipmap_cnt = 0, AddressMode address_mode = AddressMode::kRepeat, bool use_nearest_filtering = false);
+		//Sampler(const Global& global, util::NullableRef<const Image> image);
 
 		Sampler(const Sampler&) = delete;
 		Sampler(Sampler&&) = default;

@@ -1,10 +1,12 @@
 #include "image_view.h"
 
-render::ImageView::ImageView(const DeviceConfiguration& device_cfg) :RenderObjBase(device_cfg), format_(VK_FORMAT_UNDEFINED)
+#include "global.h"
+
+render::ImageView::ImageView(const Global& global) :RenderObjBase(global), format_(VK_FORMAT_UNDEFINED)
 {
 }
 
-render::ImageView::ImageView(const DeviceConfiguration& device_cfg, const Image& image): RenderObjBase(device_cfg), format_(VK_FORMAT_UNDEFINED)
+render::ImageView::ImageView(const Global& global, const Image& image): RenderObjBase(global), format_(VK_FORMAT_UNDEFINED)
 {
 	Assign(image);
 }
@@ -49,7 +51,7 @@ void render::ImageView::Assign(const Image& image)
 	view_info.subresourceRange.baseArrayLayer = 0;
 	view_info.subresourceRange.layerCount = 1;
 
-	if (vkCreateImageView(device_cfg_.logical_device, &view_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateImageView(global_.logical_device, &view_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture image view!");
 	}
 }
@@ -92,7 +94,7 @@ render::ImageView::~ImageView()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(device_cfg_.logical_device, handle_, nullptr);
+		vkDestroyImageView(global_.logical_device, handle_, nullptr);
 	}
 }
 

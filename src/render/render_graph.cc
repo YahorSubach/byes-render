@@ -3,9 +3,12 @@
 #include <stack>
 #include <queue>
 #include <set>
+
+#include "global.h"
+
 //
 //
-//render::RenderGraph::RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene) : RenderObjBase(device_cfg)
+//render::RenderGraph::RenderGraph(const Global& global, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene) : RenderObjBase(global)
 //{
 //	//TODO fuck! You really have to change this return of push back logic
 //	collection_.images.reserve(16);
@@ -14,22 +17,22 @@
 //	collection_.render_batches.reserve(16);
 //
 //
-//	auto&& [g_albedo_image, g_albedo_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.high_range_color_format, device_cfg_.presentation_extent);
-//	auto&& [g_position_image, g_position_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.high_range_color_format, device_cfg_.presentation_extent);
-//	auto&& [g_normal_image, g_normal_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.high_range_color_format, device_cfg_.presentation_extent);
-//	auto&& [g_metallic_roughness_image, g_metallic_roughness_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.high_range_color_format, device_cfg_.presentation_extent);
+//	auto&& [g_albedo_image, g_albedo_image_view] = collection_.CreateImage(global_, global_.high_range_color_format, global_.presentation_extent);
+//	auto&& [g_position_image, g_position_image_view] = collection_.CreateImage(global_, global_.high_range_color_format, global_.presentation_extent);
+//	auto&& [g_normal_image, g_normal_image_view] = collection_.CreateImage(global_, global_.high_range_color_format, global_.presentation_extent);
+//	auto&& [g_metallic_roughness_image, g_metallic_roughness_image_view] = collection_.CreateImage(global_, global_.high_range_color_format, global_.presentation_extent);
 //
-//	auto&& [g_depth_image, g_depth_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.depth_map_format, device_cfg_.presentation_extent);
+//	auto&& [g_depth_image, g_depth_image_view] = collection_.CreateImage(global_, global_.depth_map_format, global_.presentation_extent);
 //
-//	auto&& [g_shadowmap_image, g_shadowmap_image_view] = collection_.CreateImage(device_cfg_, device_cfg_.depth_map_format, device_cfg_.shadowmap_extent);
+//	auto&& [g_shadowmap_image, g_shadowmap_image_view] = collection_.CreateImage(global_, global_.depth_map_format, global_.shadowmap_extent);
 //
 //
-//	auto&& shadowmap_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.shadowmap_extent, render_setup.GetRenderPass(RenderPassId::kBuildDepthmap));
+//	auto&& shadowmap_framebuffer = collection_.CreateFramebuffer(global_, global_.shadowmap_extent, render_setup.GetRenderPass(RenderPassId::kBuildDepthmap));
 //	shadowmap_framebuffer.Attach("shadowmap", g_shadowmap_image_view);
 //
 //
-//	auto&& g_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kBuildGBuffers));
-//	//auto&& presentation_framebuffer = collection_.CreateFramebuffer(device_cfg_, device_cfg_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen));
+//	auto&& g_framebuffer = collection_.CreateFramebuffer(global_, global_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kBuildGBuffers));
+//	//auto&& presentation_framebuffer = collection_.CreateFramebuffer(global_, global_.presentation_extent, render_setup.GetRenderPass(RenderPassId::kSimpleRenderToScreen));
 //
 //	g_framebuffer.Attach("g_albedo", g_albedo_image_view);
 //	g_framebuffer.Attach("g_position", g_position_image_view);
@@ -74,16 +77,16 @@
 //{
 //}
 //
-//std::pair<render::Image&, render::ImageView&> render::RenderGraph::RenderCollection::CreateImage(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent)
+//std::pair<render::Image&, render::ImageView&> render::RenderGraph::RenderCollection::CreateImage(const Global& global, VkFormat format, Extent extent)
 //{
-//	images.push_back(Image(device_cfg, format, extent));
-//	image_views.push_back(ImageView(device_cfg, images.back()));
+//	images.push_back(Image(global, format, extent));
+//	image_views.push_back(ImageView(global, images.back()));
 //	return { images.back(), image_views.back() };
 //}
 //
-//render::Framebuffer& render::RenderGraph::RenderCollection::CreateFramebuffer(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass)
+//render::Framebuffer& render::RenderGraph::RenderCollection::CreateFramebuffer(const Global& global, Extent extent, const RenderPass& render_pass)
 //{
-//	frambuffers.push_back(Framebuffer(device_cfg, extent, render_pass));
+//	frambuffers.push_back(Framebuffer(global, extent, render_pass));
 //	return frambuffers.back();
 //}
 //
@@ -243,8 +246,8 @@
 //				barrier.newLayout = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 //			}
 //			
-//			barrier.srcQueueFamilyIndex = device_cfg_.graphics_queue_index;
-//			barrier.dstQueueFamilyIndex = device_cfg_.graphics_queue_index;
+//			barrier.srcQueueFamilyIndex = global_.graphics_queue_index;
+//			barrier.dstQueueFamilyIndex = global_.graphics_queue_index;
 //			barrier.image = barrier_image->GetHandle();
 //			barrier.subresourceRange.aspectMask = barrier_image->CheckUsageFlag(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
 //			barrier.subresourceRange.baseMipLevel = 0;
@@ -331,7 +334,7 @@
 //}
 
 
-render::RenderGraph2::RenderGraph2(const DeviceConfiguration& device_cfg): RenderObjBase(device_cfg)
+render::RenderGraph2::RenderGraph2(const Global& global): RenderObjBase(global)
 {
 }
 
@@ -399,7 +402,7 @@ const std::string& render::RenderNode::GetName() const
 
 void render::RenderNode::Build()
 {
-	render_pass_ = RenderPass(render_graph_.GetDeviceCfg(), *this);
+	render_pass_.emplace(RenderPass(render_graph_.GetDeviceCfg(), *this));
 }
 const render::RenderPass& render::RenderNode::GetRenderPass() const
 {
@@ -461,8 +464,8 @@ render::RenderNode::Attachment& render::RenderNode::Attachment::DescriptorSetFor
 	return attachment.ForwardAsSampled(node_to_forward, type, descriptor_set_binding_index);
 }
 
-render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager):
-	RenderObjBase(device_cfg), render_graph_(render_graph), nearest_sampler_(device_cfg, 0, Sampler::AddressMode::kRepeat, true)
+render::RenderGraphHandler::RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager):
+	RenderObjBase(global), render_graph_(render_graph), nearest_sampler_(global, 0, Sampler::AddressMode::kRepeat, true)
 {
 	std::map<std::string, std::map<DescriptorSetType, std::map<int, const AttachmentImage&>>> desc_set_images;
 
@@ -480,9 +483,9 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 				continue;
 			}
 			
-			Image image(device_cfg, attachment.format, extents[u32(RenderNode.GetExtentType())]);
+			Image image(global, attachment.format, extents[u32(RenderNode.GetExtentType())]);
 			
-			if (attachment.format == device_cfg.depth_map_format)
+			if (attachment.format == global.depth_map_format)
 			{
 				image.AddUsageFlag(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 			}
@@ -499,7 +502,7 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 				}
 			}
 
-			ImageView image_view(device_cfg, image);
+			ImageView image_view(global, image);
 
 			auto res = attachment_images_.insert({ attachment.name, AttachmentImage{attachment.format, std::move(image), std::move(image_view)}});
 			framebuffer_params.attachments.push_back(res.first->second.image_view);
@@ -518,7 +521,7 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 
 		if (!RenderNode.use_swapchain_framebuffer)
 		{
-			it->second.frambuffer.emplace(device_cfg, framebuffer_params);
+			it->second.frambuffer.emplace(global, framebuffer_params);
 		}
 	}
 
@@ -536,7 +539,7 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 			for (auto&& [binding_index, binding_att_image] : desc_images)
 			{
 				image_infos[binding_index].sampler = nearest_sampler_.GetHandle();
-				image_infos[binding_index].imageLayout = binding_att_image.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				image_infos[binding_index].imageLayout = binding_att_image.format == global.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				image_infos[binding_index].imageView = binding_att_image.image_view.GetHandle();
 
 				writes[binding_index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -551,13 +554,13 @@ render::RenderGraphHandler::RenderGraphHandler(const DeviceConfiguration& device
 				writes[binding_index].pTexelBufferView = nullptr;
 			}
 
-			vkUpdateDescriptorSets(device_cfg.logical_device, writes.size(), writes.data(), 0, nullptr);
+			vkUpdateDescriptorSets(global.logical_device, writes.size(), writes.data(), 0, nullptr);
 			node_data.descriptor_sets.emplace(desc_type, vk_descriptor_set);
 		}
 	}
 }
 
-bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const
+bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, const Scene::SceneImpl& scene) const
 {
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -615,7 +618,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 			std::vector<VkClearValue> clear_values(framebuffer->GetFormats().size());
 			for (int att_ind = 0; att_ind < framebuffer->GetFormats().size(); att_ind++)
 			{
-				if (framebuffer->GetFormats()[att_ind] == device_cfg_.depth_map_format)
+				if (framebuffer->GetFormats()[att_ind] == global_.depth_map_format)
 				{
 					clear_values[att_ind].depthStencil = { 1.0f, 0 };
 				}
@@ -632,9 +635,10 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 
 			const GraphicsPipeline* current_pipeline = nullptr;
 			VkPipelineLayout pipeline_layout;
-			for (auto&& render_model : render_models)
+			for (auto&& render_model_ref : scene.models_)
 			{
-				if (/*true || */RenderNode.category_flags.Check(render_model.category)) 
+				auto&& render_model = render_model_ref.get();
+				if (true /*RenderNode.category_flags.Check(render_model.category)*/) 
 				{
 
 					if (current_pipeline != &render_model.pipeline)

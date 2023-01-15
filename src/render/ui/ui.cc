@@ -1,5 +1,6 @@
 ﻿#include "ui.h"
 
+#include "render/global.h"
 
 struct Glyph
 {
@@ -8,11 +9,11 @@ struct Glyph
 
 
 
-render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBase(device_cfg),
-    polygon_vert_pos_(device_cfg, 4 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index }),
-    polygon_vert_tex_(device_cfg, 4 * sizeof(glm::vec2), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index }),
-    polygon_vert_ind_(device_cfg, 6 * sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, { device_cfg.graphics_queue_index, device_cfg.transfer_queue_index }),
-    ui_sampler_(device_cfg, 0, Sampler::AddressMode::kClampToEdge), test_image_(Image::FromFile(device_cfg, "../images/old_green_painted_wood.jpg"/*, {ImageProperty::kShaderInput}*/)),
+render::ui::UI::UI(Global& global, Extent extent): RenderObjBase(global),
+    polygon_vert_pos_(global, 4 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { global.graphics_queue_index, global.transfer_queue_index }),
+    polygon_vert_tex_(global, 4 * sizeof(glm::vec2), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { global.graphics_queue_index, global.transfer_queue_index }),
+    polygon_vert_ind_(global, 6 * sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, { global.graphics_queue_index, global.transfer_queue_index }),
+    ui_sampler_(global, 0, Sampler::AddressMode::kClampToEdge), test_image_(Image::FromFile(global, "../images/old_green_painted_wood.jpg"/*, {ImageProperty::kShaderInput}*/)),
     index_buffer_(polygon_vert_ind_, sizeof(uint16_t), 0, 6), extent_(extent)
 {
     std::array<glm::vec3, 4> positions =
@@ -156,7 +157,7 @@ render::ui::UI::UI(DeviceConfiguration& device_cfg, Extent extent): RenderObjBas
         atlas_x += bitmap_width;
     }
 
-    FontData font_data = { {},  Image(device_cfg_, VK_FORMAT_R8_SRGB, { atlas_width, atlas_height}, atlas_data.data()) };
+    FontData font_data = { {},  Image(global_, VK_FORMAT_R8_SRGB, { atlas_width, atlas_height}, atlas_data.data()) };
 
     size_to_font_data_.emplace(font_size, std::move(font_data));
     size_to_font_data_.at(font_size).glyphs = std::move(glyphs);
@@ -198,7 +199,7 @@ const render::ui::Glyph& render::ui::UI::GetGlyph(char32_t character, int font_s
 
         if (face->glyph->bitmap.width != 0 && face->glyph->bitmap.rows != 0)
         {
-            //font_data.glyph_images.emplace((char32_t)character, Image(device_cfg_, VK_FORMAT_R8_SRGB, { face->glyph->bitmap.width, face->glyph->bitmap.rows }, face->glyph->bitmap.buffer/*, {ImageProperty::kShaderInput }*/));
+            //font_data.glyph_images.emplace((char32_t)character, Image(global_, VK_FORMAT_R8_SRGB, { face->glyph->bitmap.width, face->glyph->bitmap.rows }, face->glyph->bitmap.buffer/*, {ImageProperty::kShaderInput }*/));
             contains_bitmap = true;
         }
 

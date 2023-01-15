@@ -42,7 +42,7 @@ namespace render
 
 		};
 
-		Framebuffer(const DeviceConfiguration& device_cfg, const ConstructParams& params);
+		Framebuffer(const Global& global, const ConstructParams& params);
 
 		Framebuffer(const Framebuffer&) = delete;
 		Framebuffer(Framebuffer&&) = default;

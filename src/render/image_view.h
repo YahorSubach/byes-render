@@ -17,8 +17,8 @@ namespace render
 	{
 	public:
 
-		ImageView(const DeviceConfiguration& device_cfg);
-		ImageView(const DeviceConfiguration& device_cfg, const Image& image);
+		ImageView(const Global& global);
+		ImageView(const Global& global, const Image& image);
 
 		ImageView(const ImageView&) = delete;
 		ImageView(ImageView&&) = default;

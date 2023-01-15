@@ -1,6 +1,7 @@
 #include "command_pool.h"
+#include "global.h"
 
-render::CommandPool::CommandPool(const DeviceConfiguration& device_cfg, PoolType pool_type): RenderObjBase(device_cfg), next_available_buffer_(0)
+render::CommandPool::CommandPool(const Global& global, PoolType pool_type): RenderObjBase(global), next_available_buffer_(0)
 {
 	VkCommandPoolCreateInfo pool_info{};
 	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -8,19 +9,19 @@ render::CommandPool::CommandPool(const DeviceConfiguration& device_cfg, PoolType
 
 	if (pool_type == PoolType::kGraphics)
 	{
-		pool_info.queueFamilyIndex = device_cfg.graphics_queue_index;
-		pool_queue_ = device_cfg.graphics_queue;
+		pool_info.queueFamilyIndex = global.graphics_queue_index;
+		pool_queue_ = global.graphics_queue;
 		pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	}
 	else if (pool_type == PoolType::kTransfer)
 	{
-		pool_info.queueFamilyIndex = device_cfg.transfer_queue_index;
-		pool_queue_ = device_cfg.transfer_queue;
+		pool_info.queueFamilyIndex = global.transfer_queue_index;
+		pool_queue_ = global.transfer_queue;
 	}
 
 
 
-	if (vkCreateCommandPool(device_cfg_.logical_device, &pool_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateCommandPool(global_.logical_device, &pool_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
 	}
 }
@@ -29,7 +30,7 @@ bool render::CommandPool::CreateCommandBuffers(uint32_t size)
 {
 	if (command_buffers_.size() > 0)
 	{
-		vkFreeCommandBuffers(device_cfg_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
+		vkFreeCommandBuffers(global_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
 		command_buffers_.clear();
 	}
 
@@ -41,7 +42,7 @@ bool render::CommandPool::CreateCommandBuffers(uint32_t size)
 	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	alloc_info.commandBufferCount = size;
 
-	if (vkAllocateCommandBuffers(device_cfg_.logical_device, &alloc_info, command_buffers_.data()) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(global_.logical_device, &alloc_info, command_buffers_.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
 
@@ -62,7 +63,7 @@ void render::CommandPool::ClearCommandBuffers()
 {
 	if (command_buffers_.size() > 0)
 	{
-		vkFreeCommandBuffers(device_cfg_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
+		vkFreeCommandBuffers(global_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
 		command_buffers_.clear();
 		next_available_buffer_ = 0;
 	}
@@ -83,7 +84,7 @@ void render::CommandPool::ExecuteOneTimeCommand(const std::function<void(VkComma
 	alloc_info.commandBufferCount = 1;
 
 	VkCommandBuffer command_buffer;
-	VkResult res = vkAllocateCommandBuffers(device_cfg_.logical_device, &alloc_info, &command_buffer);
+	VkResult res = vkAllocateCommandBuffers(global_.logical_device, &alloc_info, &command_buffer);
 
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -105,7 +106,7 @@ void render::CommandPool::ExecuteOneTimeCommand(const std::function<void(VkComma
 	vkQueueSubmit(pool_queue_, 1, &submit_info, VK_NULL_HANDLE);
 	vkQueueWaitIdle(pool_queue_);
 
-	vkFreeCommandBuffers(device_cfg_.logical_device, handle_, 1, &command_buffer);
+	vkFreeCommandBuffers(global_.logical_device, handle_, 1, &command_buffer);
 }
 
 render::CommandPool::~CommandPool()
@@ -114,10 +115,10 @@ render::CommandPool::~CommandPool()
 	{
 		if (command_buffers_.size() > 0)
 		{
-			vkFreeCommandBuffers(device_cfg_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
+			vkFreeCommandBuffers(global_.logical_device, handle_, static_cast<uint32_t>(command_buffers_.size()), command_buffers_.data());
 			command_buffers_.clear();
 		}
 
-		vkDestroyCommandPool(device_cfg_.logical_device, handle_, nullptr);
+		vkDestroyCommandPool(global_.logical_device, handle_, nullptr);
 	}
 }

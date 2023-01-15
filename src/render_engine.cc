@@ -20,6 +20,9 @@
 #include <glm/glm/gtc/matrix_transform.hpp>
 
 #include "common.h"
+
+#include "render/global.h"
+
 #include "surface.h"
 #include "render/vk_util.h"
 #include "render/data_types.h"
@@ -152,59 +155,59 @@ namespace render
 				return;
 			}
 
-			device_cfg_.physical_device = vk_physical_devices_[selected_device_index];
-			vkGetPhysicalDeviceProperties(device_cfg_.physical_device, &device_cfg_.physical_device_properties);
+			global_.physical_device = vk_physical_devices_[selected_device_index];
+			vkGetPhysicalDeviceProperties(global_.physical_device, &global_.physical_device_properties);
 			auto images_properties = GetImageFormatsProperties();
 
 
 
-			device_cfg_.graphics_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_GRAPHICS_BIT);
-			device_cfg_.transfer_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT);
-			if (device_cfg_.transfer_queue_index == -1)
+			global_.graphics_queue_index = FindDeviceQueueFamalyWithFlag(global_.physical_device, VK_QUEUE_GRAPHICS_BIT);
+			global_.transfer_queue_index = FindDeviceQueueFamalyWithFlag(global_.physical_device, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT);
+			if (global_.transfer_queue_index == -1)
 			{
-				device_cfg_.transfer_queue_index = FindDeviceQueueFamalyWithFlag(device_cfg_.physical_device, VK_QUEUE_TRANSFER_BIT);
+				global_.transfer_queue_index = FindDeviceQueueFamalyWithFlag(global_.physical_device, VK_QUEUE_TRANSFER_BIT);
 			}
 
 			std::vector<uint32_t> queue_indices;
-			queue_indices.push_back(device_cfg_.graphics_queue_index);
-			if (device_cfg_.graphics_queue_index != device_cfg_.transfer_queue_index)
+			queue_indices.push_back(global_.graphics_queue_index);
+			if (global_.graphics_queue_index != global_.transfer_queue_index)
 			{
-				queue_indices.push_back(device_cfg_.transfer_queue_index);
+				queue_indices.push_back(global_.transfer_queue_index);
 			}
 
-			if (!InitLogicalDevice(device_cfg_.physical_device, queue_indices))
+			if (!InitLogicalDevice(global_.physical_device, queue_indices))
 			{
 				LOG(err, "InitLogicalDevices error");
 				return;
 			}
 
-			device_cfg_.logical_device = vk_logical_devices_[0];
+			global_.logical_device = vk_logical_devices_[0];
 
-			vkGetDeviceQueue(device_cfg_.logical_device, device_cfg_.graphics_queue_index, 0, &device_cfg_.graphics_queue);
-			if (device_cfg_.graphics_queue_index != device_cfg_.transfer_queue_index)
+			vkGetDeviceQueue(global_.logical_device, global_.graphics_queue_index, 0, &global_.graphics_queue);
+			if (global_.graphics_queue_index != global_.transfer_queue_index)
 			{
-				vkGetDeviceQueue(device_cfg_.logical_device, device_cfg_.transfer_queue_index, 0, &device_cfg_.transfer_queue);
+				vkGetDeviceQueue(global_.logical_device, global_.transfer_queue_index, 0, &global_.transfer_queue);
 			}
 			else
 			{
-				device_cfg_.transfer_queue = device_cfg_.graphics_queue;
+				global_.transfer_queue = global_.graphics_queue;
 			}
 			
 			platform::Window window = platform::CreatePlatformWindow(param);
 
-			surface_ptr_ = std::make_unique<Surface>(window, vk_instance_, device_cfg_);
+			surface_ptr_ = std::make_unique<Surface>(window, vk_instance_, global_);
 
 
 
-			graphics_command_pool_ptr_ = std::make_unique<CommandPool>(device_cfg_, CommandPool::PoolType::kGraphics);
-			transfer_command_pool_ptr_ = std::make_unique<CommandPool>(device_cfg_, CommandPool::PoolType::kTransfer);
+			graphics_command_pool_ptr_ = std::make_unique<CommandPool>(global_, CommandPool::PoolType::kGraphics);
+			transfer_command_pool_ptr_ = std::make_unique<CommandPool>(global_, CommandPool::PoolType::kTransfer);
 
-			device_cfg_.graphics_cmd_pool = graphics_command_pool_ptr_.get();
-			device_cfg_.transfer_cmd_pool = transfer_command_pool_ptr_.get();
+			global_.graphics_cmd_pool = graphics_command_pool_ptr_.get();
+			global_.transfer_cmd_pool = transfer_command_pool_ptr_.get();
 
 			vk_init_success_ = true;
 
-			debug_geometry_ = std::make_unique<DebugGeometry>(device_cfg_);
+			debug_geometry_ = std::make_unique<DebugGeometry>(global_);
 		}
 
 
@@ -237,14 +240,19 @@ namespace render
 
 			uint32_t current_frame_index = -1;
 
-			Image def_image = Image::FromFile(device_cfg_, "../images/test.jpg");
-			device_cfg_.default_image = def_image;
-			device_cfg_.presentation_format = surface_ptr_->GetSurfaceFormat(device_cfg_.physical_device).format;
+			Image def_image = Image::FromFile(global_, "../images/test.jpg");
+			global_.default_image = def_image;
+			global_.presentation_format = surface_ptr_->GetSurfaceFormat(global_.physical_device).format;
 
-			DescriptorSetsManager descriptor_set_manager(device_cfg_);
-			RenderSetup render_setup(device_cfg_);
+			for (int i = 0; i < 16; i++)
+			{
+				global_.mipmap_cnt_to_global_samplers.push_back(Sampler(global_, i));
+			}
+
+			DescriptorSetsManager descriptor_set_manager(global_);
+			RenderSetup render_setup(global_);
 			
-			BatchesManager batches_manager(device_cfg_);
+			BatchesManager batches_manager(global_);
 
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
@@ -255,7 +263,7 @@ namespace render
 
 				should_refresh_swapchain = false;
 
-				Swapchain swapchain(device_cfg_, *surface_ptr_);
+				Swapchain swapchain(global_, *surface_ptr_);
 
 				std::array<Extent, kExtentTypeCnt> extents
 				{
@@ -266,7 +274,7 @@ namespace render
 
 				render_setup.InitPipelines(descriptor_set_manager, extents);
 
-				ui::UI ui(device_cfg_, swapchain.GetExtent());
+				ui::UI ui(global_, swapchain.GetExtent());
 
 				std::vector<Framebuffer> swapchain_framebuffers;
 
@@ -280,7 +288,7 @@ namespace render
 
 					params.attachments.push_back(swapchain.GetImageView(i));
 
-					swapchain_framebuffers.push_back(Framebuffer(device_cfg_, params));
+					swapchain_framebuffers.push_back(Framebuffer(global_, params));
 				}
 				
 				frames.clear();
@@ -289,7 +297,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(device_cfg_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_, *debug_geometry_));
+					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_, *debug_geometry_));
 				}
 
 
@@ -301,7 +309,7 @@ namespace render
 
 					batches_manager.Update();
 
-					VkResult result = vkAcquireNextImageKHR(device_cfg_.logical_device, swapchain.GetHandle(), UINT64_MAX,
+					VkResult result = vkAcquireNextImageKHR(global_.logical_device, swapchain.GetHandle(), UINT64_MAX,
 						frames[current_frame_index].GetImageAvailableSemaphore(), VK_NULL_HANDLE, &image_index);
 
 
@@ -319,17 +327,27 @@ namespace render
 					if (external_command_queue_.Size() > 0)
 					{
 						LoadCommand command = external_command_queue_.Pop();
-						batches_manager.Add(*command.model);
+						batches_manager.Add(*command.model, descriptor_set_manager);
+
+						auto&& model_packs = batches_manager.GetModelPacks();
+
+						for (auto&& pack : model_packs)
+						{
+							for (auto&& node : pack.nodes)
+							{
+								//Model model { node.}
+							}
+						}
 
 						for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 						{
-							frames[frame_ind].AddModel(batches_manager.GetMeshes().back().get());
+							//frames[frame_ind].AddModel(batches_manager.GetMeshes().back().get());
 						}
 
 					}
 				}
 
-				vkDeviceWaitIdle(device_cfg_.logical_device);
+				vkDeviceWaitIdle(global_.logical_device);
 			}
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
@@ -413,7 +431,7 @@ namespace render
 				VkImageFormatProperties prop;
 
 				VkResult vk_res = vkGetPhysicalDeviceImageFormatProperties(
-					device_cfg_.physical_device,
+					global_.physical_device,
 					static_cast<VkFormat>(i),
 					VK_IMAGE_TYPE_2D,
 					VK_IMAGE_TILING_OPTIMAL,
@@ -719,7 +737,7 @@ namespace render
 		
 		std::vector<VkDeviceWrapper> vk_logical_devices_;
 
-		DeviceConfiguration device_cfg_;
+		Global global_;
 
 		std::unique_ptr<Surface> surface_ptr_;
 

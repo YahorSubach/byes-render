@@ -24,7 +24,7 @@ namespace render
 			kGraphics
 		};
 
-		CommandPool(const DeviceConfiguration& device_cfg, PoolType pool_type);
+		CommandPool(const Global& global, PoolType pool_type);
 
 		CommandPool(const CommandPool&) = delete;
 		CommandPool(CommandPool&&) = default;

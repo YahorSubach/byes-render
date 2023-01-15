@@ -30,7 +30,7 @@ namespace render
 
 		using Line = std::pair<Point, Point>;
 		
-		DebugGeometry(const DeviceConfiguration& device_cfg);
+		DebugGeometry(const Global& global);
 
 		void Update();
 
@@ -56,7 +56,7 @@ namespace render
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
-		FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, 
+		FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup, 
 			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
 			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene, DebugGeometry& debug_geometry);
 		
@@ -95,10 +95,9 @@ namespace render
 
 		const RenderSetup& render_setup_;
 
-		ModelSceneDescSetHolder model_scene_;
+		//ModelSceneDescSetHolder model_scene_;
 		RenderGraphHandler render_graph_handler_;
-		UIScene ui_scene_;
-		GPULocalVertexBuffer viewport_vertex_buffer_;
+		//UIScene ui_scene_;
 
 		DebugGeometry& debug_geometry_;
 	};

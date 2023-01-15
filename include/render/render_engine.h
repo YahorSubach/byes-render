@@ -29,10 +29,16 @@ namespace render
 		Scene();
 		Camera& GetActiveCamera();
 		const Camera& GetActiveCamera() const;
+		void AddModel(Model& model) const;
+		const std::vector<std::reference_wrapper<Model>>& GetModels() const;
 
-	private:
+
+		~Scene();
+
 		class SceneImpl;
 		std::unique_ptr<SceneImpl> impl_;
+	private:
+
 	};
 
 	struct InputState

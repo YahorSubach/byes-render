@@ -22,7 +22,7 @@ namespace render
 	{
 	public:
 
-		GLTFWrapper(const DeviceConfiguration& device_cfg, const tinygltf::Model& gltf_model);
+		GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager);
 		GLTFWrapper(const GLTFWrapper&) = delete;
 		GLTFWrapper(GLTFWrapper&&) = default;
 
@@ -30,6 +30,7 @@ namespace render
 		std::vector<Node> nodes;
 		std::vector<Mesh> meshes;
 		std::vector<Skin> skins;
+		std::vector<Model> models;
 
 		std::map<std::string, Animation> animations;
 		

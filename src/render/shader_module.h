@@ -42,7 +42,7 @@ namespace render
 		//	std::vector<uint32_t> bindings_descs_types;
 		//};
 
-		ShaderModule(const DeviceConfiguration& device_cfg, const std::string& shader_path, const std::array<DescriptorSetLayout, kDescriptorSetTypesCount>& descriptor_sets_layouts);
+		ShaderModule(const Global& global, const std::string& shader_path, const std::array<DescriptorSetLayout, kDescriptorSetTypesCount>& descriptor_sets_layouts);
 
 		ShaderModule(const ShaderModule&) = delete;
 		ShaderModule(ShaderModule&&) = default;

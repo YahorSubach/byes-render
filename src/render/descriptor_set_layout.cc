@@ -1,9 +1,12 @@
 #include "descriptor_set_layout.h"
 
+#include "global.h"
+
+
 std::map<render::DescriptorSetType, render::DescriptorSetInfo> render::DescriptorSetUtil::info_map_;
 std::map<std::string, render::DescriptorSetType> render::DescriptorSetUtil::name_map_;
 
-render::DescriptorSetLayout::DescriptorSetLayout(const DeviceConfiguration& device_cfg, DescriptorSetType type): RenderObjBase(device_cfg), type_(type)
+render::DescriptorSetLayout::DescriptorSetLayout(const Global& global, DescriptorSetType type): RenderObjBase(global), type_(type)
 {
 
 	std::map<DescriptorSetType, DescriptorSetInfo> infos = DescriptorSetUtil::GetTypeToInfoMap();
@@ -34,7 +37,7 @@ render::DescriptorSetLayout::DescriptorSetLayout(const DeviceConfiguration& devi
 	desc_set_layout_create_info.bindingCount = u32(bindings.size());
 	desc_set_layout_create_info.pBindings = bindings.data();
 
-	if (vkCreateDescriptorSetLayout(device_cfg_.logical_device, &desc_set_layout_create_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(global_.logical_device, &desc_set_layout_create_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor set layout!");
 	}
 }
@@ -48,6 +51,6 @@ render::DescriptorSetLayout::~DescriptorSetLayout()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyDescriptorSetLayout(device_cfg_.logical_device, handle_, nullptr);
+		vkDestroyDescriptorSetLayout(global_.logical_device, handle_, nullptr);
 	}
 }

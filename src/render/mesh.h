@@ -14,16 +14,13 @@
 #include "buffer.h"
 #include "image.h"
 #include "stl_util.h"
+#include "render/data_types.h"
+#include "render/graphics_pipeline.h"
 #include "render/vertex_buffer.h"
+#include "render/descriptor_set_holder.h"
 
 namespace render
 {
-
-	enum class RenderModelType
-	{
-		kStatic,
-		kSkinned
-	};
 
 	struct Material
 	{
@@ -51,7 +48,6 @@ namespace render
 		
 		glm::mat4 local_transform;
 		
-		
 		util::NullableRef<Node> parent;
 
 		glm::mat4 GetGlobalTransformMatrix() const;
@@ -74,6 +70,29 @@ namespace render
 	{
 		//std::vector<Bone> joints;
 		std::vector<Primitive> primitives;
+	};
+
+	struct Model;
+	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<Model, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>;
+	
+	struct Model: public ModelDescriptorSetHolder
+	{
+		Model(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in, const GraphicsPipeline& pipeline_in, RenderModelCategory category_in = RenderModelCategory::kRenderModel);
+
+		Node& node;
+		const GraphicsPipeline& pipeline;
+		RenderModelCategory category;
+
+		util::NullableRef<Mesh> mesh;
+		util::NullableRef<Skin> skin;
+
+
+		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
+		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
+		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
+		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
+		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
+		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 	};
 
 	template<typename ValueType>

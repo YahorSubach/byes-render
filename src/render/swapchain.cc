@@ -3,23 +3,23 @@
 #include "stl_util.h"
 
 #include "common.h"
-
+#include "global.h"
 #include "surface.h"
 
-render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surface& surface) : RenderObjBase(device_cfg), extent_(), format_()
+render::Swapchain::Swapchain(const Global& global, const Surface& surface) : RenderObjBase(global), extent_(), format_()
 {
 	VkSurfaceCapabilitiesKHR capabilities;
 	VkBool32 device_surface_support;
 
 	valid_ = false;
 
-	if (vkGetPhysicalDeviceSurfaceSupportKHR(device_cfg.physical_device, device_cfg.graphics_queue_index, surface.GetHandle(), &device_surface_support) == VK_SUCCESS &&
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device_cfg.physical_device, surface.GetHandle(), &capabilities) == VK_SUCCESS)
+	if (vkGetPhysicalDeviceSurfaceSupportKHR(global.physical_device, global.graphics_queue_index, surface.GetHandle(), &device_surface_support) == VK_SUCCESS &&
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(global.physical_device, surface.GetHandle(), &capabilities) == VK_SUCCESS)
 	{
 		if (device_surface_support)
 		{
-			VkSurfaceFormatKHR surface_format = surface.GetSurfaceFormat(device_cfg.physical_device);
-			VkPresentModeKHR present_mode = surface.GetSurfacePresentMode(device_cfg.physical_device);
+			VkSurfaceFormatKHR surface_format = surface.GetSurfaceFormat(global.physical_device);
+			VkPresentModeKHR present_mode = surface.GetSurfacePresentMode(global.physical_device);
 
 			extent_ = surface.GetSwapExtend(capabilities);
 			format_ = surface_format.format;
@@ -46,17 +46,17 @@ render::Swapchain::Swapchain(const DeviceConfiguration& device_cfg, const Surfac
 			create_info.clipped = VK_FALSE;
 			create_info.oldSwapchain = old_swapchain;
 
-			if (vkCreateSwapchainKHR(device_cfg_.logical_device, &create_info, nullptr, &handle_) == VK_SUCCESS)
+			if (vkCreateSwapchainKHR(global_.logical_device, &create_info, nullptr, &handle_) == VK_SUCCESS)
 			{
-				auto image_handles = util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, device_cfg_.logical_device, handle_);
+				auto image_handles = util::GetSizeThenAlocThenGetDataPtrPtr(vkGetSwapchainImagesKHR, global_.logical_device, handle_);
 
 				images_.reserve(16);
 				image_views_.reserve(16);
 
 				for (auto&& image_handle : image_handles)
 				{
-					images_.push_back(Image(device_cfg, surface_format.format, image_handle/*, {ImageProperty::kShouldNotFreeHandle}*/));
-					image_views_.emplace_back(device_cfg, images_.back());
+					images_.push_back(Image(global, surface_format.format, image_handle/*, {ImageProperty::kShouldNotFreeHandle}*/));
+					image_views_.emplace_back(global, images_.back());
 				}
 			}
 		}
@@ -94,6 +94,6 @@ render::Swapchain::~Swapchain()
 
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroySwapchainKHR(device_cfg_.logical_device, handle_, nullptr);
+		vkDestroySwapchainKHR(global_.logical_device, handle_, nullptr);
 	}
 }

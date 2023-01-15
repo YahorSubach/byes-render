@@ -13,41 +13,32 @@
 #include <render/data_types.h>
 #include <render/command_buffer_filler.h>
 
-render::FrameHandler::FrameHandler(const DeviceConfiguration& device_cfg, const Swapchain& swapchain, const RenderSetup& render_setup, 
+#include "global.h"
+
+render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup, 
 	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, 
 	const ui::UI& ui, const Scene& scene, DebugGeometry& debug_geometry) :
-	RenderObjBase(device_cfg), swapchain_(swapchain.GetHandle()), graphics_queue_(device_cfg.graphics_queue),
-	command_buffer_(device_cfg.graphics_cmd_pool->GetCommandBuffer()),
-	image_available_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
-	render_finished_semaphore_(vk_util::CreateSemaphore(device_cfg.logical_device)),
-	cmd_buffer_fence_(vk_util::CreateFence(device_cfg.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-	model_scene_(device_cfg, scene),
+	RenderObjBase(global), swapchain_(swapchain.GetHandle()), graphics_queue_(global.graphics_queue),
+	command_buffer_(global.graphics_cmd_pool->GetCommandBuffer()),
+	image_available_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
+	render_finished_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
+	cmd_buffer_fence_(vk_util::CreateFence(global.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
+	//model_scene_(global, scene),
 	render_setup_(render_setup),
-	render_graph_handler_(device_cfg, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
-	ui_scene_(device_cfg, ui),
+	render_graph_handler_(global, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
+	//ui_scene_(global, ui),
 	ui_(ui),
-	viewport_vertex_buffer_(device_cfg_, 6 * sizeof(glm::vec3)),
 	debug_geometry_(debug_geometry)
 {
-	std::vector<glm::vec3> viewport_vertex_data = {
-	{-1, -1, 0},
-	{-1, 1, 0},
-	{1, 1, 0},
-
-	{1, 1, 0},
-	{1, -1, 0},
-	{-1, -1, 0}
-	};
-
-	viewport_vertex_buffer_.LoadData(viewport_vertex_data.data(), viewport_vertex_data.size() * sizeof(glm::vec3));
 
 
 
-	model_scene_.UpdateData();
-	ui_scene_.UpdateData();
 
-	model_scene_.AttachDescriptorSets(descriptor_set_manager);
-	ui_scene_.AttachDescriptorSets(descriptor_set_manager);
+	//model_scene_.UpdateData();
+	//ui_scene_.UpdateData();
+
+	//model_scene_.AttachDescriptorSets(descriptor_set_manager);
+	//ui_scene_.AttachDescriptorSets(descriptor_set_manager);
 
 	handle_ = (void*)(1);
 }
@@ -88,13 +79,13 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 
 	submit_info_.pWaitSemaphores = &image_available_semaphore_;
 
-	vkWaitForFences(device_cfg_.logical_device, 1, &cmd_buffer_fence_, VK_TRUE, UINT64_MAX);
-	vkResetFences(device_cfg_.logical_device, 1, &cmd_buffer_fence_);
+	vkWaitForFences(global_.logical_device, 1, &cmd_buffer_fence_, VK_TRUE, UINT64_MAX);
+	vkResetFences(global_.logical_device, 1, &cmd_buffer_fence_);
 
 	//model_scene_.UpdateCameraData(scene pos, look, 1.0f * swapchain_framebuffer.GetExtent().width / swapchain_framebuffer.GetExtent().height);
 
-	model_scene_.UpdateData();
-	ui_scene_.UpdateData();
+	//model_scene_.UpdateData();
+	//ui_scene_.UpdateData();
 
 
 //	std::vector<RenderPassInfo> render_info =
@@ -175,60 +166,60 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 ////},
 //	};
 
-	std::vector<render::RenderModel> render_models;
-	render_models.reserve(64);
-	for (auto&& model : model_scene_.GetRenderNode().GetChildren())
-	{
-		for (auto&& primitive : model.GetPrimitives())
-		{
-			render_models.push_back(RenderModel
-				{
-					RenderModelCategory::kRenderModel,
-					render_setup_.GetPipeline(PipelineId::kBuildGBuffers),
-					u32(primitive.indices.count),
-					model.GetDescriptorSets(),
-				{},
-				{},
-				std::make_pair(primitive.indices.buffer->GetHandle(), primitive.indices.offset)
-				});
+	//std::vector<render::RenderModel> render_models;
+	//render_models.reserve(64);
+	//for (auto&& model : model_scene_.GetRenderNode().GetChildren())
+	//{
+	//	for (auto&& primitive : model.GetPrimitives())
+	//	{
+	//		render_models.push_back(RenderModel
+	//			{
+	//				RenderModelCategory::kRenderModel,
+	//				render_setup_.GetPipeline(PipelineId::kBuildGBuffers),
+	//				u32(primitive.indices.count),
+	//				model.GetDescriptorSets(),
+	//			{},
+	//			{},
+	//			std::make_pair(primitive.indices.buffer->GetHandle(), primitive.indices.offset)
+	//			});
 
-			for (auto&& vertex_buffer : primitive.vertex_buffers)
-			{
-				if (vertex_buffer)
-				{
-					render_models.back().vertex_buffers.push_back(vertex_buffer->buffer->GetHandle());
-					render_models.back().vertex_buffers_offsets.push_back(vertex_buffer->offset);
-				}
-			}
-		}
-	}
+	//		for (auto&& vertex_buffer : primitive.vertex_buffers)
+	//		{
+	//			if (vertex_buffer)
+	//			{
+	//				render_models.back().vertex_buffers.push_back(vertex_buffer->buffer->GetHandle());
+	//				render_models.back().vertex_buffers_offsets.push_back(vertex_buffer->offset);
+	//			}
+	//		}
+	//	}
+	//}
 
-	for (auto&& model : ui_scene_.GetRenderNode().GetChildren())
-	{
-		for (auto&& primitive : model.GetPrimitives())
-		{
-			render_models.push_back(RenderModel
-				{
-					RenderModelCategory::kUIShape,
-					render_setup_.GetPipeline(PipelineId::kUI),
-					u32(primitive.indices.count),
-					model.GetDescriptorSets(),
-				{},
-				{},
-				std::make_pair(primitive.indices.buffer->GetHandle(), primitive.indices.offset),
+	//for (auto&& model : ui_scene_.GetRenderNode().GetChildren())
+	//{
+	//	for (auto&& primitive : model.GetPrimitives())
+	//	{
+	//		render_models.push_back(RenderModel
+	//			{
+	//				RenderModelCategory::kUIShape,
+	//				render_setup_.GetPipeline(PipelineId::kUI),
+	//				u32(primitive.indices.count),
+	//				model.GetDescriptorSets(),
+	//			{},
+	//			{},
+	//			std::make_pair(primitive.indices.buffer->GetHandle(), primitive.indices.offset),
 
-				});
+	//			});
 
-			for (auto&& vertex_buffer : primitive.vertex_buffers)
-			{
-				if (vertex_buffer)
-				{
-					render_models.back().vertex_buffers.push_back(vertex_buffer->buffer->GetHandle());
-					render_models.back().vertex_buffers_offsets.push_back(vertex_buffer->offset);
-				}
-			}
-		}
-	}
+	//		for (auto&& vertex_buffer : primitive.vertex_buffers)
+	//		{
+	//			if (vertex_buffer)
+	//			{
+	//				render_models.back().vertex_buffers.push_back(vertex_buffer->buffer->GetHandle());
+	//				render_models.back().vertex_buffers_offsets.push_back(vertex_buffer->offset);
+	//			}
+	//		}
+	//	}
+	//}
 
 	render_models.push_back(RenderModel
 		{
@@ -277,8 +268,8 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 	render_models.back().vertex_buffers_offsets.push_back(0);
 
 
-	auto scene_descriptor_sets = model_scene_.GetRenderNode().GetDescriptorSets();
-	scene_descriptor_sets.insert(ui_scene_.GetDescriptorSets().begin(), ui_scene_.GetDescriptorSets().end());
+	//auto scene_descriptor_sets = model_scene_.GetRenderNode().GetDescriptorSets();
+	//scene_descriptor_sets.insert(ui_scene_.GetDescriptorSets().begin(), ui_scene_.GetDescriptorSets().end());
 
 
 	render_graph_handler_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, swapchain_image, scene_descriptor_sets, render_models);
@@ -302,8 +293,8 @@ render::FrameHandler::~FrameHandler()
 {
 	if (handle_ != nullptr)
 	{
-		vkDestroyFence(device_cfg_.logical_device, cmd_buffer_fence_, nullptr);
-		vkDestroySemaphore(device_cfg_.logical_device, render_finished_semaphore_, nullptr);
+		vkDestroyFence(global_.logical_device, cmd_buffer_fence_, nullptr);
+		vkDestroySemaphore(global_.logical_device, render_finished_semaphore_, nullptr);
 	}
 }
 
@@ -312,12 +303,12 @@ std::pair<render::DebugGeometry::Point, render::DebugGeometry::Point> render::De
 	return { *this, rhs };
 }
 
-render::DebugGeometry::DebugGeometry(const DeviceConfiguration& device_cfg):
-	coords_lines_position_buffer_(device_cfg, sizeof(glm::vec3) * 256),
-	coords_lines_color_buffer_(device_cfg, sizeof(glm::vec3) * 256),
+render::DebugGeometry::DebugGeometry(const Global& global):
+	coords_lines_position_buffer_(global, sizeof(glm::vec3) * 256),
+	coords_lines_color_buffer_(global, sizeof(glm::vec3) * 256),
 	coords_lines_vertex_cnt(0),
-	debug_lines_position_buffer_(device_cfg, sizeof(glm::vec3) * 256),
-	debug_lines_color_buffer_(device_cfg, sizeof(glm::vec3) * 256),
+	debug_lines_position_buffer_(global, sizeof(glm::vec3) * 256),
+	debug_lines_color_buffer_(global, sizeof(glm::vec3) * 256),
 	debug_lines_vertex_cnt(0)
 {
 	ready_to_write.store(true);

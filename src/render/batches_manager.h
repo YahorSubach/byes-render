@@ -22,11 +22,13 @@
 
 namespace render
 {
+	using ModelPack = GLTFWrapper;
+
 	class BatchesManager: RenderObjBase<void*>
 	{
 	public:
 
-		BatchesManager(const DeviceConfiguration& device_cfg);
+		BatchesManager(const Global& global);
 
 		BatchesManager(const BatchesManager&) = delete;
 		BatchesManager(BatchesManager&&) = default;
@@ -34,12 +36,12 @@ namespace render
 		BatchesManager& operator=(const BatchesManager&) = delete;
 		BatchesManager& operator=(BatchesManager&&) = default;
 
-		const std::vector<std::reference_wrapper<Mesh>>& GetMeshes() const;
+		const std::vector<ModelPack>& GetModelPacks() const;
 
 		const ImageView& GetEnvImageView() const;
 
 		void Update();
-		void Add(const tinygltf::Model& model);
+		void Add(const tinygltf::Model& model, DescriptorSetsManager& manager);
 
 	private:
 

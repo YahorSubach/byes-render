@@ -43,7 +43,7 @@
 //	{
 //	public:
 //
-//		FramebufferCollection(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup);
+//		FramebufferCollection(const Global& global, const RenderSetup& render_setup);
 //
 //		FramebufferCollection(const FramebufferCollection&) = delete;
 //		FramebufferCollection(FramebufferCollection&&) = default;

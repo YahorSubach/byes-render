@@ -10,13 +10,10 @@
 #include "common.h"
 #include "stl_util.h"
 
+
 namespace render
 {
-
-	class CommandPool;
-	class DescriptorPool;
-	class Sampler;
-	class Image;
+	struct Global;
 
 	enum class ExtentType
 	{
@@ -68,33 +65,6 @@ namespace render
 
 
 	using Format = VkFormat;
-
-	struct DeviceConfiguration
-	{
-		VkPhysicalDevice physical_device;
-		VkPhysicalDeviceProperties physical_device_properties;
-		
-		VkDevice  logical_device;
-		
-		VkQueue transfer_queue;
-		uint32_t transfer_queue_index;
-
-		VkQueue graphics_queue;
-		uint32_t graphics_queue_index;
-
-		CommandPool* graphics_cmd_pool;
-		CommandPool* transfer_cmd_pool;
-
-		Sampler* texture_sampler;
-		Sampler* shadowmap_sampler;
-
-		util::NullableRef<Image> default_image;
-
-		Format presentation_format;
-		Format depth_map_format = VK_FORMAT_D32_SFLOAT;
-		Format high_range_color_format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		Format color_format = VK_FORMAT_B8G8R8A8_SRGB;
-	};
 
 	enum class ShaderType
 	{

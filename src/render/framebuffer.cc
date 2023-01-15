@@ -3,9 +3,10 @@
 #include <array>
 
 #include "common.h"
+#include "global.h"
 
-render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const ConstructParams& params):
-	LazyRenderObj(device_cfg), extent_(params.extent), render_pass_(params.render_pass)
+render::Framebuffer::Framebuffer(const Global& global, const ConstructParams& params):
+	LazyRenderObj(global), extent_(params.extent), render_pass_(params.render_pass)
 {
 	std::vector<VkImageView> vk_attachments;
 
@@ -33,7 +34,7 @@ render::Framebuffer::Framebuffer(const DeviceConfiguration& device_cfg, const Co
 
 	framebuffer_info.flags = 0;
 
-	if (vkCreateFramebuffer(device_cfg_.logical_device, &framebuffer_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateFramebuffer(global_.logical_device, &framebuffer_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
 
@@ -44,7 +45,7 @@ render::Framebuffer::~Framebuffer()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyFramebuffer(device_cfg_.logical_device, handle_, nullptr);
+		vkDestroyFramebuffer(global_.logical_device, handle_, nullptr);
 	}
 }
 
@@ -84,7 +85,7 @@ const std::vector<VkFormat>& render::Framebuffer::GetFormats() const
 //	framebuffer_info.height = extent_.height;
 //	framebuffer_info.layers = 1;
 //
-//	if (vkCreateFramebuffer(device_cfg_.logical_device, &framebuffer_info, nullptr, &handle_) != VK_SUCCESS) {
+//	if (vkCreateFramebuffer(global_.logical_device, &framebuffer_info, nullptr, &handle_) != VK_SUCCESS) {
 //		throw std::runtime_error("failed to create framebuffer!");
 //	}
 //}

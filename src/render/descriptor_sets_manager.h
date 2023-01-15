@@ -22,7 +22,7 @@ namespace render
 	{
 	public:
 
-		DescriptorSetsManager(const DeviceConfiguration& device_cfg);
+		DescriptorSetsManager(const Global& global);
 
 		DescriptorSetsManager(const DescriptorSetsManager&) = delete;
 		DescriptorSetsManager(DescriptorSetsManager&&) = default;

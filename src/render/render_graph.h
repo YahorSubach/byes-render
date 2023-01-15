@@ -19,33 +19,26 @@
 namespace render
 {
 
-	enum class RenderModelCategory
-	{
-		kRenderModel,
-		kViewport,
-		kUIShape
-	};
-
 
 	using RenderModelCategoryFlags = util::enums::Flags<RenderModelCategory>;
 
 	class GraphicsPipeline;
 
-	struct RenderModel
-	{
-		RenderModelCategory category;
+	//struct RenderModel
+	//{
+	//	RenderModelCategory category;
 
-		const GraphicsPipeline& pipeline;
+	//	const GraphicsPipeline& pipeline;
 
-		uint32_t vertex_count;
+	//	uint32_t vertex_count;
 
-		const std::map<DescriptorSetType, VkDescriptorSet>& descriptor_sets;
+	//	const std::map<DescriptorSetType, VkDescriptorSet>& descriptor_sets;
 
-		std::vector<VkBuffer> vertex_buffers;
-		std::vector<VkDeviceSize> vertex_buffers_offsets;
+	//	std::vector<VkBuffer> vertex_buffers;
+	//	std::vector<VkDeviceSize> vertex_buffers_offsets;
 
-		std::optional<std::pair<VkBuffer, uint32_t>> index_buffer_and_offset;
-	};
+	//	std::optional<std::pair<VkBuffer, uint32_t>> index_buffer_and_offset;
+	//};
 
 	class GraphicsPipeline;
 	class RenderGraph2;
@@ -138,7 +131,7 @@ namespace render
 
 
 
-		RenderGraph2(const DeviceConfiguration& device_cfg);
+		RenderGraph2(const Global& global);
 
 		RenderNode& AddNode(const std::string& name, ExtentType extent_type, RenderModelCategoryFlags category_flags);
 		void Build();
@@ -154,9 +147,9 @@ namespace render
 	{
 	public:
 
-		RenderGraphHandler(const DeviceConfiguration& device_cfg, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager);
+		RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager);
 
-		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, const std::map<DescriptorSetType, VkDescriptorSet>& scene_ds, const std::vector<RenderModel>& render_models) const;
+		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, const Scene::SceneImpl& scene) const;
 
 	private:
 
@@ -189,7 +182,7 @@ namespace render
 	//class RenderGraph : public RenderObjBase<int*>
 	//{
 	//public:
-	//	RenderGraph(const DeviceConfiguration& device_cfg, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene);
+	//	RenderGraph(const Global& global, const RenderSetup& render_setup, ModelSceneDescSetHolder& scene);
 
 	//	RenderGraph(const RenderGraph&) = delete;
 	//	RenderGraph(RenderGraph&&) = default;
@@ -241,8 +234,8 @@ namespace render
 
 	//	struct RenderCollection
 	//	{
-	//		std::pair<Image&, ImageView&> CreateImage(const DeviceConfiguration& device_cfg, VkFormat format, Extent extent);
-	//		Framebuffer& CreateFramebuffer(const DeviceConfiguration& device_cfg, Extent extent, const RenderPass& render_pass);
+	//		std::pair<Image&, ImageView&> CreateImage(const Global& global, VkFormat format, Extent extent);
+	//		Framebuffer& CreateFramebuffer(const Global& global, Extent extent, const RenderPass& render_pass);
 	//		RenderBatch& CreateBatch();
 	//		std::vector<Image> images;
 	//		std::vector<ImageView> image_views;

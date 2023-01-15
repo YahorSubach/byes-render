@@ -20,26 +20,20 @@ namespace render
 	class RenderObjBase: public ValidationBase
 	{
 	public:
- 		RenderObjBase(const DeviceConfiguration& device_cfg) : device_cfg_(device_cfg), handle_(VK_NULL_HANDLE) {}
+ 		RenderObjBase(const Global& global) : global_(global), handle_(VK_NULL_HANDLE) {}
 
 		RenderObjBase(const RenderObjBase&) = delete;
-		RenderObjBase(RenderObjBase&& rhs): device_cfg_(rhs.device_cfg_), handle_(rhs.handle_)
+		RenderObjBase(RenderObjBase&& rhs): global_(rhs.global_), handle_(rhs.handle_)
 		{
 			rhs.handle_ = VK_NULL_HANDLE;
 		}
 
 		RenderObjBase& operator=(const RenderObjBase&) = delete;
-		RenderObjBase& operator=(RenderObjBase&& rhs)
-		{
-			assert(&device_cfg_ == &rhs.device_cfg_);
-			handle_ = rhs.handle_;
-			rhs.handle_ = VK_NULL_HANDLE;
-			return *this;
-		}
+		RenderObjBase& operator=(RenderObjBase&& rhs) = delete;
 
 		virtual HandleType GetHandle() const { return handle_; }
 
-		const DeviceConfiguration& GetDeviceCfg() const { return device_cfg_; };
+		const Global& GetDeviceCfg() const { return global_; };
 		//virtual ~RenderObjBase() override
 		//{
 		//	int a = 1;
@@ -47,7 +41,7 @@ namespace render
 		
 	protected:
 
-		const DeviceConfiguration& device_cfg_;
+		const Global& global_;
 		mutable HandleType handle_;
 	};
 
@@ -55,7 +49,7 @@ namespace render
 	class LazyRenderObj : public RenderObjBase<HandleType>
 	{
 	public:
-		LazyRenderObj(const DeviceConfiguration& device_cfg) : RenderObjBase<HandleType>(device_cfg) {}
+		LazyRenderObj(const Global& global) : RenderObjBase<HandleType>(global) {}
 
 		LazyRenderObj(const LazyRenderObj&) = delete;
 		LazyRenderObj(LazyRenderObj&& rhs) = default;

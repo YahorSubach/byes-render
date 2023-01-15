@@ -5,7 +5,9 @@
 
 #include "vertex_buffer.h"
 
-render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const std::string& shader_path, const std::array<DescriptorSetLayout, kDescriptorSetTypesCount>& descriptor_sets_layouts) : RenderObjBase(device_cfg)
+#include "global.h"
+
+render::ShaderModule::ShaderModule(const Global& global, const std::string& shader_path, const std::array<DescriptorSetLayout, kDescriptorSetTypesCount>& descriptor_sets_layouts) : RenderObjBase(global)
 {
 	std::ifstream file("../shaders/" + shader_path + ".spv", std::ios::ate | std::ios::binary);
 
@@ -26,7 +28,7 @@ render::ShaderModule::ShaderModule(const DeviceConfiguration& device_cfg, const 
 	createInfo.codeSize = buffer.size();
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
 
-	if (vkCreateShaderModule(device_cfg_.logical_device, &createInfo, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateShaderModule(global_.logical_device, &createInfo, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create shader module!");
 	}
 
@@ -196,7 +198,7 @@ render::ShaderModule::~ShaderModule()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyShaderModule(device_cfg_.logical_device, handle_, nullptr);
+		vkDestroyShaderModule(global_.logical_device, handle_, nullptr);
 	}
 }
 

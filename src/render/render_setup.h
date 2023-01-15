@@ -21,7 +21,7 @@ namespace render
 	{
 	public:
 
-		RenderSetup(const DeviceConfiguration& device_cfg);
+		RenderSetup(const Global& global);
 
 		void InitPipelines(const DescriptorSetsManager& descriptor_set_manager, const std::array<Extent, kExtentTypeCnt>& extents);
 		const GraphicsPipeline& GetPipeline(PipelineId pipeline_id) const;
@@ -32,7 +32,7 @@ namespace render
 		const RenderPass& GetSwapchainRenderPass() const;
 	private:
 
-		//void InitDescriptorSetLayouts(const DeviceConfiguration& device_cfg);
+		//void InitDescriptorSetLayouts(const Global& global);
 		//VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
 		RenderGraph2 render_graph_;

@@ -3,6 +3,7 @@
 
 #include <map>
 #include <variant>
+#include <span>
 
 #include "vulkan/vulkan.h"
 
@@ -31,7 +32,7 @@ namespace render
 			VkDescriptorBufferInfo vk_buffer_info_;
 		public:
 
-			BindingData(const DeviceConfiguration& device_cfg) : uniform_buffer_(device_cfg, sizeof(DataType)) {}
+			BindingData(const Global& global) : uniform_buffer_(global, sizeof(DataType)) {}
 
 			void Update(const DataType& new_data)
 			{
@@ -68,7 +69,7 @@ namespace render
 
 		public:
 
-			BindingData(const DeviceConfiguration& device_cfg) : image_view_(device_cfg) {}
+			BindingData(const Global& global) : image_view_(global) {}
 
 			void Update(const DataType& new_data)
 			{
@@ -103,18 +104,18 @@ namespace render
 
 		public:
 
-			Binding(const DeviceConfiguration& device_cfg) : Binding<Type, BindingIndex - 1>(device_cfg), data_(device_cfg) {}
+			Binding(const Global& global) : Binding<DescribedObjectType, Type, BindingIndex - 1>(global), data_(global) {}
 
 			virtual void FillData(const DescribedObjectType& object, BindingDataType& data) = 0;
 
-			void UpdateDataInternal()
+			void UpdateDataInternal(const DescribedObjectType& object)
 			{
 				typename BindingDesc::Data new_data;
-				FillData(new_data);
+				FillData(object, new_data);
 
 				data_.Update(new_data);
 
-				Binding<Type, BindingIndex - 1>::UpdateDataInternal();
+				Binding<DescribedObjectType, Type, BindingIndex - 1>::UpdateDataInternal(object);
 			}
 
 			void FillDescriptorSetWrites(VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet>& descriptor_set_writes)
@@ -122,9 +123,9 @@ namespace render
 				descriptor_set_writes[BindingIndex].dstSet = descriptor_set;
 				descriptor_set_writes[BindingIndex].dstBinding = BindingIndex;
 
-				data_.FillWriteDescriptorSet(write_descriptor_sets[BindingIndex]);
+				data_.FillWriteDescriptorSet(descriptor_set_writes[BindingIndex]);
 
-				Binding<Type, BindingIndex - 1>::FillDescriptorSetWrites(descriptor_set, descriptor_set_writes);
+				Binding<DescribedObjectType, Type, BindingIndex - 1>::FillDescriptorSetWrites(descriptor_set, descriptor_set_writes);
 			}
 		};
 
@@ -133,11 +134,11 @@ namespace render
 		{
 		public:
 
-			Binding(const DeviceConfiguration& device_cfg) {}
+			Binding(const Global& global) {}
 
-			void UpdateDataInternal() {}
+			void UpdateDataInternal(const DescribedObjectType& object) {}
 
-			void FillDescriptorSetWrites(VkDescriptorSet descriptor_set, std::vector<VkWriteDescriptorSet>& write_descriptor_sets) {}
+			void FillDescriptorSetWrites(VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet>& write_descriptor_sets) {}
 		};
 
 		template<typename DescribedObjectType, DescriptorSetType Type>
@@ -145,16 +146,16 @@ namespace render
 		{
 		public:
 
-			Bindings(const DeviceConfiguration& device_cfg) : Binding<Type, DescriptorSet<Type>::binding_count - 1>(device_cfg) {}
+			Bindings(const Global& global) : Binding<DescribedObjectType, Type, DescriptorSet<Type>::binding_count - 1>(global) {}
 
 			void FillDescriptorSetWrites(VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet> write_descriptor_sets)
 			{
-				Binding<Type, DescriptorSet<Type>::binding_count - 1>::FillDescriptorSetWrites(desc_set, writes);
+				Binding<DescribedObjectType, Type, DescriptorSet<Type>::binding_count - 1>::FillDescriptorSetWrites(descriptor_set, write_descriptor_sets);
 			}
 
 			void UpdateDataInternal(const DescribedObjectType& object)
 			{
-				Binding<Type, DescriptorSet<Type>::binding_count - 1>::UpdateDataInternal();
+				Binding<DescribedObjectType, Type, DescriptorSet<Type>::binding_count - 1>::UpdateDataInternal(object);
 			}
 		};
 
@@ -170,7 +171,7 @@ namespace render
 		{
 		public:
 
-			HolderInternal(const DeviceConfiguration& device_cfg) : HolderInternal<DescribedObjectType, Ts...>(device_cfg), Bindings<DescribedObjectType, T1>(device_cfg)
+			HolderInternal(const Global& global) : HolderInternal<DescribedObjectType, Ts...>(global), Bindings<DescribedObjectType, T1>(global)
 			{}
 
 		protected:
@@ -181,21 +182,25 @@ namespace render
 
 				for (int frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					VkDescriptorSet vk_descriptor_set = manager.GetFreeDescriptor(Type);
+					VkDescriptorSet vk_descriptor_set = manager.GetFreeDescriptor(T1);
+					HolderInternal<DescribedObjectType, Ts...>::descriptor_sets_per_frame_[frame_ind].emplace(T1, vk_descriptor_set);
 
-					Bindings<DescribedObjectType, T1>::FillDescriptorSetWrites(vk_descriptor_set, write_descriptor_sets);
+					std::span<VkWriteDescriptorSet> writes_to_fill(write_descriptor_sets.data() + writes_filled_cnt, DescriptorSet<T1>::binding_count);
+
+					Bindings<DescribedObjectType, T1>::FillDescriptorSetWrites(vk_descriptor_set, writes_to_fill);
 					writes_filled_cnt += DescriptorSet<T1>::binding_count;
-
-					auto next_span = std::span(write_descriptor_sets.data() + DescriptorSet<T1>::binding_count, write_descriptor_sets.size() - DescriptorSet<T1>::binding_count);
-					writes_filled_cnt += HolderInternal<DescribedObjectType, Ts...>::FillDescriptorSetWrites(manager, next_span);
 				}
 
+				std::span<VkWriteDescriptorSet> writes_to_fill(write_descriptor_sets.data() + writes_filled_cnt, write_descriptor_sets.size() - writes_filled_cnt);
+				writes_filled_cnt += HolderInternal<DescribedObjectType, Ts...>::FillDescriptorSetWrites(manager, writes_to_fill);
+
+				return writes_filled_cnt;
 			}
 
 			void UpdateDataInternal(const DescribedObjectType& object)
 			{
-				Bindings<DescribedObjectType, T1>::UpdateDataInternal();
-				HolderInternal<DescribedObjectType, Ts...>::UpdateDataInternal();
+				Bindings<DescribedObjectType, T1>::UpdateDataInternal(object);
+				HolderInternal<DescribedObjectType, Ts...>::UpdateDataInternal(object);
 			}
 		};
 
@@ -204,7 +209,7 @@ namespace render
 		{
 		public:
 
-			HolderInternal(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg) {}
+			HolderInternal(const Global& global) : RenderObjBase(global) {}
 
 			const std::map<DescriptorSetType, VkDescriptorSet>& GetDescriptorSets(uint32_t frame_index) const
 			{
@@ -213,7 +218,7 @@ namespace render
 
 		protected:
 
-			int FillDescriptorSetWrites(std::span<VkWriteDescriptorSet> write_descriptor_sets) { return 0; }
+			int FillDescriptorSetWrites(DescriptorSetsManager& manager, std::span<VkWriteDescriptorSet> write_descriptor_sets) { return 0; }
 			void UpdateDataInternal(const DescribedObjectType& object) {}
 
 			std::array<std::map<DescriptorSetType, VkDescriptorSet>, kFramesCount> descriptor_sets_per_frame_;
@@ -224,24 +229,23 @@ namespace render
 		{
 		public:
 
-			DescriptorSetsHolder(const DeviceConfiguration& device_cfg, DescriptorSetsManager& manager) : HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>(device_cfg)
+			Holder(const Global& global, DescriptorSetsManager& manager) : HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>(global)
 			{
-				AttachDescriptorSets(manager);
 			}
 
 			void UpdateData(const DescribedObjectType& object)
 			{
-				HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>::UpdateDataInternal(const DescribedObjectType & object);
+				HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>::UpdateDataInternal(object);
 			}
 
-		private:
+		protected:
 
 			void AttachDescriptorSets(DescriptorSetsManager& manager)
 			{
 				//TODO: calc preciesly
-				std::array<VkWriteDescriptorSet, 64> writes;
+				std::array<VkWriteDescriptorSet, 64> writes = {};
 				int writes_filled_cnt = HolderInternal<DescribedObjectType, Ts..., DescriptorSetType::ListEnd>::FillDescriptorSetWrites(manager, writes);
-				vkUpdateDescriptorSets(device_cfg.logical_device, writes_filled_cnt, writes.data(), 0, nullptr);
+				vkUpdateDescriptorSets(RenderObjBase<void*>::global_.logical_device, writes_filled_cnt, writes.data(), 0, nullptr);
 			}
 		};
 	}

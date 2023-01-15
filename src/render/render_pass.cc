@@ -8,7 +8,9 @@
 
 #include "render/render_graph.h"
 
-render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const RenderNode& render_node): RenderObjBase(device_cfg), contains_depth_attachment_(false)
+#include "global.h"
+
+render::RenderPass::RenderPass(const Global& global, const RenderNode& render_node): RenderObjBase(global), contains_depth_attachment_(false)
 {
 	
 	std::vector<VkAttachmentDescription> vk_attachments;
@@ -21,9 +23,9 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 
 		attachment_description.format = node_attachment.format;
 		attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-		attachment_description.loadOp = node_attachment.depends_on ? VK_ATTACHMENT_LOAD_OP_LOAD : node_attachment.format == device_cfg.depth_map_format ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachment_description.loadOp = node_attachment.depends_on ? VK_ATTACHMENT_LOAD_OP_LOAD : node_attachment.format == global.depth_map_format ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
-		if(node_attachment.format == device_cfg.presentation_format || !node_attachment.to_dependencies.empty())
+		if(node_attachment.format == global.presentation_format || !node_attachment.to_dependencies.empty())
 			attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		else attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		
@@ -36,7 +38,7 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 		}
 		else
 		{
-			attachment_description.initialLayout = node_attachment.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachment_description.initialLayout = node_attachment.format == global.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 
 		if (node_attachment.is_swapchain_image && node_attachment.to_dependencies.empty())
@@ -45,7 +47,7 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 		}
 		else
 		{
-			attachment_description.finalLayout = node_attachment.format == device_cfg.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachment_description.finalLayout = node_attachment.format == global.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 
 		vk_attachments.push_back(attachment_description);
@@ -72,7 +74,7 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 		int attachment_index = 0;
 		for (auto&& node_attachment : render_node.GetAttachments())
 		{
-			if (node_attachment.format == device_cfg.depth_map_format)
+			if (node_attachment.format == global.depth_map_format)
 			{
 				subpasses_depth_refs[subpass_ind].attachment = attachment_index;
 				subpasses_depth_refs[subpass_ind].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -138,11 +140,11 @@ render::RenderPass::RenderPass(const DeviceConfiguration& device_cfg, const Rend
 
 
 
-	if (vkCreateRenderPass(device_cfg_.logical_device, &render_pass_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateRenderPass(global_.logical_device, &render_pass_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create render pass!");
 	}
 
-	//vkDestroyRenderPass(device_cfg_.logical_device, handle_, nullptr);
+	//vkDestroyRenderPass(global_.logical_device, handle_, nullptr);
 
 }
 
@@ -179,11 +181,11 @@ render::RenderPass::~RenderPass()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyRenderPass(device_cfg_.logical_device, handle_, nullptr);
+		vkDestroyRenderPass(global_.logical_device, handle_, nullptr);
 	}
 }
 
 
-//render::RenderPass2::RenderPass2(const DeviceConfiguration& device_cfg) : RenderObjBase(device_cfg)
+//render::RenderPass2::RenderPass2(const Global& global) : RenderObjBase(global)
 //{
 //}

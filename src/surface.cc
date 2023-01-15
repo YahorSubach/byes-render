@@ -6,8 +6,8 @@
 
 #include <functional>
 
-render::Surface::Surface(platform::Window window_hande, const VkInstance& instance, const DeviceConfiguration& device_cfg) :
-	RenderObjBase(device_cfg), window_hande_(window_hande)
+render::Surface::Surface(platform::Window window_hande, const VkInstance& instance, const Global& global) :
+	RenderObjBase(global), window_hande_(window_hande)
 {
 	if (window_hande_)
 	{

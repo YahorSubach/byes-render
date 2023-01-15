@@ -16,7 +16,7 @@ namespace render
 	class Swapchain : public RenderObjBase<VkSwapchainKHR>
 	{
 	public:
-		Swapchain(const DeviceConfiguration& device, const Surface& surface);
+		Swapchain(const Global& device, const Surface& surface);
 
 		Swapchain(const Swapchain&) = delete;
 		Swapchain(Swapchain&&) = default;

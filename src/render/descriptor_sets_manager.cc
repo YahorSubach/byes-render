@@ -1,17 +1,17 @@
 #include "descriptor_sets_manager.h"
 
 
-render::DescriptorSetsManager::DescriptorSetsManager(const DeviceConfiguration& device_cfg) : 
-	RenderObjBase(device_cfg),
-	descriptor_pool_(device_cfg, 2000, 2000),
+render::DescriptorSetsManager::DescriptorSetsManager(const Global& global) : 
+	RenderObjBase(global),
+	descriptor_pool_(global, 2000, 2000),
 	descriptor_set_layouts_
 {
-#define ENUM_OP(val) DescriptorSetLayout(device_cfg, DescriptorSetType::k##val),
+#define ENUM_OP(val) DescriptorSetLayout(global, DescriptorSetType::k##val),
 #include "render/descriptor_types.inl"
 #undef ENUM_OP
 }
 {
-//#define ENUM_OP(x) descriptor_sets_[DescriptorSetType::k##x].resize(64); device_cfg_.descriptor_pool->AllocateSet(render_setup.GetDescriptorSetLayout(DescriptorSetType::k##x).GetHandle(), 64, descriptor_sets_[DescriptorSetType::k##x]);
+//#define ENUM_OP(x) descriptor_sets_[DescriptorSetType::k##x].resize(64); global_.descriptor_pool->AllocateSet(render_setup.GetDescriptorSetLayout(DescriptorSetType::k##x).GetHandle(), 64, descriptor_sets_[DescriptorSetType::k##x]);
 //#include "descriptor_types.inl"
 //#undef ENUM_OP
 }
@@ -58,6 +58,6 @@ render::DescriptorSetsManager::~DescriptorSetsManager()
 {
 	for (auto&& [type, sets] : descriptor_sets_)
 	{
-		//device_cfg_.descriptor_pool->FreeSet(sets);
+		//global_.descriptor_pool->FreeSet(sets);
 	}
 }

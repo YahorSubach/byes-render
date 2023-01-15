@@ -18,19 +18,25 @@
 namespace render
 {
 
-	struct Model
-	{
-		Node& node;
-		util::NullableRef<Mesh> mesh;
-		util::NullableRef<Skin> skin;
+	template<class SceneType>
+	using SceneDescriptorSetHolder = descriptor_sets_holder::Holder<SceneType, DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>;
 
-		struct DescritorSetsHolderImpl : public descriptor_sets_holder::Holder<Model, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>
-		{
-			void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
-			void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
-			void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
-		};
+	class Scene::SceneImpl : public SceneDescriptorSetHolder<SceneImpl>
+	{
+	public:
+		SceneImpl(const Global& global, DescriptorSetsManager& manager);
+		Camera camera;
+		//std::array<ModelSceneDescSetHolder, kFramesCount> scene_decriptor_sets_holder;
+		//const std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>>& GetModels() { return models; }
+
+		std::vector<std::reference_wrapper<Model>> models_;
+		~SceneImpl() {}
+
+	private:
+		GPULocalVertexBuffer viewport_vertex_buffer_;
+		Primitive viewport_primitive;
 	};
+
 
 
 	//class RenderNodeBase
@@ -73,7 +79,7 @@ namespace render
 	//{
 	//public:
 
-	//	ModelDescSetHolder(const DeviceConfiguration& device_cfg, const Model& model);
+	//	ModelDescSetHolder(const Global& global, const Model& model);
 	//	const Model& GetModel() const;
 
 	//	void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
@@ -98,7 +104,7 @@ namespace render
 	//{
 	//public:
 
-	//	ModelSceneDescSetHolder(const DeviceConfiguration& device_cfg, const Scene& scene);
+	//	ModelSceneDescSetHolder(const Global& global, const Scene& scene);
 
 	//	const std::vector<ModelDescSetHolder>& GetModels() const;
 
@@ -152,7 +158,7 @@ namespace render
 		glm::vec2 atlas_width_height_;
 
 	public:
-		UIPoly(const DeviceConfiguration& device_cfg, const ui::UI& ui, glm::mat4 transform, glm::vec2 atlas_position, glm::vec2 atlas_width_height);
+		UIPoly(const Global& global, const ui::UI& ui, glm::mat4 transform, glm::vec2 atlas_position, glm::vec2 atlas_width_height);
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data) override;
@@ -171,7 +177,7 @@ namespace render
 		std::vector<std::reference_wrapper<UIPoly>> ui_polygones_geom_;
 
 	public:
-		UIScene(const DeviceConfiguration& device_cfg, const ui::UI& ui);
+		UIScene(const Global& global, const ui::UI& ui);
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data) override;
 

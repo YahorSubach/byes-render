@@ -34,7 +34,7 @@ namespace render::ui
 	class UI: public RenderObjBase<void*>
 	{
 	public:
-		UI(DeviceConfiguration& device_cfg, Extent extent);
+		UI(Global& global, Extent extent);
 
 
 		const std::vector<BufferAccessor>& GetVertexBuffers() const;

@@ -14,7 +14,7 @@ namespace render
 	class DescriptorPool : public RenderObjBase<VkDescriptorPool>
 	{
 	public:
-		DescriptorPool(const DeviceConfiguration& device_cfg, uint32_t uniform_set_cnt, uint32_t sampler_set_cnt);
+		DescriptorPool(const Global& global, uint32_t uniform_set_cnt, uint32_t sampler_set_cnt);
 
 		DescriptorPool(const DescriptorPool&) = delete;
 		DescriptorPool(DescriptorPool&&) = default;

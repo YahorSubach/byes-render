@@ -8,9 +8,10 @@
 #include "common.h"
 #include "render/data_types.h"
 
+#include "global.h"
 
-render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, Params params):
-	RenderObjBase(device_cfg), layout_(VK_NULL_HANDLE)
+render::GraphicsPipeline::GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, Params params):
+	RenderObjBase(global), layout_(VK_NULL_HANDLE)
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
 	std::vector<VkVertexInputBindingDescription> vertex_input_bindings_descs;
@@ -107,7 +108,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 
 	for (auto&& attachment : render_node.GetAttachments())
 	{
-		if (attachment.format != device_cfg.depth_map_format)
+		if (attachment.format != global.depth_map_format)
 			color_attachments_cnt++;
 	}
 
@@ -215,7 +216,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	pipelineLayoutInfo.pushConstantRangeCount = u32(push_constants.size()); // Optional
 	pipelineLayoutInfo.pPushConstantRanges = push_constants.data(); // Optional
 
-	if (vkCreatePipelineLayout(device_cfg_.logical_device, &pipelineLayoutInfo, nullptr, &layout_) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(global_.logical_device, &pipelineLayoutInfo, nullptr, &layout_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
 
@@ -242,7 +243,7 @@ render::GraphicsPipeline::GraphicsPipeline(const DeviceConfiguration& device_cfg
 	pipeline_info.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipeline_info.basePipelineIndex = -1; // Optional
 
-	if (vkCreateGraphicsPipelines(device_cfg_.logical_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &handle_) != VK_SUCCESS) {
+	if (vkCreateGraphicsPipelines(global_.logical_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 }
@@ -266,11 +267,11 @@ render::GraphicsPipeline::~GraphicsPipeline()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyPipeline(device_cfg_.logical_device, handle_, nullptr);
+		vkDestroyPipeline(global_.logical_device, handle_, nullptr);
 
 		if (layout_ != VK_NULL_HANDLE)
 		{
-			vkDestroyPipelineLayout(device_cfg_.logical_device, layout_, nullptr);
+			vkDestroyPipelineLayout(global_.logical_device, layout_, nullptr);
 		}
 	}
 }

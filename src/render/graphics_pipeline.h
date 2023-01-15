@@ -13,6 +13,12 @@
 namespace render
 {
 	
+	enum class RenderModelCategory
+	{
+		kRenderModel,
+		kViewport,
+		kUIShape
+	};
 
 	struct VertexPushConstants {
 		glm::mat4 project_matrix;
@@ -45,7 +51,7 @@ namespace render
 
 		using Params = util::enums::Flags<EParams>;
 
-		GraphicsPipeline(const DeviceConfiguration& device_cfg, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module,
+		GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module,
 			const std::array<Extent, kExtentTypeCnt>& extents, Params params = {});
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;

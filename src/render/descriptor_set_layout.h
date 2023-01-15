@@ -25,7 +25,7 @@ namespace render
 		};
 
 
-		DescriptorSetLayout(const DeviceConfiguration& device_cfg, DescriptorSetType type);
+		DescriptorSetLayout(const Global& global, DescriptorSetType type);
 
 		DescriptorSetLayout(const DescriptorSetLayout&) = delete;
 		DescriptorSetLayout(DescriptorSetLayout&&) = default;

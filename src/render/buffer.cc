@@ -1,7 +1,8 @@
 #include "buffer.h"
 #include "command_pool.h"
+#include "global.h"
 
-render::Buffer::Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indeces): RenderObjBase(device_cfg), size_(size)
+render::Buffer::Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indeces): RenderObjBase(global), size_(size)
 {
     VkBufferCreateInfo buffer_info{};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -11,19 +12,19 @@ render::Buffer::Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size,
     buffer_info.queueFamilyIndexCount = u32(queue_famaly_indeces.size());
     buffer_info.pQueueFamilyIndices = queue_famaly_indeces.data();
 
-    if (vkCreateBuffer(device_cfg.logical_device, &buffer_info, nullptr, &handle_) != VK_SUCCESS) {
+    if (vkCreateBuffer(global.logical_device, &buffer_info, nullptr, &handle_) != VK_SUCCESS) {
         throw std::runtime_error("failed to create vertex buffer!");
     }
 
 	VkMemoryRequirements memory_requirements;
-	vkGetBufferMemoryRequirements(device_cfg.logical_device, handle_, &memory_requirements);
+	vkGetBufferMemoryRequirements(global.logical_device, handle_, &memory_requirements);
 
-    memory_ = std::make_unique<Memory>(device_cfg, memory_requirements.size, memory_requirements.memoryTypeBits, memory_flags);
+    memory_ = std::make_unique<Memory>(global, memory_requirements.size, memory_requirements.memoryTypeBits, memory_flags);
 
-    vkBindBufferMemory(device_cfg.logical_device, handle_, memory_->GetMemoryHandle(), 0);
+    vkBindBufferMemory(global.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 }
 
-render::Buffer::Buffer(const DeviceConfiguration& device_cfg, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags) : Buffer(device_cfg, size, usage, memory_flags, {})
+render::Buffer::Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags) : Buffer(global, size, usage, memory_flags, {})
 {
 }
 
@@ -43,17 +44,17 @@ render::Buffer::~Buffer()
 {
     if (handle_ != VK_NULL_HANDLE)
     {
-        vkDestroyBuffer(device_cfg_.logical_device, handle_, nullptr);
+        vkDestroyBuffer(global_.logical_device, handle_, nullptr);
     }
 }
 
 void render::GPULocalBuffer::LoadData(const void* data, size_t size)
 {
-    StagingBuffer staging_buffer(device_cfg_, size);
+    StagingBuffer staging_buffer(global_, size);
 
     staging_buffer.LoadData(data, size);
 
-    device_cfg_.transfer_cmd_pool->ExecuteOneTimeCommand([size, &staging_buffer, this](VkCommandBuffer command_buffer) {
+    global_.transfer_cmd_pool->ExecuteOneTimeCommand([size, &staging_buffer, this](VkCommandBuffer command_buffer) {
 
         VkBufferCopy copy_region{};
         copy_region.srcOffset = 0; // Optional
@@ -67,15 +68,15 @@ void render::GPULocalBuffer::LoadData(const void* data, size_t size)
 void render::StagingBuffer::LoadData(const void* data, size_t size)
 {
     void* mapped_data;
-    vkMapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
+    vkMapMemory(global_.logical_device, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
     memcpy(mapped_data, data, static_cast<size_t>(size));
-    vkUnmapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle());
+    vkUnmapMemory(global_.logical_device, memory_->GetMemoryHandle());
 }
 
 void render::UniformBuffer::LoadData(const void* data, size_t size)
 {
     void* mapped_data;
-    vkMapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
+    vkMapMemory(global_.logical_device, memory_->GetMemoryHandle(), 0, size, 0, &mapped_data);
     memcpy(mapped_data, data, static_cast<size_t>(size));
-    vkUnmapMemory(device_cfg_.logical_device, memory_->GetMemoryHandle());
+    vkUnmapMemory(global_.logical_device, memory_->GetMemoryHandle());
 }
