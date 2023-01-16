@@ -48,7 +48,7 @@ render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapch
 //	model_scene_.AddModel(model);
 //}
 
-bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index)
+bool render::FrameHandler::Draw(const FrameInfo& frame_info, Scene::SceneImpl& scene)
 {
 	//CommandBufferFiller command_filler(render_setup, framebuffer_collection);
 
@@ -221,60 +221,60 @@ bool render::FrameHandler::Draw(const Framebuffer& swapchain_framebuffer, const 
 	//	}
 	//}
 
-	render_models.push_back(RenderModel
-		{
-			RenderModelCategory::kViewport,
-			render_setup_.GetPipeline(PipelineId::kCollectGBuffers),
-			6,
-		{},
-		{},
-		{},
-		{}
-		}
-	);
+	//render_models.push_back(RenderModel
+	//	{
+	//		RenderModelCategory::kViewport,
+	//		render_setup_.GetPipeline(PipelineId::kCollectGBuffers),
+	//		6,
+	//	{},
+	//	{},
+	//	{},
+	//	{}
+	//	}
+	//);
 
-	render_models.back().vertex_buffers.push_back(viewport_vertex_buffer_.GetHandle());
-	render_models.back().vertex_buffers_offsets.push_back(0);
+	//render_models.back().vertex_buffers.push_back(viewport_vertex_buffer_.GetHandle());
+	//render_models.back().vertex_buffers_offsets.push_back(0);
 
-	debug_geometry_.Update();
+	//debug_geometry_.Update();
 
-	render_models.push_back(RenderModel
-		{
-			RenderModelCategory::kViewport,
-			render_setup_.GetPipeline(PipelineId::kDebugLines),
-			debug_geometry_.coords_lines_vertex_cnt,
-			{}
-		}
-	);
+	//render_models.push_back(RenderModel
+	//	{
+	//		RenderModelCategory::kViewport,
+	//		render_setup_.GetPipeline(PipelineId::kDebugLines),
+	//		debug_geometry_.coords_lines_vertex_cnt,
+	//		{}
+	//	}
+	//);
 
-	render_models.back().vertex_buffers.push_back(debug_geometry_.coords_lines_position_buffer_.GetHandle());
-	render_models.back().vertex_buffers.push_back(debug_geometry_.coords_lines_color_buffer_.GetHandle());
-	render_models.back().vertex_buffers_offsets.push_back(0);
-	render_models.back().vertex_buffers_offsets.push_back(0);
+	//render_models.back().vertex_buffers.push_back(debug_geometry_.coords_lines_position_buffer_.GetHandle());
+	//render_models.back().vertex_buffers.push_back(debug_geometry_.coords_lines_color_buffer_.GetHandle());
+	//render_models.back().vertex_buffers_offsets.push_back(0);
+	//render_models.back().vertex_buffers_offsets.push_back(0);
 
 
-	render_models.push_back(RenderModel
-		{
-			RenderModelCategory::kViewport,
-			render_setup_.GetPipeline(PipelineId::kDebugLines),
-			debug_geometry_.debug_lines_vertex_cnt,
-			{}
-		}
-	);
+	//render_models.push_back(RenderModel
+	//	{
+	//		RenderModelCategory::kViewport,
+	//		render_setup_.GetPipeline(PipelineId::kDebugLines),
+	//		debug_geometry_.debug_lines_vertex_cnt,
+	//		{}
+	//	}
+	//);
 
-	render_models.back().vertex_buffers.push_back(debug_geometry_.debug_lines_position_buffer_.GetHandle());
-	render_models.back().vertex_buffers.push_back(debug_geometry_.debug_lines_color_buffer_.GetHandle());
-	render_models.back().vertex_buffers_offsets.push_back(0);
-	render_models.back().vertex_buffers_offsets.push_back(0);
+	//render_models.back().vertex_buffers.push_back(debug_geometry_.debug_lines_position_buffer_.GetHandle());
+	//render_models.back().vertex_buffers.push_back(debug_geometry_.debug_lines_color_buffer_.GetHandle());
+	//render_models.back().vertex_buffers_offsets.push_back(0);
+	//render_models.back().vertex_buffers_offsets.push_back(0);
 
 
 	//auto scene_descriptor_sets = model_scene_.GetRenderNode().GetDescriptorSets();
 	//scene_descriptor_sets.insert(ui_scene_.GetDescriptorSets().begin(), ui_scene_.GetDescriptorSets().end());
 
 
-	render_graph_handler_.FillCommandBuffer(command_buffer_, swapchain_framebuffer, swapchain_image, scene_descriptor_sets, render_models);
+	render_graph_handler_.FillCommandBuffer(command_buffer_, frame_info, render_setup_.GetPipelines(), scene);
 
-	present_info_.pImageIndices = &image_index;
+	present_info_.pImageIndices = &frame_info.swapchain_image_index;
 
 	if (vkQueueSubmit(graphics_queue_, 1, &submit_info_, cmd_buffer_fence_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");

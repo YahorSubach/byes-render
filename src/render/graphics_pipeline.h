@@ -12,14 +12,6 @@
 
 namespace render
 {
-	
-	enum class RenderModelCategory
-	{
-		kRenderModel,
-		kViewport,
-		kUIShape
-	};
-
 	struct VertexPushConstants {
 		glm::mat4 project_matrix;
 		glm::mat4 view_model_matrix;
@@ -60,11 +52,12 @@ namespace render
 		GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
 		GraphicsPipeline& operator=(GraphicsPipeline&&) = default;
 
-		const std::map<uint32_t, const DescriptorSetLayout&>& GetDescriptorSets() const;
+		const std::map<uint32_t, const DescriptorSetLayout&>& GetDescriptorSetLayouts() const;
+		const std::map<uint32_t, ShaderModule::VertexBindingDesc>& GetVertexBindingsDescs() const;
 
 		const VkPipelineLayout& GetLayout() const;
 
-		uint32_t GetVertesBindingsCount() const;
+		uint32_t GetVertexBindingsCount() const;
 
 		virtual ~GraphicsPipeline() override;
 	private:
@@ -72,6 +65,7 @@ namespace render
 		std::vector<VkVertexInputBindingDescription> BuildVertexInputBindingDescriptions(const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
 		std::vector<VkVertexInputAttributeDescription> BuildVertexAttributeDescription(const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
 		
+		std::map<uint32_t, ShaderModule::VertexBindingDesc> vertex_bindings_descs_;
 		std::map<uint32_t, const DescriptorSetLayout&> descriptor_sets_;
 
 		VkPipelineLayout layout_;

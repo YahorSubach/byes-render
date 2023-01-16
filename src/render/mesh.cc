@@ -11,12 +11,10 @@
 namespace render
 {
 
-	render::Model::Model(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in, const GraphicsPipeline& pipeline_in, RenderModelCategory category) :
+	render::Model::Model(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in) :
 		ModelDescriptorSetHolder(global, manager),
 		node(node_in),
-		mesh(mesh_in),
-		pipeline(pipeline_in),
-		category(category)
+		mesh(mesh_in)
 	{
 		UpdateData(*this);
 		AttachDescriptorSets(manager);

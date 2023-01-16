@@ -30,6 +30,8 @@ namespace render
 		//const DescriptorSetLayout& GetDescriptorSetLayout(DescriptorSetType type) const;
 		const RenderGraph2& GetRenderGraph() const;
 		const RenderPass& GetSwapchainRenderPass() const;
+
+		const std::map<PipelineId, GraphicsPipeline>& GetPipelines() const;
 	private:
 
 		//void InitDescriptorSetLayouts(const Global& global);

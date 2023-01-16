@@ -222,7 +222,12 @@ namespace render
 
 		void StartRenderThread()
 		{
+			ready = false;
 			render_thread_ = std::thread(&RenderEngine::RenderEngineImpl::RenderLoop, this);
+			while (!ready)
+			{
+				std::this_thread::yield();
+			}
 		}
 
 		void RenderLoop()
@@ -254,6 +259,8 @@ namespace render
 			
 			BatchesManager batches_manager(global_);
 
+			scene_.impl_ = std::make_unique<Scene::SceneImpl>(global_, descriptor_set_manager);
+			ready = true;
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
 				descriptor_set_manager.FreeAll();
@@ -295,6 +302,7 @@ namespace render
 				frames.reserve(kFramesCount);
 
 
+
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
 					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_, *debug_geometry_));
@@ -322,28 +330,29 @@ namespace render
 						continue;
 					}
 
-					should_refresh_swapchain = !frames[current_frame_index].Draw(swapchain_framebuffers[image_index], swapchain.GetImage(image_index), image_index);
+					FrameInfo frame_info
+					{
+						swapchain_framebuffers[image_index],
+						swapchain.GetImage(image_index),
+						image_index
+					};
+
+					should_refresh_swapchain = !frames[current_frame_index].Draw(frame_info, *scene_.impl_);
 
 					if (external_command_queue_.Size() > 0)
 					{
 						LoadCommand command = external_command_queue_.Pop();
-						batches_manager.Add(*command.model, descriptor_set_manager);
+						batches_manager.Add(*command.model, descriptor_set_manager, render_setup);
 
 						auto&& model_packs = batches_manager.GetModelPacks();
 
 						for (auto&& pack : model_packs)
 						{
-							for (auto&& node : pack.nodes)
+							for (auto&& model : pack.models)
 							{
-								//Model model { node.}
+								scene_.impl_->models_.push_back(model);
 							}
 						}
-
-						for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
-						{
-							//frames[frame_ind].AddModel(batches_manager.GetMeshes().back().get());
-						}
-
 					}
 				}
 
@@ -750,6 +759,8 @@ namespace render
 		std::thread render_thread_;
 
 		Scene scene_;
+
+		bool ready;
 
 		std::unique_ptr<DebugGeometry> debug_geometry_;
 

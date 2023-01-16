@@ -15,15 +15,17 @@
 #include "image.h"
 #include "stl_util.h"
 #include "render/data_types.h"
-#include "render/graphics_pipeline.h"
 #include "render/vertex_buffer.h"
 #include "render/descriptor_set_holder.h"
 
 namespace render
 {
 
+	class GraphicsPipeline;
 	struct Material
 	{
+		PipelineId pipeline_type;
+
 		util::NullableRef<const Image> albedo;
 		util::NullableRef<const Image> metallic_roughness;
 		util::NullableRef<const Image> normal_map;
@@ -33,11 +35,11 @@ namespace render
 
 	struct Primitive
 	{
-		BufferAccessor indices;
-
-		std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
-
+		RenderModelCategory category;
 		Material material;
+
+		std::optional<BufferAccessor> indices;
+		std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
 	};
 
 	struct Node
@@ -74,14 +76,12 @@ namespace render
 
 	struct Model;
 	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<Model, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>;
-	
+
 	struct Model: public ModelDescriptorSetHolder
 	{
-		Model(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in, const GraphicsPipeline& pipeline_in, RenderModelCategory category_in = RenderModelCategory::kRenderModel);
+		Model(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in);
 
 		Node& node;
-		const GraphicsPipeline& pipeline;
-		RenderModelCategory category;
 
 		util::NullableRef<Mesh> mesh;
 		util::NullableRef<Skin> skin;

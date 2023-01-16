@@ -29,9 +29,6 @@ namespace render
 		Scene();
 		Camera& GetActiveCamera();
 		const Camera& GetActiveCamera() const;
-		void AddModel(Model& model) const;
-		const std::vector<std::reference_wrapper<Model>>& GetModels() const;
-
 
 		~Scene();
 

@@ -5,6 +5,8 @@
 
 #include "tinygltf/tiny_gltf.h"
 
+#undef TINYGLTF_IMPLEMENTATION
+
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <glm/glm/gtc/type_ptr.hpp>
@@ -13,7 +15,9 @@
 
 #include "global.h"
 
-render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager)
+#include "render/render_setup.h"
+
+render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager, const RenderSetup& render_setup)
 {
 	tinygltf::TinyGLTF loader;
 	std::string err;
@@ -114,10 +118,11 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 			for (auto&& gltf_primitive : gltf_mesh.primitives)
 			{
-
 				Primitive primitive
 				{
-					BuildBufferAccessor(gltf_model, gltf_primitive.indices),
+					RenderModelCategory::kRenderModel,
+					Material{PipelineId::kBuildGBuffers},
+					BuildBufferAccessor(gltf_model, gltf_primitive.indices)
 				};
 
 				for (VertexBufferType vertex_buffer_type = VertexBufferType::Begin; vertex_buffer_type != VertexBufferType::End; vertex_buffer_type = util::enums::Next(vertex_buffer_type))
@@ -187,7 +192,7 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 			if (gltf_node.mesh != -1)
 			{
-				models.push_back({global, manager, node, meshes[gltf_node.mesh], });
+				models.push_back(Model(global, manager, node, meshes[gltf_node.mesh]));
 
 				const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
 

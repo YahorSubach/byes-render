@@ -18,7 +18,12 @@
 
 namespace render
 {
-
+	struct FrameInfo
+	{
+		const Framebuffer& swapchain_framebuffer;
+		const Image& swapchain_image;
+		uint32_t swapchain_image_index;
+	};
 
 	using RenderModelCategoryFlags = util::enums::Flags<RenderModelCategory>;
 
@@ -149,7 +154,7 @@ namespace render
 
 		RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager);
 
-		bool FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, const Scene::SceneImpl& scene) const;
+		bool FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const std::map<PipelineId, GraphicsPipeline>& pipelines, Scene::SceneImpl& scene) const;
 
 	private:
 

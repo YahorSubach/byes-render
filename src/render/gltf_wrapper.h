@@ -18,11 +18,12 @@
 
 namespace render
 {
+	class RenderSetup;
 	class GLTFWrapper: ValidationBase
 	{
 	public:
 
-		GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager);
+		GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager, const RenderSetup& render_setup);
 		GLTFWrapper(const GLTFWrapper&) = delete;
 		GLTFWrapper(GLTFWrapper&&) = default;
 

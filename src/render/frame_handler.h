@@ -56,6 +56,7 @@ namespace render
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
+
 		FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup, 
 			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
 			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene, DebugGeometry& debug_geometry);
@@ -68,7 +69,9 @@ namespace render
 		
 		//void AddModel(const render::Mesh& model);
 
-		bool Draw(const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, uint32_t image_index);
+
+
+		bool Draw(const FrameInfo& frame_info, Scene::SceneImpl& scene);
 
 		VkSemaphore GetImageAvailableSemaphore() const;
 

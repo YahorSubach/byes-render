@@ -7,16 +7,16 @@
 
 #include "common.h"
 #include "render/animator.h"
-#include "render/object_base.h"
 #include "render/batch.h"
 #include "render/descriptor_pool.h"
+#include "render/gltf_wrapper.h"
 #include "render/image.h"
 #include "render/image_view.h"
 #include "render/render_pass.h"
+#include "render/object_base.h"
 #include "render/sampler.h"
 #include "render/swapchain.h"
 #include "stl_util.h"
-
 #include "gltf_wrapper.h"
 
 
@@ -36,12 +36,12 @@ namespace render
 		BatchesManager& operator=(const BatchesManager&) = delete;
 		BatchesManager& operator=(BatchesManager&&) = default;
 
-		const std::vector<ModelPack>& GetModelPacks() const;
+		std::vector<ModelPack>& GetModelPacks();
 
 		const ImageView& GetEnvImageView() const;
 
 		void Update();
-		void Add(const tinygltf::Model& model, DescriptorSetsManager& manager);
+		void Add(const tinygltf::Model& model, DescriptorSetsManager& manager, const RenderSetup& render_setup);
 
 	private:
 

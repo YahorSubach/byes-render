@@ -5,7 +5,10 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 
+
 #include "descriptor_set_holder.h"
+#include "render/global.h"
+#include "render/render_setup.h"
 
 namespace render
 {
@@ -323,7 +326,6 @@ namespace render
 
 	Scene::Scene()
 	{
-		impl_ = std::make_unique<SceneImpl>();
 	}
 
 	Camera& Scene::GetActiveCamera()
@@ -334,14 +336,7 @@ namespace render
 	{
 		return impl_->camera;
 	}
-	void Scene::AddModel(Model& model) const
-	{
-		impl_->models_.push_back(model);
-	}
-	const std::vector<std::reference_wrapper<Model>>& Scene::GetModels() const
-	{
-		return impl_->models_;
-	}
+
 	Scene::~Scene()
 	{
 	}
@@ -350,7 +345,8 @@ namespace render
 	Scene::SceneImpl::SceneImpl(const Global& global, DescriptorSetsManager& manager):
 		SceneDescriptorSetHolder<SceneImpl>(global, manager),
 		viewport_vertex_buffer_(global_, 6 * sizeof(glm::vec3)),
-		viewport_primitive({ BufferAccessor(viewport_vertex_buffer_, sizeof(glm::vec3), 0, 6) })
+		viewport_primitive({ RenderModelCategory::kViewport, PipelineId::kCollectGBuffers}),
+		env_image_(global, Image::BuiltinImageType::kBlack)
 	{
 		std::vector<glm::vec3> viewport_vertex_data = {
 			{-1, -1, 0},
@@ -363,6 +359,53 @@ namespace render
 		};
 
 		viewport_vertex_buffer_.LoadData(viewport_vertex_data.data(), viewport_vertex_data.size() * sizeof(glm::vec3));
+
+		viewport_primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)] = BufferAccessor(viewport_vertex_buffer_, sizeof(glm::vec3), 0, 6);
+
+		UpdateData(*this);
+		AttachDescriptorSets(manager);
+	}
+
+	void Scene::SceneImpl::FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
+	{
+		data.position.x = camera.position.x;
+		data.position.y = camera.position.y;
+		data.position.z = camera.position.z;
+		data.position.w = 1.0f;
+
+		glm::vec3 position;
+		glm::vec3 orientation;
+
+		position.x = camera.position.x;
+		position.y = camera.position.y;
+		position.z = camera.position.z;
+
+		orientation.x = camera.orientation.x;
+		orientation.y = camera.orientation.y;
+		orientation.z = camera.orientation.z;
+
+		glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
+		proj[1][1] *= -1;
+		data.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
+	void Scene::SceneImpl::FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
+	{
+		data.near_plane = 0.1f;
+		data.far_plane = 100.f;
+
+
+		data.position = glm::vec4(2.0f, 1.0f, 4.0f, 1.0f);
+		data.proj_mat = glm::perspective(glm::radians(60.0f), 1.f, data.near_plane, data.far_plane);
+		data.proj_mat[1][1] *= -1;
+
+		data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
+	void Scene::SceneImpl::FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
+	{
+		data.environement = env_image_;
+		data.environement_sampler = global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()];
 	}
 
 }

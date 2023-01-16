@@ -560,7 +560,7 @@ render::RenderGraphHandler::RenderGraphHandler(const Global& global, const Rende
 	}
 }
 
-bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const Framebuffer& swapchain_framebuffer, const Image& swapchain_image, const Scene::SceneImpl& scene) const
+bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const std::map<PipelineId, GraphicsPipeline>& pipelines, Scene::SceneImpl& scene) const
 {
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -588,7 +588,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 
 			stop = false;
 
-			util::NullableRef<const Framebuffer> framebuffer = swapchain_framebuffer;
+			util::NullableRef<const Framebuffer> framebuffer = frame_info.swapchain_framebuffer;
 			std::map<DescriptorSetType, VkDescriptorSet> node_desc_set;
 			if (auto&& it = node_data_.find(node_name); it != node_data_.end())
 			{
@@ -637,40 +637,61 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 			VkPipelineLayout pipeline_layout;
 			for (auto&& render_model_ref : scene.models_)
 			{
-				auto&& render_model = render_model_ref.get();
-				if (true /*RenderNode.category_flags.Check(render_model.category)*/) 
+				auto&& model = render_model_ref.get();
+				auto&& mesh = *model.mesh;
+				for (auto&& primitive : mesh.primitives)
 				{
-
-					if (current_pipeline != &render_model.pipeline)
+					if (RenderNode.category_flags.Check(primitive.category))
 					{
-						current_pipeline = &render_model.pipeline;
+						auto&& primitive_pipeline = pipelines.at(primitive.material.pipeline_type);
 
-						vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, render_model.pipeline.GetHandle());
-						const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = render_model.pipeline.GetDescriptorSets();
+						if (current_pipeline != &primitive_pipeline)
+						{
+							current_pipeline = &primitive_pipeline;
 
-						pipeline_layout = render_model.pipeline.GetLayout();
+							vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, primitive_pipeline.GetHandle());
+							const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = primitive_pipeline.GetDescriptorSetLayouts();
 
-						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, node_desc_set);
-						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene_ds);
-					}
+							pipeline_layout = primitive_pipeline.GetLayout();
+
+							ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, node_desc_set);
+							ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene.GetDescriptorSets(frame_info.swapchain_image_index));
+						}
 
 
-					const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = render_model.pipeline.GetDescriptorSets();
+						const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = primitive_pipeline.GetDescriptorSetLayouts();
 
-					ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, render_model.descriptor_sets);
+						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, model.GetDescriptorSets(frame_info.swapchain_image_index));
 
-					assert(render_model.vertex_buffers.size() == render_model.vertex_buffers_offsets.size());
 
-					vkCmdBindVertexBuffers(command_buffer, 0, u32(render_model.vertex_buffers.size()), render_model.vertex_buffers.data(), render_model.vertex_buffers_offsets.data());
+						std::array<VkBuffer, kVertexBufferTypesCount> vertex_buffers;
+						std::array<VkDeviceSize, kVertexBufferTypesCount> vertex_buffer_offsets;
+						uint32_t vertex_buffers_cnt = 0;
 
-					if (render_model.index_buffer_and_offset.has_value())
-					{
-						vkCmdBindIndexBuffer(command_buffer, render_model.index_buffer_and_offset->first, render_model.index_buffer_and_offset->second, VK_INDEX_TYPE_UINT16);
-						vkCmdDrawIndexed(command_buffer, render_model.vertex_count, 1, 0, 0, 0);
-					}
-					else
-					{
-						vkCmdDraw(command_buffer, render_model.vertex_count, 1, 0, 0);
+						for (auto&& [vertex_binding_index, vertex_binding] : primitive_pipeline.GetVertexBindingsDescs())
+						{
+							for (auto&& [attr_location, attr] : vertex_binding.attributes)
+							{
+								assert(primitive.vertex_buffers[u32(attr.type)]);
+
+								vertex_buffers[vertex_binding_index] = primitive.vertex_buffers[u32(attr.type)]->buffer->GetHandle();
+								vertex_buffer_offsets[vertex_binding_index] = primitive.vertex_buffers[u32(attr.type)]->offset;
+								vertex_buffers_cnt = std::max(vertex_buffers_cnt, vertex_binding_index + 1);
+							}
+						}
+
+
+						vkCmdBindVertexBuffers(command_buffer, 0, vertex_buffers_cnt, vertex_buffers.data(), vertex_buffer_offsets.data());
+
+						if (primitive.indices)
+						{
+							vkCmdBindIndexBuffer(command_buffer, primitive.indices->buffer->GetHandle(), primitive.indices->offset, VK_INDEX_TYPE_UINT16);
+							vkCmdDrawIndexed(command_buffer, primitive.indices->count, 1, 0, 0, 0);
+						}
+						else
+						{
+							vkCmdDraw(command_buffer, primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)]->count, 1, 0, 0);
+						}
 					}
 				}
 			}
@@ -704,7 +725,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 
 			if (!barrier_image)
 			{
-				barrier_image = swapchain_image;
+				barrier_image = frame_info.swapchain_image;
 			}
 
 			VkImageMemoryBarrier2 barrier;

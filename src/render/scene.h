@@ -9,6 +9,8 @@
 #include "render/graphics_pipeline.h"
 #include "render/framebuffer_collection.h"
 #include "render/image_view.h"
+#include "render/mesh.h"
+#include "render/render_engine.h"
 #include "render/ui/ui.h"
 #include "render/ui/panel.h"
 
@@ -29,12 +31,24 @@ namespace render
 		//std::array<ModelSceneDescSetHolder, kFramesCount> scene_decriptor_sets_holder;
 		//const std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>>& GetModels() { return models; }
 
+
+		void FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
+		void FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
+		void FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data) override;
+		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data) override;
+
+
 		std::vector<std::reference_wrapper<Model>> models_;
 		~SceneImpl() {}
 
 	private:
 		GPULocalVertexBuffer viewport_vertex_buffer_;
 		Primitive viewport_primitive;
+		Image env_image_;
 	};
 
 

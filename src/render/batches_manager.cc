@@ -294,7 +294,8 @@ namespace render
 	//	return meshes_;
 	//}
 
-	const std::vector<ModelPack>& BatchesManager::GetModelPacks() const
+	
+	std::vector<ModelPack>& BatchesManager::GetModelPacks()
 	{
 		return gltf_wrappers_;
 	}
@@ -312,9 +313,9 @@ namespace render
 		}
 	}
 
-	void BatchesManager::Add(const tinygltf::Model& model, DescriptorSetsManager& manager)
+	void BatchesManager::Add(const tinygltf::Model& model, DescriptorSetsManager& manager, const RenderSetup& render_setup)
 	{
-		gltf_wrappers_.push_back(GLTFWrapper(global_, model, manager));
+		gltf_wrappers_.push_back(GLTFWrapper(global_, model, manager, render_setup));
 
 		auto&& wrapper = gltf_wrappers_.back();
 
