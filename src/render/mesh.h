@@ -33,13 +33,23 @@ namespace render
 		uint32_t flags = 0;
 	};
 
-	struct Primitive
+	struct Primitive;
+	using PrimitiveDescriptorSetHolder = descriptor_sets_holder::Holder<Primitive, DescriptorSetType::kMaterial>;
+
+	struct Primitive: public PrimitiveDescriptorSetHolder
 	{
+		Primitive(const Global& global, DescriptorSetsManager& manager);
+
 		RenderModelCategory category;
 		Material material;
 
 		std::optional<BufferAccessor> indices;
 		std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
+
+		void FillData(const Primitive& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
+		void FillData(const Primitive& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
+		void FillData(const Primitive& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
+		void FillData(const Primitive& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
 	};
 
 	struct Node
@@ -75,7 +85,7 @@ namespace render
 	};
 
 	struct Model;
-	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<Model, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton, DescriptorSetType::kMaterial>;
+	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<Model, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton>;
 
 	struct Model: public ModelDescriptorSetHolder
 	{
@@ -86,11 +96,6 @@ namespace render
 		util::NullableRef<Mesh> mesh;
 		util::NullableRef<Skin> skin;
 
-
-		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
-		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
-		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
-		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
 		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
 		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 	};

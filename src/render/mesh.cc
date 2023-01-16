@@ -20,26 +20,56 @@ namespace render
 		AttachDescriptorSets(manager);
 	}
 
-	void render::Model::FillData(const Model& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
+	Primitive::Primitive(const Global& global, DescriptorSetsManager& manager): PrimitiveDescriptorSetHolder(global, manager)
+	{
+		UpdateData(*this);
+		AttachDescriptorSets(manager);
+	}
+
+	void render::Primitive::FillData(const Primitive& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
 	{
 		data.flags = 0;
 	}
 
-	void render::Model::FillData(const Model& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
+	void render::Primitive::FillData(const Primitive& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
 	{
-		data.albedo = model.mesh->primitives[0].material.albedo;
+		if (material.metallic_roughness)
+		{
+			data.albedo = material.metallic_roughness;
+		}
+		else
+		{
+			data.albedo = global_.default_image;
+		}
+
 		data.albedo_sampler = global_.mipmap_cnt_to_global_samplers[data.albedo->GetMipMapLevelsCount()];
 	}
 
-	void render::Model::FillData(const Model& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
+	void render::Primitive::FillData(const Primitive& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
 	{
-		data.metallic_roughness = model.mesh->primitives[0].material.metallic_roughness;
+		if (material.metallic_roughness)
+		{
+			data.metallic_roughness = material.metallic_roughness;
+		}
+		else
+		{
+			data.metallic_roughness = global_.default_image;
+		}
+
 		data.metallic_roughness_sampler = global_.mipmap_cnt_to_global_samplers[data.metallic_roughness->GetMipMapLevelsCount()];
 	}
 
-	void render::Model::FillData(const Model& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
+	void render::Primitive::FillData(const Primitive& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
 	{
-		data.normal_map = model.mesh->primitives[0].material.normal_map;
+		if (material.normal_map)
+		{
+			data.normal_map = material.normal_map;
+		}
+		else
+		{
+			data.normal_map = global_.default_image;
+		}
+
 		data.normal_map_sampler = global_.mipmap_cnt_to_global_samplers[data.normal_map->GetMipMapLevelsCount()];
 	}
 

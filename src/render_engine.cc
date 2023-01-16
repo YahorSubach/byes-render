@@ -206,8 +206,6 @@ namespace render
 			global_.transfer_cmd_pool = transfer_command_pool_ptr_.get();
 
 			vk_init_success_ = true;
-
-			debug_geometry_ = std::make_unique<DebugGeometry>(global_);
 		}
 
 
@@ -245,7 +243,7 @@ namespace render
 
 			uint32_t current_frame_index = -1;
 
-			Image def_image = Image::FromFile(global_, "../images/test.jpg");
+			Image def_image(global_, Image::BuiltinImageType::kWhite);
 			global_.default_image = def_image;
 			global_.presentation_format = surface_ptr_->GetSurfaceFormat(global_.physical_device).format;
 
@@ -305,7 +303,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_, *debug_geometry_));
+					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_));
 				}
 
 
@@ -377,7 +375,7 @@ namespace render
 				);
 			}
 
-			debug_geometry_->SetDebugLines(debug_lines);
+			scene_.impl_->debug_geometry_.SetDebugLines(debug_lines);
 		}
 
 		~RenderEngineImpl()
@@ -761,8 +759,6 @@ namespace render
 		Scene scene_;
 
 		bool ready;
-
-		std::unique_ptr<DebugGeometry> debug_geometry_;
 
 		//VkSemaphore image_available_semaphore_;
 		//VkSemaphore render_finished_semaphore_;

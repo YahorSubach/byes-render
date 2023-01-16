@@ -79,6 +79,8 @@ render::Image render::Image::FromFile(const Global& global, const std::string_vi
 
 	stbi_uc* pixels = stbi_load(path.data(), &width, &height, &channels, STBI_rgb_alpha);
 
+	assert(width > 0 && height > 0);
+
 	Image res = Image(global, VK_FORMAT_R8G8B8A8_SRGB, {u32(width), u32(height)}, pixels);
 
 	stbi_image_free(pixels);

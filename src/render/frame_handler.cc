@@ -17,7 +17,7 @@
 
 render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup, 
 	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, 
-	const ui::UI& ui, const Scene& scene, DebugGeometry& debug_geometry) :
+	const ui::UI& ui, const Scene& scene) :
 	RenderObjBase(global), swapchain_(swapchain.GetHandle()), graphics_queue_(global.graphics_queue),
 	command_buffer_(global.graphics_cmd_pool->GetCommandBuffer()),
 	image_available_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
@@ -27,8 +27,7 @@ render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapch
 	render_setup_(render_setup),
 	render_graph_handler_(global, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
 	//ui_scene_(global, ui),
-	ui_(ui),
-	debug_geometry_(debug_geometry)
+	ui_(ui)
 {
 
 
@@ -50,6 +49,7 @@ render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapch
 
 bool render::FrameHandler::Draw(const FrameInfo& frame_info, Scene::SceneImpl& scene)
 {
+	scene.Update();
 	//CommandBufferFiller command_filler(render_setup, framebuffer_collection);
 
 	submit_info_.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -295,108 +295,5 @@ render::FrameHandler::~FrameHandler()
 	{
 		vkDestroyFence(global_.logical_device, cmd_buffer_fence_, nullptr);
 		vkDestroySemaphore(global_.logical_device, render_finished_semaphore_, nullptr);
-	}
-}
-
-std::pair<render::DebugGeometry::Point, render::DebugGeometry::Point> render::DebugGeometry::Point::operator>>(const Point& rhs)
-{
-	return { *this, rhs };
-}
-
-render::DebugGeometry::DebugGeometry(const Global& global):
-	coords_lines_position_buffer_(global, sizeof(glm::vec3) * 256),
-	coords_lines_color_buffer_(global, sizeof(glm::vec3) * 256),
-	coords_lines_vertex_cnt(0),
-	debug_lines_position_buffer_(global, sizeof(glm::vec3) * 256),
-	debug_lines_color_buffer_(global, sizeof(glm::vec3) * 256),
-	debug_lines_vertex_cnt(0)
-{
-	ready_to_write.store(true);
-	ready_to_read.store(false);
-}
-
-void render::DebugGeometry::Update()
-{
-	if (coords_lines_vertex_cnt == 0)
-	{
-		std::vector<glm::vec3> coords_lines_position_data = {
-		{0, 0, 0},
-		{1, 0, 0},
-
-		{0, 0, 0},
-		{0, 1, 0},
-
-		{0, 0, 0},
-		{0, 0, 1},
-		};
-
-		std::vector<glm::vec3> coords_lines_color_data = {
-			{1, 0, 0},
-			{1, 0, 0},
-
-			{0, 1, 0},
-			{0, 1, 0},
-
-			{0, 0, 1},
-			{0, 0, 1},
-		};
-
-		for (int i = -20; i < 21; i++)
-		{
-			coords_lines_position_data.push_back({ 0.5 * i, -10, -0.1 });
-			coords_lines_position_data.push_back({ 0.5 * i, 10, -0.1 });
-
-			coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
-			coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
-		}
-
-		for (int i = -20; i < 21; i++)
-		{
-			coords_lines_position_data.push_back({ -10, 0.5 * i, -0.1 });
-			coords_lines_position_data.push_back({ 10, 0.5 * i, -0.1 });
-
-			coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
-			coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
-		}
-
-
-		coords_lines_position_buffer_.LoadData(coords_lines_position_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
-		coords_lines_color_buffer_.LoadData(coords_lines_color_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
-
-		coords_lines_vertex_cnt = coords_lines_position_data.size();
-	}
-
-	if (ready_to_read.load(std::memory_order_acquire))
-	{
-		debug_lines_position_buffer_.LoadData(debug_lines_position_data_.data(), debug_lines_position_data_.size() * sizeof(glm::vec3));
-		debug_lines_color_buffer_.LoadData(debug_lines_color_data_.data(), debug_lines_color_data_.size() * sizeof(glm::vec3));
-
-		debug_lines_vertex_cnt = debug_lines_position_data_.size();
-
-		ready_to_read.store(false, std::memory_order_relaxed);
-		ready_to_write.store(true, std::memory_order_release);
-	}
-}
-
-void render::DebugGeometry::SetDebugLines(const std::vector<Line>& lines)
-{
-
-	if (ready_to_write.load(std::memory_order_acquire))
-	{
-
-		debug_lines_position_data_.resize(0);
-		debug_lines_color_data_.resize(0);
-
-		for (auto&& line : lines)
-		{
-			debug_lines_position_data_.push_back(line.first.position);
-			debug_lines_position_data_.push_back(line.second.position);
-
-			debug_lines_color_data_.push_back(line.first.color);
-			debug_lines_color_data_.push_back(line.second.color);
-		}
-
-		ready_to_write.store(false, std::memory_order_relaxed);
-		ready_to_read.store(true, std::memory_order_release);
 	}
 }

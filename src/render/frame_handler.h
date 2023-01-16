@@ -15,51 +15,13 @@
 
 namespace render
 {
-
-	class DebugGeometry
-	{
-	public:
-
-		struct Point
-		{
-			glm::vec3 position;
-			glm::vec3 color;
-
-			std::pair<Point, Point> operator>>(const Point&);
-		};
-
-		using Line = std::pair<Point, Point>;
-		
-		DebugGeometry(const Global& global);
-
-		void Update();
-
-		void SetDebugLines(const std::vector<Line>& lines);
-
-		GPULocalVertexBuffer coords_lines_position_buffer_;
-		GPULocalVertexBuffer coords_lines_color_buffer_;
-		unsigned int coords_lines_vertex_cnt;
-
-
-		GPULocalVertexBuffer debug_lines_position_buffer_;
-		GPULocalVertexBuffer debug_lines_color_buffer_;
-		unsigned int debug_lines_vertex_cnt;
-
-		std::atomic_bool ready_to_write;
-		std::atomic_bool ready_to_read;
-
-		std::vector<glm::vec3> debug_lines_position_data_;
-		std::vector<glm::vec3> debug_lines_color_data_;
-	};
-
-
 	class FrameHandler: public RenderObjBase<void*>
 	{
 	public:
 
 		FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup, 
 			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
-			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene, DebugGeometry& debug_geometry);
+			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;
@@ -101,8 +63,6 @@ namespace render
 		//ModelSceneDescSetHolder model_scene_;
 		RenderGraphHandler render_graph_handler_;
 		//UIScene ui_scene_;
-
-		DebugGeometry& debug_geometry_;
 	};
 }
 

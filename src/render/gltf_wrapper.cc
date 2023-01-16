@@ -118,12 +118,10 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 			for (auto&& gltf_primitive : gltf_mesh.primitives)
 			{
-				Primitive primitive
-				{
-					RenderModelCategory::kRenderModel,
-					Material{PipelineId::kBuildGBuffers},
-					BuildBufferAccessor(gltf_model, gltf_primitive.indices)
-				};
+				Primitive primitive(global, manager);
+				primitive.category = RenderModelCategory::kRenderModel;
+				primitive.material.pipeline_type = PipelineId::kBuildGBuffers;
+				primitive.indices = BuildBufferAccessor(gltf_model, gltf_primitive.indices);
 
 				for (VertexBufferType vertex_buffer_type = VertexBufferType::Begin; vertex_buffer_type != VertexBufferType::End; vertex_buffer_type = util::enums::Next(vertex_buffer_type))
 				{
@@ -178,7 +176,7 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 				//if (primitive.weights.buffer) primitive.vertex_buffers.push_back(primitive.weights);
 
 
-				meshes.back().primitives.push_back(primitive);
+				meshes.back().primitives.push_back(std::move(primitive));
 			}
 
 		}

@@ -20,6 +20,46 @@
 namespace render
 {
 
+	class DebugGeometry
+	{
+	public:
+
+		struct Point
+		{
+			glm::vec3 position;
+			glm::vec3 color;
+
+			std::pair<Point, Point> operator>>(const Point&);
+		};
+
+		using Line = std::pair<Point, Point>;
+
+		DebugGeometry(const Global& global, DescriptorSetsManager& manager);
+
+		void Update();
+
+		void SetDebugLines(const std::vector<std::pair<Point, Point>>& lines);
+
+		GPULocalVertexBuffer coords_lines_position_buffer_;
+		GPULocalVertexBuffer coords_lines_color_buffer_;
+		unsigned int coords_lines_vertex_cnt;
+
+
+		GPULocalVertexBuffer debug_lines_position_buffer_;
+		GPULocalVertexBuffer debug_lines_color_buffer_;
+		unsigned int debug_lines_vertex_cnt;
+
+		std::atomic_bool ready_to_write;
+		std::atomic_bool ready_to_read;
+
+		std::vector<glm::vec3> debug_lines_position_data_;
+		std::vector<glm::vec3> debug_lines_color_data_;
+
+		Node node;
+		Mesh mesh;
+		Model model;
+	};
+
 	template<class SceneType>
 	using SceneDescriptorSetHolder = descriptor_sets_holder::Holder<SceneType, DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>;
 
@@ -31,6 +71,7 @@ namespace render
 		//std::array<ModelSceneDescSetHolder, kFramesCount> scene_decriptor_sets_holder;
 		//const std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>>& GetModels() { return models; }
 
+		void Update();
 
 		void FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		void FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
@@ -41,14 +82,21 @@ namespace render
 		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data) override;
 		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data) override;
 
+		Node viewport_node_;
+		Mesh viewport_mesh_;
+		Model viewport_model_;
 
 		std::vector<std::reference_wrapper<Model>> models_;
+		DebugGeometry debug_geometry_;
+
 		~SceneImpl() {}
 
 	private:
 		GPULocalVertexBuffer viewport_vertex_buffer_;
-		Primitive viewport_primitive;
+		/*Primitive viewport_primitive;*/
 		Image env_image_;
+
+
 	};
 
 

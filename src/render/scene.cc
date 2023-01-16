@@ -345,8 +345,12 @@ namespace render
 	Scene::SceneImpl::SceneImpl(const Global& global, DescriptorSetsManager& manager):
 		SceneDescriptorSetHolder<SceneImpl>(global, manager),
 		viewport_vertex_buffer_(global_, 6 * sizeof(glm::vec3)),
-		viewport_primitive({ RenderModelCategory::kViewport, PipelineId::kCollectGBuffers}),
-		env_image_(global, Image::BuiltinImageType::kBlack)
+		//viewport_primitive(global, manager),
+		env_image_(global, Image::BuiltinImageType::kBlack),
+		debug_geometry_(global, manager),
+		viewport_node_(),
+		viewport_mesh_(),
+		viewport_model_(global, manager, viewport_node_, viewport_mesh_)
 	{
 		std::vector<glm::vec3> viewport_vertex_data = {
 			{-1, -1, 0},
@@ -359,11 +363,23 @@ namespace render
 		};
 
 		viewport_vertex_buffer_.LoadData(viewport_vertex_data.data(), viewport_vertex_data.size() * sizeof(glm::vec3));
-
+		Primitive viewport_primitive(global, manager);
+		viewport_primitive.category = RenderModelCategory::kViewport;
+		viewport_primitive.material.pipeline_type = PipelineId::kCollectGBuffers;
 		viewport_primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)] = BufferAccessor(viewport_vertex_buffer_, sizeof(glm::vec3), 0, 6);
+
+		viewport_mesh_.primitives.push_back(std::move(viewport_primitive));
+
+		models_.push_back(viewport_model_);
+		models_.push_back(debug_geometry_.model);
 
 		UpdateData(*this);
 		AttachDescriptorSets(manager);
+	}
+
+	void Scene::SceneImpl::Update()
+	{
+		debug_geometry_.Update();
 	}
 
 	void Scene::SceneImpl::FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
@@ -407,5 +423,127 @@ namespace render
 		data.environement = env_image_;
 		data.environement_sampler = global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()];
 	}
+
+
+	std::pair<render::DebugGeometry::Point, render::DebugGeometry::Point> render::DebugGeometry::Point::operator>>(const Point& rhs)
+	{
+		return { *this, rhs };
+	}
+
+	DebugGeometry::DebugGeometry(const Global& global, DescriptorSetsManager& manager) :
+		coords_lines_position_buffer_(global, sizeof(glm::vec3) * 256),
+		coords_lines_color_buffer_(global, sizeof(glm::vec3) * 256),
+		coords_lines_vertex_cnt(0),
+		debug_lines_position_buffer_(global, sizeof(glm::vec3) * 256),
+		debug_lines_color_buffer_(global, sizeof(glm::vec3) * 256),
+		debug_lines_vertex_cnt(0),
+		node(),
+		mesh(),
+		model(global, manager, node, mesh)
+	{
+		ready_to_write.store(true);
+		ready_to_read.store(false);
+
+		mesh.primitives.push_back(Primitive(global, manager));
+
+		mesh.primitives.back().category = RenderModelCategory::kViewport;
+		mesh.primitives.back().material = {PipelineId::kDebugLines};
+		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)] = BufferAccessor(coords_lines_position_buffer_, sizeof(glm::vec3), 0, 41);
+		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)] = BufferAccessor(coords_lines_color_buffer_, sizeof(glm::vec3), 0, 41);
+
+		mesh.primitives.push_back(Primitive(global, manager));
+
+		mesh.primitives.back().category = RenderModelCategory::kViewport;
+		mesh.primitives.back().material = { PipelineId::kDebugLines };
+		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)] = BufferAccessor(debug_lines_position_buffer_, sizeof(glm::vec3), 0, 41);
+		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)] = BufferAccessor(debug_lines_color_buffer_, sizeof(glm::vec3), 0, 41);
+	}
+
+	void DebugGeometry::Update()
+	{
+		if (coords_lines_vertex_cnt == 0)
+		{
+			std::vector<glm::vec3> coords_lines_position_data = {
+			{0, 0, 0},
+			{1, 0, 0},
+
+			{0, 0, 0},
+			{0, 1, 0},
+
+			{0, 0, 0},
+			{0, 0, 1},
+			};
+
+			std::vector<glm::vec3> coords_lines_color_data = {
+				{1, 0, 0},
+				{1, 0, 0},
+
+				{0, 1, 0},
+				{0, 1, 0},
+
+				{0, 0, 1},
+				{0, 0, 1},
+			};
+
+			for (int i = -20; i < 21; i++)
+			{
+				coords_lines_position_data.push_back({ 0.5 * i, -10, -0.1 });
+				coords_lines_position_data.push_back({ 0.5 * i, 10, -0.1 });
+
+				coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+				coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+			}
+
+			for (int i = -20; i < 21; i++)
+			{
+				coords_lines_position_data.push_back({ -10, 0.5 * i, -0.1 });
+				coords_lines_position_data.push_back({ 10, 0.5 * i, -0.1 });
+
+				coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+				coords_lines_color_data.push_back({ 0.2, 0.2, 0.2 });
+			}
+
+
+			coords_lines_position_buffer_.LoadData(coords_lines_position_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
+			coords_lines_color_buffer_.LoadData(coords_lines_color_data.data(), coords_lines_position_data.size() * sizeof(glm::vec3));
+
+			coords_lines_vertex_cnt = coords_lines_position_data.size();
+		}
+
+		if (ready_to_read.load(std::memory_order_acquire))
+		{
+			debug_lines_position_buffer_.LoadData(debug_lines_position_data_.data(), debug_lines_position_data_.size() * sizeof(glm::vec3));
+			debug_lines_color_buffer_.LoadData(debug_lines_color_data_.data(), debug_lines_color_data_.size() * sizeof(glm::vec3));
+
+			debug_lines_vertex_cnt = debug_lines_position_data_.size();
+
+			ready_to_read.store(false, std::memory_order_relaxed);
+			ready_to_write.store(true, std::memory_order_release);
+		}
+	}
+
+	void DebugGeometry::SetDebugLines(const std::vector<std::pair<Point, Point>>& lines)
+	{
+
+		if (ready_to_write.load(std::memory_order_acquire))
+		{
+
+			debug_lines_position_data_.resize(0);
+			debug_lines_color_data_.resize(0);
+
+			for (auto&& line : lines)
+			{
+				debug_lines_position_data_.push_back(line.first.position);
+				debug_lines_position_data_.push_back(line.second.position);
+
+				debug_lines_color_data_.push_back(line.first.color);
+				debug_lines_color_data_.push_back(line.second.color);
+			}
+
+			ready_to_write.store(false, std::memory_order_relaxed);
+			ready_to_read.store(true, std::memory_order_release);
+		}
+	}
+
 
 }
