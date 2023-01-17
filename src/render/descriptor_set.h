@@ -178,10 +178,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> albedo;
-				util::NullableRef<const Image> GetImage() const { return albedo; }
-
-				util::NullableRef<const Sampler> albedo_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return albedo_sampler; }
 			};
 
 			Data data;
@@ -196,10 +192,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> metallic_roughness;
-				util::NullableRef<const Image> GetImage() const { return metallic_roughness; }
-
-				util::NullableRef<const Sampler> metallic_roughness_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return metallic_roughness_sampler; }
 			};
 
 			Data data;
@@ -214,10 +206,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> normal_map;
-				util::NullableRef<const Image> GetImage() const { return normal_map; }
-
-				util::NullableRef<const Sampler> normal_map_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return normal_map_sampler; }
 			};
 
 			Data data;
@@ -240,10 +228,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> environement;
-				util::NullableRef<const Image> GetImage() const { return environement; }
-
-				util::NullableRef<const Sampler> environement_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return environement_sampler; }
 			};
 
 			Data data;
@@ -283,10 +267,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> texture;
-				util::NullableRef<const Image> GetImage() const { return texture; }
-
-				util::NullableRef<const Sampler> texture_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return texture_sampler; }
 			};
 
 			Data data;
@@ -331,10 +311,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> albedo;
-				util::NullableRef<const Image> GetImage() const { return albedo; }
-
-				util::NullableRef<const Sampler> albedo_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return albedo_sampler; }
 			};
 
 			Data data;
@@ -349,10 +325,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> position;
-				util::NullableRef<const Image> GetImage() const { return position; }
-
-				util::NullableRef<const Sampler> position_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return position_sampler; }
 			};
 
 			Data data;
@@ -367,10 +339,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> normal;
-				util::NullableRef<const Image> GetImage() const { return normal; }
-
-				util::NullableRef<const Sampler> normal_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return normal_sampler; }
 			};
 
 			Data data;
@@ -385,10 +353,6 @@ namespace render
 			struct Data
 			{
 				util::NullableRef<const Image> metallic_roughness;
-				util::NullableRef<const Image> GetImage() const { return metallic_roughness; }
-				
-				util::NullableRef<const Sampler> metallic_roughness_sampler;
-				util::NullableRef<const Sampler> GetSampler() const { return metallic_roughness_sampler; }
 			};
 
 			Data data;

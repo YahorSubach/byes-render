@@ -243,8 +243,8 @@ namespace render
 
 			uint32_t current_frame_index = -1;
 
-			Image def_image(global_, Image::BuiltinImageType::kWhite);
-			global_.default_image = def_image;
+			Image error_image(global_, Image::BuiltinImageType::kError);
+			global_.error_image = error_image;
 			global_.presentation_format = surface_ptr_->GetSurfaceFormat(global_.physical_device).format;
 
 			for (int i = 0; i < 16; i++)

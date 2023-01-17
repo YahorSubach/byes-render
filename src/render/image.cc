@@ -26,6 +26,33 @@ render::Image::Image(const Global& global, BuiltinImageType type) : Image(global
 	const unsigned char black[4] = { 0, 0, 0, 255 };
 	const unsigned char white[4] = { 255, 255, 255, 255 };
 
+
+	auto&& error_map = { 
+		"       ",
+		"  ***  ",
+		"  *    ",
+		"  ***  ",
+		"  *    ",
+		"  ***  ",
+		"       ",
+	};
+
+	unsigned char error[4 * 7 * 7];
+
+	int index = 0;
+	for (auto&& line : error_map)
+	{
+		for (auto&& c : std::string_view(line))
+		{
+			error[index++] = c == ' ' ? 0 : 255;
+			error[index++] = 0;
+			error[index++] = 0;
+			error[index++] = 255;
+		}
+	}
+
+
+
 	const unsigned char* data;
 
 	switch (type)
@@ -35,6 +62,11 @@ render::Image::Image(const Global& global, BuiltinImageType type) : Image(global
 		break;
 	case render::Image::BuiltinImageType::kWhite:
 		data = white;
+		break;
+	case render::Image::BuiltinImageType::kError:
+		image_size = 4 * 7 * 7;
+		extent_ = { 7, 7 };
+		data = error;
 		break;
 	default:
 		break;

@@ -40,9 +40,15 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 			auto&& buffer_view = gltf_model.bufferViews[image.bufferView];
 			auto&& buffer = gltf_model.buffers[buffer_view.buffer];
 
-			//images_.push_back(Image(global, VK_FORMAT_R8G8B8A8_SRGB, image.width, image.height, buffer.data.data() + buffer_view.byteOffset, {ImageProperty::kShaderInput, ImageProperty::kMipMap }));
-			images_.push_back(Image(global, VK_FORMAT_R8G8B8A8_UNORM, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
-
+			if (image.name.find("albedo") != std::string::npos)
+			{
+				images_.push_back(Image(global, VK_FORMAT_R8G8B8A8_UNORM, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
+			}
+			else
+			{
+				images_.push_back(Image(global, VK_FORMAT_R8G8B8A8_SRGB, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
+			}
+			
 
 			for (int i = 0; i < image.height; i++)
 			{

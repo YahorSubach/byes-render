@@ -60,10 +60,9 @@ namespace render
 		Model model;
 	};
 
-	template<class SceneType>
-	using SceneDescriptorSetHolder = descriptor_sets_holder::Holder<SceneType, DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>;
+	using SceneDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>;
 
-	class Scene::SceneImpl : public SceneDescriptorSetHolder<SceneImpl>
+	class Scene::SceneImpl : public SceneDescriptorSetHolder
 	{
 	public:
 		SceneImpl(const Global& global, DescriptorSetsManager& manager);
@@ -71,11 +70,11 @@ namespace render
 		//std::array<ModelSceneDescSetHolder, kFramesCount> scene_decriptor_sets_holder;
 		//const std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>>& GetModels() { return models; }
 
-		void Update();
+		void Update(int frame_index);
 
-		void FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
-		void FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
-		void FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data, util::NullableRef<const Sampler> sampler) override;
 		//void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
 		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
 		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data) override;

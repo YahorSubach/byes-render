@@ -27,12 +27,12 @@ namespace render
 		std::vector<Sampler> mipmap_cnt_to_global_samplers;
 		std::optional<Sampler> shadowmap_sampler;
 
-		util::NullableRef<Image> default_image;
+		util::NullableRef<Image> error_image;
 
 		Format presentation_format;
 		Format depth_map_format = VK_FORMAT_D32_SFLOAT;
 		Format high_range_color_format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		Format color_format = VK_FORMAT_B8G8R8A8_SRGB;
+		Format color_format = VK_FORMAT_R8G8B8A8_SRGB;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_GLOBAL_H_

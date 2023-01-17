@@ -33,8 +33,7 @@ namespace render
 		uint32_t flags = 0;
 	};
 
-	struct Primitive;
-	using PrimitiveDescriptorSetHolder = descriptor_sets_holder::Holder<Primitive, DescriptorSetType::kMaterial>;
+	using PrimitiveDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kMaterial>;
 
 	struct Primitive: public PrimitiveDescriptorSetHolder
 	{
@@ -46,10 +45,10 @@ namespace render
 		std::optional<BufferAccessor> indices;
 		std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
 
-		void FillData(const Primitive& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
-		void FillData(const Primitive& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
-		void FillData(const Primitive& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
-		void FillData(const Primitive& scene, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data, util::NullableRef<const Sampler> sampler) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data, util::NullableRef<const Sampler> sampler) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler> sampler) override;
 	};
 
 	struct Node
@@ -84,8 +83,7 @@ namespace render
 		std::vector<Primitive> primitives;
 	};
 
-	struct Model;
-	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<Model, DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton>;
+	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton>;
 
 	struct Model: public ModelDescriptorSetHolder
 	{
@@ -96,8 +94,8 @@ namespace render
 		util::NullableRef<Mesh> mesh;
 		util::NullableRef<Skin> skin;
 
-		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
-		void FillData(const Model& scene, render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 	};
 
 	template<typename ValueType>

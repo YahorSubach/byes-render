@@ -16,36 +16,32 @@ namespace render
 		node(node_in),
 		mesh(mesh_in)
 	{
-		UpdateData(*this);
-		AttachDescriptorSets(manager);
 	}
 
 	Primitive::Primitive(const Global& global, DescriptorSetsManager& manager): PrimitiveDescriptorSetHolder(global, manager)
 	{
-		UpdateData(*this);
-		AttachDescriptorSets(manager);
 	}
 
-	void render::Primitive::FillData(const Primitive& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
+	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
 	{
 		data.flags = 0;
 	}
 
-	void render::Primitive::FillData(const Primitive& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
+	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data, util::NullableRef<const Sampler> sampler)
 	{
-		if (material.metallic_roughness)
+		if (material.albedo)
 		{
-			data.albedo = material.metallic_roughness;
+			data.albedo = material.albedo;
 		}
 		else
 		{
-			data.albedo = global_.default_image;
+			data.albedo = global_.error_image;
 		}
 
-		data.albedo_sampler = global_.mipmap_cnt_to_global_samplers[data.albedo->GetMipMapLevelsCount()];
+		sampler = global_.mipmap_cnt_to_global_samplers[data.albedo->GetMipMapLevelsCount()];
 	}
 
-	void render::Primitive::FillData(const Primitive& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
+	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data, util::NullableRef<const Sampler> sampler)
 	{
 		if (material.metallic_roughness)
 		{
@@ -53,13 +49,13 @@ namespace render
 		}
 		else
 		{
-			data.metallic_roughness = global_.default_image;
+			data.metallic_roughness = global_.error_image;
 		}
 
-		data.metallic_roughness_sampler = global_.mipmap_cnt_to_global_samplers[data.metallic_roughness->GetMipMapLevelsCount()];
+		sampler = global_.mipmap_cnt_to_global_samplers[data.metallic_roughness->GetMipMapLevelsCount()];
 	}
 
-	void render::Primitive::FillData(const Primitive& model, render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
+	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler> sampler)
 	{
 		if (material.normal_map)
 		{
@@ -67,19 +63,19 @@ namespace render
 		}
 		else
 		{
-			data.normal_map = global_.default_image;
+			data.normal_map = global_.error_image;
 		}
 
-		data.normal_map_sampler = global_.mipmap_cnt_to_global_samplers[data.normal_map->GetMipMapLevelsCount()];
+		sampler = global_.mipmap_cnt_to_global_samplers[data.normal_map->GetMipMapLevelsCount()];
 	}
 
-	void render::Model::FillData(const Model& model, render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
+	void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
 	{
 		
 	}
 
-	void render::Model::FillData(const Model& model, render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
+	void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
 	{
-		data.model_mat = model.node.GetGlobalTransformMatrix();
+		data.model_mat = node.GetGlobalTransformMatrix();
 	}
 }

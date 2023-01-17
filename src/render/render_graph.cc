@@ -639,6 +639,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 			{
 				auto&& model = render_model_ref.get();
 				auto&& mesh = *model.mesh;
+
 				for (auto&& primitive : mesh.primitives)
 				{
 					if (RenderNode.category_flags.Check(primitive.category))

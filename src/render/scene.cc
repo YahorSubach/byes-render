@@ -343,8 +343,8 @@ namespace render
 
 
 	Scene::SceneImpl::SceneImpl(const Global& global, DescriptorSetsManager& manager):
-		SceneDescriptorSetHolder<SceneImpl>(global, manager),
-		viewport_vertex_buffer_(global_, 6 * sizeof(glm::vec3)),
+		SceneDescriptorSetHolder(global, manager),
+		viewport_vertex_buffer_(global, 6 * sizeof(glm::vec3)),
 		//viewport_primitive(global, manager),
 		env_image_(global, Image::BuiltinImageType::kBlack),
 		debug_geometry_(global, manager),
@@ -372,17 +372,15 @@ namespace render
 
 		models_.push_back(viewport_model_);
 		models_.push_back(debug_geometry_.model);
-
-		UpdateData(*this);
-		AttachDescriptorSets(manager);
 	}
 
-	void Scene::SceneImpl::Update()
+	void Scene::SceneImpl::Update(int frame_index)
 	{
 		debug_geometry_.Update();
+		UpdateAndTryFillWrites(frame_index);
 	}
 
-	void Scene::SceneImpl::FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
+	void Scene::SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
 	{
 		data.position.x = camera.position.x;
 		data.position.y = camera.position.y;
@@ -405,7 +403,7 @@ namespace render
 		data.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
-	void Scene::SceneImpl::FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
+	void Scene::SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
 	{
 		data.near_plane = 0.1f;
 		data.far_plane = 100.f;
@@ -418,10 +416,10 @@ namespace render
 		data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
-	void Scene::SceneImpl::FillData(const SceneImpl& scene, render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
+	void Scene::SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data, util::NullableRef<const Sampler> sampler)
 	{
 		data.environement = env_image_;
-		data.environement_sampler = global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()];
+		sampler = global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()];
 	}
 
 
