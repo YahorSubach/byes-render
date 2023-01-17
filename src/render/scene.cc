@@ -416,7 +416,7 @@ namespace render
 		data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
-	void Scene::SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data, util::NullableRef<const Sampler> sampler)
+	void Scene::SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data, util::NullableRef<const Sampler>& sampler)
 	{
 		data.environement = env_image_;
 		sampler = global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()];

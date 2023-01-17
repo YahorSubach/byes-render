@@ -92,7 +92,7 @@ namespace render
 
 			std::array<VkImage, kFramesCount> images_per_frame_;
 
-			std::optional<ImageView> image_view_;
+			std::array<std::optional<ImageView>, kFramesCount> image_views_;
 
 			VkDescriptorImageInfo vk_image_info_;
 
@@ -109,9 +109,9 @@ namespace render
 
 			void FillWriteDescriptorSet(int frame_index, VkWriteDescriptorSet& write_desc_set)
 			{
-				vk_image_info_.imageLayout = image_view_->GetFormat() == image_view_->GetDeviceCfg().depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				vk_image_info_.imageLayout = image_views_[frame_index]->GetFormat() == image_views_[frame_index]->GetDeviceCfg().depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-				vk_image_info_.imageView = image_view_->GetHandle();
+				vk_image_info_.imageView = image_views_[frame_index]->GetHandle();
 				vk_image_info_.sampler = sampler_->GetHandle();
 
 				write_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -121,7 +121,7 @@ namespace render
 				write_desc_set.pImageInfo = &vk_image_info_;
 			}
 
-			virtual void FillData(DataType& data, util::NullableRef<const Sampler> sampler) = 0;
+			virtual void FillData(DataType& data, util::NullableRef<const Sampler>& sampler) = 0;
 
 			bool UpdateAndTryFillWrite(int frame_index, VkWriteDescriptorSet& write_desc_set)
 			{
@@ -129,14 +129,16 @@ namespace render
 				FillData(new_data, sampler_);
 
 				auto&& [image] = new_data;
-				image_view_.emplace(gloabl_, *image);
 
-				if (images_per_frame_[frame_index] != image->GetHandle())
+				if (image && images_per_frame_[frame_index] != image->GetHandle())
 				{
+					image_views_[frame_index].emplace(gloabl_, *image);
 					images_per_frame_[frame_index] = image->GetHandle();
 					FillWriteDescriptorSet(frame_index, write_desc_set);
 					return true;
 				}
+
+				return false;
 			}
 
 		};
@@ -205,10 +207,10 @@ namespace render
 			}
 			{}
 
-			void FillDescriptorSetWrites(int frame_index, VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet> write_descriptor_sets)
-			{
-				BindingIter<Type, DescriptorSet<Type>::binding_count - 1>::FillDescriptorSetWrites(frame_index, descriptor_set, write_descriptor_sets);
-			}
+			//void FillDescriptorSetWrites(int frame_index, VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet> write_descriptor_sets)
+			//{
+			//	BindingIter<Type, DescriptorSet<Type>::binding_count - 1>::FillDescriptorSetWrites(frame_index, descriptor_set, write_descriptor_sets);
+			//}
 
 			int UpdateAndTryFillWrites(int frame_index, std::span<VkWriteDescriptorSet>& descriptor_set_writes)
 			{
@@ -283,8 +285,9 @@ namespace render
 			void AttachVkDescriptorSet(int frame_index, DescriptorSetsManager& manager)
 			{
 				VkDescriptorSet vk_descriptor_set = Set<T1>::AttachVkDescriptorSet(frame_index, manager);
-
 				SetIter<Ts...>::descriptor_sets_per_frame_[frame_index].emplace(T1, vk_descriptor_set);
+
+				SetIter<Ts...>::AttachVkDescriptorSet(frame_index, manager);
 			}
 
 		};
@@ -315,7 +318,6 @@ namespace render
 				for (int frame_index = 0; frame_index < kFramesCount; frame_index++)
 				{
 					SetIter<Ts..., DescriptorSetType::ListEnd>::AttachVkDescriptorSet(frame_index, manager);
-					UpdateAndTryFillWrites(frame_index);
 				}
 			}
 

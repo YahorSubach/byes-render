@@ -27,7 +27,7 @@ namespace render
 		data.flags = 0;
 	}
 
-	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data, util::NullableRef<const Sampler> sampler)
+	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data, util::NullableRef<const Sampler>& sampler)
 	{
 		if (material.albedo)
 		{
@@ -41,7 +41,7 @@ namespace render
 		sampler = global_.mipmap_cnt_to_global_samplers[data.albedo->GetMipMapLevelsCount()];
 	}
 
-	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data, util::NullableRef<const Sampler> sampler)
+	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data, util::NullableRef<const Sampler>& sampler)
 	{
 		if (material.metallic_roughness)
 		{
@@ -55,7 +55,7 @@ namespace render
 		sampler = global_.mipmap_cnt_to_global_samplers[data.metallic_roughness->GetMipMapLevelsCount()];
 	}
 
-	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler> sampler)
+	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler>& sampler)
 	{
 		if (material.normal_map)
 		{

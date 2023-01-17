@@ -46,9 +46,9 @@ namespace render
 		std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
 
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data, util::NullableRef<const Sampler> sampler) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data, util::NullableRef<const Sampler> sampler) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler> sampler) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data, util::NullableRef<const Sampler>& sampler) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data, util::NullableRef<const Sampler>& sampler) override;
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler>& sampler) override;
 	};
 
 	struct Node

@@ -19,7 +19,7 @@ namespace render
 	{
 	public:
 
-		FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup, 
+		FrameHandler(const Global& global, int index, const Swapchain& swapchain, const RenderSetup& render_setup,
 			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
 			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene);
 		
@@ -41,6 +41,7 @@ namespace render
 
 
 	private:
+		const int index_;
 		VkSwapchainKHR swapchain_;
 		VkCommandBuffer command_buffer_;
 		
