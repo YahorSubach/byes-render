@@ -6,6 +6,8 @@
 #include <chrono>
 #include <thread>
 
+#include "common.h"
+
 namespace byes::sync_util
 {
 
@@ -58,7 +60,7 @@ namespace byes::sync_util
 			unsigned int push_pos = push_position_.load(std::memory_order_relaxed);
 			unsigned int pop_pos = pop_position_.load(std::memory_order_relaxed);
 			
-			return (items_.size() + push_pos - pop_pos) % items_.size();
+			return (u32(items_.size()) + push_pos - pop_pos) % u32(items_.size());
 		}
 
 

@@ -6,7 +6,9 @@
 #include <span>
 #include <optional>
 
+#pragma warning(push, 0)
 #include "tinygltf/tiny_gltf.h"
+#pragma warning(pop)
 
 #include "common.h"
 #include "data_types.h"

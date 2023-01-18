@@ -27,7 +27,7 @@ namespace render
 		Buffer& operator=(const Buffer&) = delete;
 		Buffer& operator=(Buffer&&) = default;
 
-		uint64_t GetSize() const;
+		size_t GetSize() const;
 
 		VkDeviceMemory GetBufferMemory();
 
@@ -36,12 +36,13 @@ namespace render
 		virtual ~Buffer() override;
 	protected:
 		std::unique_ptr<Memory> memory_;
-		uint64_t size_;
+		size_t size_;
 	};
 
 	struct BufferAccessor
 	{
-		BufferAccessor(const Buffer& buffer, uint32_t stride, uint64_t offset, uint64_t count) :buffer(buffer), stride(stride), offset(offset), count(count) {}
+		BufferAccessor(const Buffer& buffer, size_t stride, size_t offset, size_t count) :buffer(buffer), stride(stride), offset(offset), count(count) {}
+		//fferAccessor(BufferAccessor&&) = default;
 		//BufferAccessor(const Buffer& buffer) :BufferAccessor(buffer, 0, 0, buffer.GetSize()) {}
 
 		//BufferAccessor() :stride(0), offset(0), count(0) {}
@@ -49,11 +50,11 @@ namespace render
 		template<typename T>
 		BufferAccessor(const Buffer& buffer) : BufferAccessor(buffer, sizeof(T), 0, buffer.GetSize() / sizeof(T)) {}
 
-		util::NullableRef<const Buffer> buffer;
-		uint32_t stride;
+		const util::NullableRef<const Buffer> buffer;
+		const size_t stride;
 
-		uint64_t offset;
-		uint64_t count;
+		const size_t offset;
+		const size_t count;
 	};
 
 	class StagingBuffer : public Buffer

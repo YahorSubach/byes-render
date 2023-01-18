@@ -8,6 +8,11 @@ namespace render
 	const uint32_t kFramesCount = 4;
 }
 
+template<typename T>
+uint32_t u32(T t) {
+	return static_cast<uint32_t>(t);
+}
+
 #ifndef NDEBUG
 #define LOG(level, message) std::clog<<message<<std::endl
 #else

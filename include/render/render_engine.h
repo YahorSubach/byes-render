@@ -9,8 +9,10 @@
 #include <windows.h>
 
 #include "glm/vec3.hpp"
-#include "tiny_gltf.h"
 
+#pragma warning(push, 0)
+#include "tiny_gltf.h"
+#pragma warning(pop)
 namespace render
 {
 #ifdef WIN32

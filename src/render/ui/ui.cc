@@ -65,9 +65,9 @@ render::ui::UI::UI(Global& global, Extent extent): RenderObjBase(global),
 
     std::basic_string_view<char32_t> char_array = U"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя1234567890*/!?,.-_=+@# \\";
     
-    int inline_cnt = sqrt(char_array.size()) + 1;
+    int inline_cnt = static_cast<int>(sqrtf(static_cast<float>(char_array.size())) + 1);
 
-    uint32_t atlas_width = 0;
+    int atlas_width = 0;
 
     for (int char_ind = 0; char_ind < inline_cnt; char_ind++)
     {
@@ -157,7 +157,7 @@ render::ui::UI::UI(Global& global, Extent extent): RenderObjBase(global),
         atlas_x += bitmap_width;
     }
 
-    FontData font_data = { {},  Image(global_, VK_FORMAT_R8_SRGB, { atlas_width, atlas_height}, atlas_data.data()) };
+    FontData font_data = { {},  Image(global_, VK_FORMAT_R8_SRGB, { u32(atlas_width), u32(atlas_height)}, atlas_data.data()) };
 
     size_to_font_data_.emplace(font_size, std::move(font_data));
     size_to_font_data_.at(font_size).glyphs = std::move(glyphs);

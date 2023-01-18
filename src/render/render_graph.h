@@ -23,6 +23,7 @@ namespace render
 		const Framebuffer& swapchain_framebuffer;
 		const Image& swapchain_image;
 		uint32_t swapchain_image_index;
+		uint32_t frame_index;
 	};
 
 	using RenderModelCategoryFlags = util::enums::Flags<RenderModelCategory>;

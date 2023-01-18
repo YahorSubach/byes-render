@@ -28,7 +28,7 @@ render::Buffer::Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFla
 {
 }
 
-uint64_t render::Buffer::GetSize() const
+size_t render::Buffer::GetSize() const
 {
     return size_;
 }

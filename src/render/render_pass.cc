@@ -69,7 +69,7 @@ render::RenderPass::RenderPass(const Global& global, const RenderNode& render_no
 	subpasses_color_refs.resize(subpass_cnt);
 	subpasses_depth_refs.resize(subpass_cnt);
 
-	for (uint32_t subpass_ind = 0; subpass_ind < subpass_cnt; subpass_ind++)
+	for (int subpass_ind = 0; subpass_ind < subpass_cnt; subpass_ind++)
 	{
 		int attachment_index = 0;
 		for (auto&& node_attachment : render_node.GetAttachments())
@@ -91,7 +91,7 @@ render::RenderPass::RenderPass(const Global& global, const RenderNode& render_no
 		}
 
 		subpasses[subpass_ind].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpasses[subpass_ind].colorAttachmentCount = subpasses_color_refs[subpass_ind].size();
+		subpasses[subpass_ind].colorAttachmentCount = u32(subpasses_color_refs[subpass_ind].size());
 		subpasses[subpass_ind].pColorAttachments = subpasses_color_refs[subpass_ind].data();
 	}
 
@@ -131,11 +131,11 @@ render::RenderPass::RenderPass(const Global& global, const RenderNode& render_no
 
 	VkRenderPassCreateInfo render_pass_info{};
 	render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	render_pass_info.attachmentCount = vk_attachments.size();
+	render_pass_info.attachmentCount = u32(vk_attachments.size());
 	render_pass_info.pAttachments = vk_attachments.data();
-	render_pass_info.subpassCount = subpasses.size();
+	render_pass_info.subpassCount = u32(subpasses.size());
 	render_pass_info.pSubpasses = subpasses.data();
-	render_pass_info.dependencyCount = dependencies.size();
+	render_pass_info.dependencyCount = u32(dependencies.size());
 	render_pass_info.pDependencies = dependencies.data();
 
 

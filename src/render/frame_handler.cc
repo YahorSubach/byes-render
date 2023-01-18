@@ -15,7 +15,7 @@
 
 #include "global.h"
 
-render::FrameHandler::FrameHandler(const Global& global, int index, const Swapchain& swapchain, const RenderSetup& render_setup,
+render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup,
 	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, 
 	const ui::UI& ui, const Scene& scene) :
 	RenderObjBase(global), swapchain_(swapchain.GetHandle()), graphics_queue_(global.graphics_queue),
@@ -27,12 +27,8 @@ render::FrameHandler::FrameHandler(const Global& global, int index, const Swapch
 	render_setup_(render_setup),
 	render_graph_handler_(global, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
 	//ui_scene_(global, ui),
-	ui_(ui),
-	index_(index)
+	ui_(ui)
 {
-
-
-
 
 	//model_scene_.UpdateData();
 	//ui_scene_.UpdateData();
@@ -271,13 +267,13 @@ bool render::FrameHandler::Draw(const FrameInfo& frame_info, Scene::SceneImpl& s
 	//auto scene_descriptor_sets = model_scene_.GetRenderNode().GetDescriptorSets();
 	//scene_descriptor_sets.insert(ui_scene_.GetDescriptorSets().begin(), ui_scene_.GetDescriptorSets().end());
 
-scene.Update(index_);
+scene.Update(frame_info.frame_index);
 for (auto&& model : scene.models_)
 {
-	model.get().UpdateAndTryFillWrites(index_);
+	model.get().UpdateAndTryFillWrites(frame_info.frame_index);
 	for (auto&& primitive : model.get().mesh->primitives)
 	{
-		primitive.UpdateAndTryFillWrites(index_);
+		primitive.UpdateAndTryFillWrites(frame_info.frame_index);
 	}
 }
 

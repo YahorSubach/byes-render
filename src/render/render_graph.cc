@@ -554,7 +554,7 @@ render::RenderGraphHandler::RenderGraphHandler(const Global& global, const Rende
 				writes[binding_index].pTexelBufferView = nullptr;
 			}
 
-			vkUpdateDescriptorSets(global.logical_device, writes.size(), writes.data(), 0, nullptr);
+			vkUpdateDescriptorSets(global.logical_device, u32(writes.size()), writes.data(), 0, nullptr);
 			node_data.descriptor_sets.emplace(desc_type, vk_descriptor_set);
 		}
 	}
@@ -655,15 +655,15 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 
 							pipeline_layout = primitive_pipeline.GetLayout();
 
-							ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, node_desc_set);
-							ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene.GetDescriptorSets(frame_info.swapchain_image_index));
+
+							ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene.GetDescriptorSets(frame_info.frame_index));
 						}
 
 
 						const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = primitive_pipeline.GetDescriptorSetLayouts();
-
-						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, model.GetDescriptorSets(frame_info.swapchain_image_index));
-						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, primitive.GetDescriptorSets(frame_info.swapchain_image_index));
+						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, node_desc_set);
+						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, model.GetDescriptorSets(frame_info.frame_index));
+						ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, primitive.GetDescriptorSets(frame_info.frame_index));
 
 
 						std::array<VkBuffer, kVertexBufferTypesCount> vertex_buffers;
@@ -688,11 +688,11 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 						if (primitive.indices)
 						{
 							vkCmdBindIndexBuffer(command_buffer, primitive.indices->buffer->GetHandle(), primitive.indices->offset, VK_INDEX_TYPE_UINT16);
-							vkCmdDrawIndexed(command_buffer, primitive.indices->count, 1, 0, 0, 0);
+							vkCmdDrawIndexed(command_buffer, u32(primitive.indices->count), 1, 0, 0, 0);
 						}
 						else
 						{
-							vkCmdDraw(command_buffer, primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)]->count, 1, 0, 0);
+							vkCmdDraw(command_buffer, u32(primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)]->count), 1, 0, 0);
 						}
 					}
 				}
@@ -771,7 +771,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 			vk_dependency_info.pMemoryBarriers = nullptr;
 			vk_dependency_info.bufferMemoryBarrierCount = 0;
 			vk_dependency_info.pBufferMemoryBarriers = nullptr;
-			vk_dependency_info.imageMemoryBarrierCount = vk_barriers.size();
+			vk_dependency_info.imageMemoryBarrierCount = u32(vk_barriers.size());
 			vk_dependency_info.pImageMemoryBarriers = vk_barriers.data();
 
 			vkCmdPipelineBarrier2(command_buffer, &vk_dependency_info);
@@ -786,6 +786,8 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 	if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
 		throw std::runtime_error("failed to record command buffer!");
 	}
+
+	return true;
 }
 
 bool render::RenderGraphHandler::FillCommandBufferPrimitive(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const std::map<PipelineId, GraphicsPipeline>& pipelines, const Primitive& scene) const

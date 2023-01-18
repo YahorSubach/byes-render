@@ -2,7 +2,7 @@
 
 #include "global.h"
 
-render::Memory::Memory(const Global& global, uint64_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags) : RenderObjBase(global)
+render::Memory::Memory(const Global& global, size_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags) : RenderObjBase(global)
 {
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;

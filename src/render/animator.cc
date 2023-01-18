@@ -28,7 +28,7 @@ static auto Interpolate(const render::AnimSampler<ChannelValueType>& sampler, in
 		float tc = static_cast<float>(loop_time.count());
 		float tk = static_cast<float>(sampler.frames[k].time.count());
 
-		float tk_pl_1 = sampler.frames[k_pl_1].time.count();
+		float tk_pl_1 = static_cast<float>(sampler.frames[k_pl_1].time.count());
 		if (tk_pl_1 < tk) tk_pl_1 += animation_duration.count();
 
 

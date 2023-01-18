@@ -4,8 +4,10 @@
 
 #include "global.h"
 
+#pragma warning(push, 0)
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
+#pragma warning(pop)
 
 render::Image::Image(const Global& global, VkFormat format, Extent extent) : LazyRenderObj(global), format_(format), extent_(extent), holds_external_handle_(false), usage_(0), mipmap_levels_count_(1)
 {
@@ -53,7 +55,7 @@ render::Image::Image(const Global& global, BuiltinImageType type) : Image(global
 
 
 
-	const unsigned char* data;
+	const unsigned char* data = nullptr;
 
 	switch (type)
 	{

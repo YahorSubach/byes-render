@@ -303,7 +303,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(global_, frame_ind, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_));
+					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_));
 				}
 
 
@@ -332,7 +332,8 @@ namespace render
 					{
 						swapchain_framebuffers[image_index],
 						swapchain.GetImage(image_index),
-						image_index
+						image_index,
+						current_frame_index
 					};
 
 					should_refresh_swapchain = !frames[current_frame_index].Draw(frame_info, *scene_.impl_);

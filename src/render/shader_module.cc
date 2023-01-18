@@ -183,7 +183,7 @@ render::ShaderModule::ShaderModule(const Global& global, const std::string& shad
 
 }
 
-const const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& render::ShaderModule::GetInputBindingsDescs() const
+const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& render::ShaderModule::GetInputBindingsDescs() const
 {
 	return input_bindings_descs_;
 }
@@ -369,7 +369,7 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 											throw std::runtime_error("Out of bindings range");
 										}
 
-										assert(binding_index < type_to_desc_info.at(desc_set_type).bindings.size(), "Out of bindings range");
+										assert(binding_index < type_to_desc_info.at(desc_set_type).bindings.size());
 
 									}
 								}

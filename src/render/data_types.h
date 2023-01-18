@@ -115,10 +115,6 @@ namespace render
 	{
 		VertexIndex indices[3];
 	};
-
-	template<typename T>
-	uint32_t u32(T t) { return static_cast<uint32_t>(t); }
-
 	//struct UniformBufferObject {
 	//	glm::mat4 model;
 	//	glm::mat4 view;

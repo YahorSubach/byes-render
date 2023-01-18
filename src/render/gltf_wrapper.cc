@@ -1,11 +1,13 @@
 #include "gltf_wrapper.h"
 
+#pragma warning(push, 0)
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include "tinygltf/tiny_gltf.h"
 
 #undef TINYGLTF_IMPLEMENTATION
+#pragma warning(pop)
 
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
@@ -90,7 +92,7 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 			if (node.rotation.size() == 4)
 			{
 				//glm::rotate(glm::mat4(1.0f), (1 * (1.0f + 1 * 1.37f)) * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-				glm::quat rot_quat = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+				glm::quat rot_quat = glm::quat(static_cast<float>(node.rotation[3]), static_cast<float>(node.rotation[0]), static_cast<float>(node.rotation[1]), static_cast<float>(node.rotation[2]));
 
 				nodes[i].rotation = rot_quat;
 
@@ -127,17 +129,17 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 				Primitive primitive(global, manager);
 				primitive.category = RenderModelCategory::kRenderModel;
 				primitive.material.pipeline_type = PipelineId::kBuildGBuffers;
-				primitive.indices = BuildBufferAccessor(gltf_model, gltf_primitive.indices);
+				primitive.indices.emplace(BuildBufferAccessor(gltf_model, gltf_primitive.indices));
 
 				for (VertexBufferType vertex_buffer_type = VertexBufferType::Begin; vertex_buffer_type != VertexBufferType::End; vertex_buffer_type = util::enums::Next(vertex_buffer_type))
 				{
 					if (int buffer_view_index = GetBufferViewIndexFromAttributes(gltf_primitive.attributes, vertex_buffer_type); buffer_view_index >= 0)
 					{
-						primitive.vertex_buffers[u32(vertex_buffer_type)] = BuildBufferAccessor(gltf_model, buffer_view_index);
+						primitive.vertex_buffers[u32(vertex_buffer_type)].emplace(BuildBufferAccessor(gltf_model, buffer_view_index));
 					}
 					else if (buffer_view_index = GetBufferViewIndexFromAttributes(gltf_primitive.attributes, vertex_buffer_type, 0); buffer_view_index >= 0)
 					{
-						primitive.vertex_buffers[u32(vertex_buffer_type)] = BuildBufferAccessor(gltf_model, buffer_view_index);
+						primitive.vertex_buffers[u32(vertex_buffer_type)].emplace(BuildBufferAccessor(gltf_model, buffer_view_index));
 					}
 				}
 
@@ -251,7 +253,7 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 						for (int i = 0; i < values.size(); i++)
 						{
-							int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
+							int ms_time = static_cast<int>(sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
 							sampler.frames.push_back({ std::chrono::milliseconds(ms_time), values[i] });
 						}
 
@@ -266,7 +268,7 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 						for (int i = 0; i < values.size(); i++)
 						{
-							int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
+							int ms_time = static_cast<int>(sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
 							sampler.frames.push_back({ std::chrono::milliseconds(ms_time), values[i] });
 						}
 
@@ -281,7 +283,7 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 						for (int i = 0; i < values.size(); i++)
 						{
-							int ms_time = (sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
+							int ms_time = static_cast<int>(sampler.interpolation_type == InterpolationType::kCubicSpline ? times[i / 3] : times[i]) * 1000;
 							sampler.frames.push_back({ std::chrono::milliseconds(ms_time), glm::quat(values[i].w,values[i].x,values[i].y,values[i].z) });
 						}
 
@@ -332,11 +334,11 @@ render::BufferAccessor render::GLTFWrapper::BuildBufferAccessor(const tinygltf::
 	auto overriden_stride = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteStride;
 	auto element_size = tinygltf::GetNumComponentsInType(gltf_model.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model.accessors[acc_ind].componentType);
 
-	auto actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
+	size_t actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
 
-	auto offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
+	size_t offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
 
-	BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, u32(gltf_model.accessors[acc_ind].count));
+	BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, gltf_model.accessors[acc_ind].count);
 
 	return buffer_accessor;
 }
