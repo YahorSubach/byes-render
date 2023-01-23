@@ -16,7 +16,7 @@ namespace render::platform
 
 	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		if (false &&/*uMsg != WM_MOUSEMOVE &&*/ uMsg != WM_SETCURSOR && uMsg != WM_NCHITTEST  && uMsg != WM_GETICON && 
+		if (true &&/*uMsg != WM_MOUSEMOVE &&*/ uMsg != WM_SETCURSOR && uMsg != WM_NCHITTEST  && uMsg != WM_GETICON && 
 			uMsg != WM_NCMOUSELEAVE && uMsg != WM_NCMOUSEHOVER && 
 			!(uMsg >= WM_NCMOUSEMOVE && uMsg <= WM_NCMBUTTONDBLCLK) &&
 			!(uMsg >= WM_NCCREATE && uMsg <= WM_SYNCPAINT) &&
@@ -47,8 +47,12 @@ namespace render::platform
 				std::cout << "WM_ENTERSIZEMOVE" << std::endl;
 			else if (uMsg == WM_EXITSIZEMOVE)
 				std::cout << "WM_EXITSIZEMOVE" << std::endl;
+			else if (uMsg == WM_IME_SETCONTEXT)
+				std::cout << "WM_IME_SETCONTEXT" << std::endl;
+			else if (uMsg == WM_IME_NOTIFY)
+				std::cout << "WM_IME_NOTIFY" << std::endl;
 			else if (uMsg == WM_MOUSEMOVE)
-				std::cout << "WM_MOUSEMOVE" << std::endl;
+			{}//std::cout << "WM_MOUSEMOVE" << std::endl;
 			else std::cout << uMsg << std::endl;
 			
 		}
