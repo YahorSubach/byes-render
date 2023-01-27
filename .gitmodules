@@ -10,3 +10,6 @@
 [submodule "submodules/freetype"]
 	path = submodules/freetype
 	url = https://gitlab.freedesktop.org/freetype/freetype.git
+[submodule "submodules/byes-static-allocator"]
+	path = submodules/byes-static-allocator
+	url = git@github.com:YahorSubach/byes-static-allocator.git
