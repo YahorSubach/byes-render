@@ -30,6 +30,7 @@ if(Vulkan_FOUND)
 	target_include_directories(render_engine PUBLIC include)
 	target_include_directories(render_engine PUBLIC submodules/glm)
 	target_include_directories(render_engine PUBLIC submodules/tinygltf)
+	target_include_directories(render_engine PUBLIC submodules/byes-static-allocator)
 
 	target_include_directories(render_engine PRIVATE src)
 	target_include_directories(render_engine PRIVATE submodules)
