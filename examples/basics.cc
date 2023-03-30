@@ -17,7 +17,7 @@ int main()
 		if (facade.VKInitSuccess())
 		{
 
-			facade.ShowWindow();
+			facade.StartRender();
 		}
 
 		while (true)
