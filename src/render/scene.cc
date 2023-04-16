@@ -430,11 +430,11 @@ namespace render
 	}
 
 	DebugGeometry::DebugGeometry(const Global& global, DescriptorSetsManager& manager) :
-		coords_lines_position_buffer_(global, sizeof(glm::vec3) * 256),
-		coords_lines_color_buffer_(global, sizeof(glm::vec3) * 256),
+		coords_lines_position_buffer_(global, sizeof(glm::vec3) * 512),
+		coords_lines_color_buffer_(global, sizeof(glm::vec3) * 512),
 		coords_lines_vertex_cnt(0),
-		debug_lines_position_buffer_(global, sizeof(glm::vec3) * 256),
-		debug_lines_color_buffer_(global, sizeof(glm::vec3) * 256),
+		debug_lines_position_buffer_(global, sizeof(glm::vec3) * 512),
+		debug_lines_color_buffer_(global, sizeof(glm::vec3) * 512),
 		debug_lines_vertex_cnt(0),
 		node(),
 		mesh(),
