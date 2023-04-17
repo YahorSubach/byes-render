@@ -447,15 +447,15 @@ namespace render
 
 		mesh.primitives.back().category = RenderModelCategory::kViewport;
 		mesh.primitives.back().material = {PipelineId::kDebugLines};
-		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(coords_lines_position_buffer_, sizeof(glm::vec3), 0, 41));
-		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(coords_lines_color_buffer_, sizeof(glm::vec3), 0, 41));
+		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(coords_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
+		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(coords_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
 
 		mesh.primitives.push_back(Primitive(global, manager));
 
 		mesh.primitives.back().category = RenderModelCategory::kViewport;
 		mesh.primitives.back().material = { PipelineId::kDebugLines };
-		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(debug_lines_position_buffer_, sizeof(glm::vec3), 0, 41));
-		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(debug_lines_color_buffer_, sizeof(glm::vec3), 0, 41));
+		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(debug_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
+		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(debug_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
 	}
 
 	void DebugGeometry::Update()
