@@ -515,6 +515,8 @@ namespace render
 			debug_lines_color_buffer_.LoadData(debug_lines_color_data_.data(), debug_lines_color_data_.size() * sizeof(glm::vec3));
 
 			debug_lines_vertex_cnt = u32(debug_lines_position_data_.size());
+			mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)]->count = debug_lines_vertex_cnt;
+			mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)]->count = debug_lines_vertex_cnt;
 
 			ready_to_read.store(false, std::memory_order_relaxed);
 			ready_to_write.store(true, std::memory_order_release);

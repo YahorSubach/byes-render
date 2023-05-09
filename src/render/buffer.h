@@ -54,7 +54,7 @@ namespace render
 		const size_t stride;
 
 		const size_t offset;
-		const size_t count;
+		size_t count;
 	};
 
 	class StagingBuffer : public Buffer
