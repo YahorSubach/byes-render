@@ -325,11 +325,11 @@ namespace render::platform
 
 	const InputState& GetInputState()
 	{
-		input_state.mouse_delta = 
-		{	input_state.mouse_position.first - input_state.mouse_position_prev.first, 
-			input_state.mouse_position.second - input_state.mouse_position_prev.second };
+		//input_state.mouse_delta = 
+		//{	input_state.mouse_position.first - input_state.mouse_position_prev.first, 
+		//	input_state.mouse_position.second - input_state.mouse_position_prev.second };
 
-		input_state.mouse_position_prev = input_state.mouse_position;
+		//input_state.mouse_position_prev = input_state.mouse_position;
 
 		return input_state;
 	}

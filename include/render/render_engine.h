@@ -43,11 +43,7 @@ namespace render
 	struct InputState
 	{
 		std::array<int, 0xFF> button_states;
-
 		std::pair<int, int> mouse_position;
-		std::pair<int, int> mouse_position_prev;
-
-		std::pair<int, int> mouse_delta;
 	};
 
 	struct LoadCommand
