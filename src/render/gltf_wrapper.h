@@ -20,28 +20,22 @@
 
 namespace render
 {
-	class RenderSetup;
-	class GLTFWrapper: ValidationBase
+	class ModelPack
 	{
 	public:
-
-		GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager, const RenderSetup& render_setup);
-		GLTFWrapper(const GLTFWrapper&) = delete;
-		GLTFWrapper(GLTFWrapper&&) = default;
-
-
-		std::vector<Node> nodes;
+		ModelPack(const Global& global, DescriptorSetsManager& manager);
+		std::vector<Model> AddGLTF(const tinygltf::Model& gltf_model);
 		std::vector<Mesh> meshes;
 		std::vector<Skin> skins;
-		std::vector<Model> models;
-
+		std::vector<GPULocalBuffer> buffers_;
+		std::vector<Image> images_;
+		std::vector<ImageView> images_views_;
 		std::map<std::string, Animation> animations;
-		
-	private:
 
-		int GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index = -1) const;
-		BufferAccessor BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const;
-		
+	private:
+		const Global& global_;
+		DescriptorSetsManager& desc_set_manager_;
+
 		template<typename ElementType>
 		static std::span<const ElementType> BuildVectorFromAccessorIndex(const tinygltf::Model& gltf_model, int acc_ind)
 		{
@@ -65,10 +59,36 @@ namespace render
 
 			return result;
 		}
+	};
 
-		std::vector<GPULocalBuffer> buffers_;
-		std::vector<Image> images_;
-		std::vector<ImageView> images_views_;
+
+
+
+	class RenderSetup;
+	class GLTFWrapper: ValidationBase
+	{
+	public:
+
+		GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager);
+		GLTFWrapper(const GLTFWrapper&) = delete;
+		GLTFWrapper(GLTFWrapper&&) = default;
+
+
+		std::vector<Node> nodes;
+
+
+		std::vector<Model> models;
+
+
+		
+	private:
+
+		int GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index = -1) const;
+		BufferAccessor BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const;
+		
+
+
+
 	};
 }
 

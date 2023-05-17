@@ -58,23 +58,23 @@ namespace render
 		glm::vec3 scale;
 		
 		glm::mat4 local_transform;
-		
-		util::NullableRef<Node> parent;
+
+		unsigned short parent_node_index;
 
 		glm::mat4 GetGlobalTransformMatrix() const;
 	};
 
-
-
-	struct Joint
+	struct NodeTree
 	{
-		Node node;
-		glm::mat4 inverse_bind_matrix;
+		std::vector<Node> nodes;
+		util::NullableRef<Node> NodeParent(const Node& child_node) { if (child_node.parent_node_index < std::numeric_limits<unsigned short>::max()) return nodes[child_node.parent_node_index]; else return std::nullopt; }
 	};
+
 
 	struct Skin
 	{
-		std::vector<Joint> joints;
+		NodeTree node_tree;
+		std::vector<glm::mat4> inverse_bind_matrices;
 	};
 
 	struct Mesh
@@ -85,12 +85,32 @@ namespace render
 
 	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton>;
 
-	struct Model: public ModelDescriptorSetHolder
+	struct ModelInfo
 	{
-		Model(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in);
-
 		Node& node;
+		util::NullableRef<Mesh> mesh;
+		util::NullableRef<Skin> skin;
+	};
 
+	struct NodeRef
+	{
+		std::reference_wrapper<NodeTree>& node_tree;
+		unsigned node_index;
+		Node& Get() { return node_tree.get().nodes[node_index]; }
+	};
+
+	struct Model
+	{
+		NodeRef node_ref;
+		util::NullableRef<Mesh> mesh;
+		util::NullableRef<Skin> skin;
+	};
+
+	struct ModelInstance: public ModelDescriptorSetHolder
+	{
+		ModelInstance(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in);
+
+	
 		util::NullableRef<Mesh> mesh;
 		util::NullableRef<Skin> skin;
 

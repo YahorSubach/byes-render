@@ -19,21 +19,79 @@
 
 #include "render/render_setup.h"
 
-render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager, const RenderSetup& render_setup)
+render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager)
 {
-	tinygltf::TinyGLTF loader;
-	std::string err;
-	std::string wrn;
+	
 
-	//bool load_result = loader.LoadBinaryFromFile(&gltf_model_, &err, &wrn, path);
+	//}
+	//else
+	//{
+	//	valid_ = false;
+	//}
 
-//	if (load_result)
-//	{
-		std::vector<uint32_t> queue_indices = { global.graphics_queue_index, global.transfer_queue_index };
+}
+
+int render::GLTFWrapper::GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index) const
+{
+	std::string name = GetVertexBufferTypesToNames().at(vertex_buffer_type);
+
+	if (index < 0)
+	{
+		if (auto&& it = attributes.find(name); it != attributes.end())
+		{
+			return it->second;
+		}
+	}
+	else
+	{
+		std::string indexed_name = name + "_" + std::to_string(index);
+		if (auto&& it = attributes.find(indexed_name); it != attributes.end())
+		{
+			return it->second;
+		}
+	}
+
+	return -1;
+}
+
+
+
+render::BufferAccessor render::GLTFWrapper::BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const
+{
+	assert(acc_ind >= 0);
+
+	auto overriden_stride = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteStride;
+	auto element_size = tinygltf::GetNumComponentsInType(gltf_model.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model.accessors[acc_ind].componentType);
+
+	size_t actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
+
+	size_t offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
+
+	BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, gltf_model.accessors[acc_ind].count);
+
+	return buffer_accessor;
+}
+namespace render
+{
+	ModelPack::ModelPack(const Global& global, DescriptorSetsManager& manager):global_(global), desc_set_manager_(manager)
+	{
+	}
+
+	std::vector<Model> ModelPack::AddGLTF(const tinygltf::Model& gltf_model)
+	{
+		tinygltf::TinyGLTF loader;
+		std::string err;
+		std::string wrn;
+
+		//bool load_result = loader.LoadBinaryFromFile(&gltf_model_, &err, &wrn, path);
+
+	//	if (load_result)
+	//	{
+		std::vector<uint32_t> queue_indices = { global_.graphics_queue_index, global_.transfer_queue_index };
 
 		for (auto&& buffer : gltf_model.buffers)
 		{
-			buffers_.push_back(GPULocalBuffer(global, gltf_model.buffers[0].data.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
+			buffers_.push_back(GPULocalBuffer(global_, gltf_model.buffers[0].data.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
 			buffers_.back().LoadData(buffer.data.data(), buffer.data.size());
 		}
 
@@ -44,13 +102,13 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 			if (image.name.find("albedo") != std::string::npos)
 			{
-				images_.push_back(Image(global, VK_FORMAT_R8G8B8A8_UNORM, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
+				images_.push_back(Image(global_, VK_FORMAT_R8G8B8A8_UNORM, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
 			}
 			else
 			{
-				images_.push_back(Image(global, VK_FORMAT_R8G8B8A8_SRGB, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
+				images_.push_back(Image(global_, VK_FORMAT_R8G8B8A8_SRGB, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
 			}
-			
+
 
 			for (int i = 0; i < image.height; i++)
 			{
@@ -70,8 +128,10 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 
 
-			images_views_.push_back(ImageView(global, images_.back()));
+			images_views_.push_back(ImageView(global_, images_.back()));
 		}
+
+		std::vector<Node> nodes;
 
 		nodes.resize(gltf_model.nodes.size());
 
@@ -202,8 +262,8 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 				const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
 
-				
-				if(gltf_node.skin != -1)
+
+				if (gltf_node.skin != -1)
 				{
 					auto&& gltf_skin = gltf_model.skins[gltf_node.skin];
 					auto&& gltf_inverse_matrix_acc = gltf_model.accessors[gltf_skin.inverseBindMatrices];
@@ -222,7 +282,7 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 
 					for (int i = 0; i < gltf_inverse_matrix_acc.count; i++)
 					{
-						const glm::mat4* mat_ptr = reinterpret_cast<const glm::mat4*>( & (gltf_model.buffers[gltf_inverse_matrix_buf_view.buffer].data[offset + actual_stride * i]));
+						const glm::mat4* mat_ptr = reinterpret_cast<const glm::mat4*>(&(gltf_model.buffers[gltf_inverse_matrix_buf_view.buffer].data[offset + actual_stride * i]));
 						inverce_matrices.push_back(*mat_ptr);
 					}
 
@@ -233,7 +293,7 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 				}
 			}
 
-			
+
 			for (auto&& anim : gltf_model.animations)
 			{
 				Animation animation;
@@ -294,51 +354,5 @@ render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gl
 				animations.emplace(anim.name, animation);
 			}
 		}
-
-	//}
-	//else
-	//{
-	//	valid_ = false;
-	//}
-
-}
-
-int render::GLTFWrapper::GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index) const
-{
-	std::string name = GetVertexBufferTypesToNames().at(vertex_buffer_type);
-
-	if (index < 0)
-	{
-		if (auto&& it = attributes.find(name); it != attributes.end())
-		{
-			return it->second;
-		}
 	}
-	else
-	{
-		std::string indexed_name = name + "_" + std::to_string(index);
-		if (auto&& it = attributes.find(indexed_name); it != attributes.end())
-		{
-			return it->second;
-		}
-	}
-
-	return -1;
-}
-
-
-render::BufferAccessor render::GLTFWrapper::BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const
-{
-	assert(acc_ind >= 0);
-
-	auto overriden_stride = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteStride;
-	auto element_size = tinygltf::GetNumComponentsInType(gltf_model.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model.accessors[acc_ind].componentType);
-
-	size_t actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
-
-	size_t offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
-
-	BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, gltf_model.accessors[acc_ind].count);
-
-	return buffer_accessor;
 }

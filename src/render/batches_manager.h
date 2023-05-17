@@ -22,8 +22,6 @@
 
 namespace render
 {
-	using ModelPack = GLTFWrapper;
-
 	class BatchesManager: RenderObjBase<void*>
 	{
 	public:
