@@ -20,8 +20,7 @@ namespace render
 	public:
 
 		FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup,
-			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
-			const BatchesManager& batches_manager, const ui::UI& ui, const Scene& scene);
+			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const ui::UI& ui, const Scene& scene);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;

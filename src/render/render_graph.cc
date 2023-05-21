@@ -637,7 +637,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 			VkPipelineLayout pipeline_layout;
 			for (auto&& render_model_ref : scene.models_)
 			{
-				auto&& model = render_model_ref.get();
+				auto&& model = render_model_ref;
 				auto&& mesh = *model.mesh;
 
 				for (auto&& primitive : mesh.primitives)

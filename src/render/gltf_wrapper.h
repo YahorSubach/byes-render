@@ -24,17 +24,23 @@ namespace render
 	{
 	public:
 		ModelPack(const Global& global, DescriptorSetsManager& manager);
-		std::vector<Model> AddGLTF(const tinygltf::Model& gltf_model);
+		ModelPack(const ModelPack&) = delete;
+		ModelPack(ModelPack&&) = default;
+
+		void AddGLTF(const tinygltf::Model& gltf_model);
+		std::vector<Model> models;
 		std::vector<Mesh> meshes;
 		std::vector<Skin> skins;
-		std::vector<GPULocalBuffer> buffers_;
-		std::vector<Image> images_;
-		std::vector<ImageView> images_views_;
+
 		std::map<std::string, Animation> animations;
 
 	private:
 		const Global& global_;
 		DescriptorSetsManager& desc_set_manager_;
+
+		std::vector<GPULocalBuffer> buffers_;
+		std::vector<Image> images_;
+		std::vector<ImageView> images_views_;
 
 		template<typename ElementType>
 		static std::span<const ElementType> BuildVectorFromAccessorIndex(const tinygltf::Model& gltf_model, int acc_ind)
@@ -59,6 +65,9 @@ namespace render
 
 			return result;
 		}
+
+		int GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index = -1) const;
+		BufferAccessor BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const;
 	};
 
 
@@ -83,8 +92,7 @@ namespace render
 		
 	private:
 
-		int GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index = -1) const;
-		BufferAccessor BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const;
+
 		
 
 

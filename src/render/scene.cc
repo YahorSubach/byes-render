@@ -351,7 +351,8 @@ namespace render
 		viewport_node_(),
 		viewport_mesh_(),
 		viewport_model_(global, manager, viewport_node_, viewport_mesh_),
-		camera{}
+		camera{},
+		desc_set_manage_(manager)
 	{
 		std::vector<glm::vec3> viewport_vertex_data = {
 			{-1, -1, 0},
@@ -371,8 +372,8 @@ namespace render
 
 		viewport_mesh_.primitives.push_back(std::move(viewport_primitive));
 
-		models_.push_back(viewport_model_);
-		models_.push_back(debug_geometry_.model);
+		models_.push_back(std::move(viewport_model_));
+		models_.push_back(std::move(debug_geometry_.model));
 	}
 
 	void Scene::SceneImpl::Update(int frame_index)
@@ -421,6 +422,18 @@ namespace render
 	{
 		data.environement = env_image_;
 		sampler = global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()];
+	}
+
+	Node& Scene::SceneImpl::AddNode(const Node& node)
+	{
+		nodes_.push_back(node);
+		return nodes_.back();
+	}
+
+	void Scene::SceneImpl::AddModel(Node& node, Mesh& mesh)
+	{
+		RenderModel model(global_, desc_set_manage_, node, mesh);
+		models_.push_back(std::move(model));
 	}
 
 

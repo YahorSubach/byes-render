@@ -19,65 +19,19 @@
 
 #include "render/render_setup.h"
 
-render::GLTFWrapper::GLTFWrapper(const Global& global, const tinygltf::Model& gltf_model, DescriptorSetsManager& manager)
-{
-	
-
-	//}
-	//else
-	//{
-	//	valid_ = false;
-	//}
-
-}
-
-int render::GLTFWrapper::GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index) const
-{
-	std::string name = GetVertexBufferTypesToNames().at(vertex_buffer_type);
-
-	if (index < 0)
-	{
-		if (auto&& it = attributes.find(name); it != attributes.end())
-		{
-			return it->second;
-		}
-	}
-	else
-	{
-		std::string indexed_name = name + "_" + std::to_string(index);
-		if (auto&& it = attributes.find(indexed_name); it != attributes.end())
-		{
-			return it->second;
-		}
-	}
-
-	return -1;
-}
 
 
 
-render::BufferAccessor render::GLTFWrapper::BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const
-{
-	assert(acc_ind >= 0);
 
-	auto overriden_stride = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteStride;
-	auto element_size = tinygltf::GetNumComponentsInType(gltf_model.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model.accessors[acc_ind].componentType);
 
-	size_t actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
 
-	size_t offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
-
-	BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, gltf_model.accessors[acc_ind].count);
-
-	return buffer_accessor;
-}
 namespace render
 {
 	ModelPack::ModelPack(const Global& global, DescriptorSetsManager& manager):global_(global), desc_set_manager_(manager)
 	{
 	}
 
-	std::vector<Model> ModelPack::AddGLTF(const tinygltf::Model& gltf_model)
+	void ModelPack::AddGLTF(const tinygltf::Model& gltf_model)
 	{
 		tinygltf::TinyGLTF loader;
 		std::string err;
@@ -132,8 +86,10 @@ namespace render
 		}
 
 		std::vector<Node> nodes;
+		std::vector<short> index_to_parent;
 
 		nodes.resize(gltf_model.nodes.size());
+		index_to_parent.resize(gltf_model.nodes.size(), -1);
 
 		for (int i = 0; i < gltf_model.nodes.size(); i++)
 		{
@@ -174,6 +130,7 @@ namespace render
 			for (auto&& children_index : node.children)
 			{
 				nodes[children_index].parent = nodes[i];
+				index_to_parent[children_index] = i;
 			}
 		}
 
@@ -186,7 +143,7 @@ namespace render
 
 			for (auto&& gltf_primitive : gltf_mesh.primitives)
 			{
-				Primitive primitive(global, manager);
+				Primitive primitive(global_, desc_set_manager_);
 				primitive.category = RenderModelCategory::kRenderModel;
 				primitive.material.pipeline_type = PipelineId::kBuildGBuffers;
 				primitive.indices.emplace(BuildBufferAccessor(gltf_model, gltf_primitive.indices));
@@ -258,7 +215,7 @@ namespace render
 
 			if (gltf_node.mesh != -1)
 			{
-				models.push_back(Model(global, manager, node, meshes[gltf_node.mesh]));
+				models.push_back(Model{ node, meshes[gltf_node.mesh] });
 
 				const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
 
@@ -286,9 +243,26 @@ namespace render
 						inverce_matrices.push_back(*mat_ptr);
 					}
 
+					std::map<short, short> node_ind_to_skin_ind;
+					
 					for (int i = 0; i < gltf_skin.joints.size(); i++)
 					{
-						skins[gltf_node.skin].joints.push_back(Joint{ nodes[gltf_skin.joints[i]], inverce_matrices[i] });
+						node_ind_to_skin_ind[gltf_skin.joints[i]] = i;
+					}
+
+					for (int i = 0; i < gltf_skin.joints.size(); i++)
+					{
+						skins[gltf_node.skin].nodes.push_back(nodes[gltf_skin.joints[i]]);
+						skins[gltf_node.skin].inverse_bind_matrices.push_back(inverce_matrices[i]);
+						skins[gltf_node.skin].parent_indices.push_back(node_ind_to_skin_ind[index_to_parent[gltf_skin.joints[i]]]);
+					}
+
+					for (int i = 0; i < skins[gltf_node.skin].nodes.size(); i++)
+					{
+						if (skins[gltf_node.skin].parent_indices[i] != -1)
+						{
+							skins[gltf_node.skin].nodes[i].parent = skins[gltf_node.skin].nodes[skins[gltf_node.skin].parent_indices[i]];
+						}
 					}
 				}
 			}
@@ -354,5 +328,44 @@ namespace render
 				animations.emplace(anim.name, animation);
 			}
 		}
+	}
+
+	BufferAccessor ModelPack::BuildBufferAccessor(const tinygltf::Model& gltf_model, int acc_ind) const
+	{
+		assert(acc_ind >= 0);
+
+		auto overriden_stride = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteStride;
+		auto element_size = tinygltf::GetNumComponentsInType(gltf_model.accessors[acc_ind].type) * tinygltf::GetComponentSizeInBytes(gltf_model.accessors[acc_ind].componentType);
+
+		size_t actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
+
+		size_t offset = gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].byteOffset + gltf_model.accessors[acc_ind].byteOffset;
+
+		BufferAccessor buffer_accessor(buffers_[gltf_model.bufferViews[gltf_model.accessors[acc_ind].bufferView].buffer], actual_stride, offset, gltf_model.accessors[acc_ind].count);
+
+		return buffer_accessor;
+	}
+
+	int ModelPack::GetBufferViewIndexFromAttributes(const std::map<std::string, int>& attributes, VertexBufferType vertex_buffer_type, int index) const
+	{
+		std::string name = GetVertexBufferTypesToNames().at(vertex_buffer_type);
+
+		if (index < 0)
+		{
+			if (auto&& it = attributes.find(name); it != attributes.end())
+			{
+				return it->second;
+			}
+		}
+		else
+		{
+			std::string indexed_name = name + "_" + std::to_string(index);
+			if (auto&& it = attributes.find(indexed_name); it != attributes.end())
+			{
+				return it->second;
+			}
+		}
+
+		return -1;
 	}
 }

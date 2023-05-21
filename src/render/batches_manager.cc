@@ -82,10 +82,10 @@ namespace render
 	}
 
 	
-	std::vector<ModelPack>& BatchesManager::GetModelPacks()
-	{
-		return gltf_wrappers_;
-	}
+	//std::vector<ModelPack>& BatchesManager::GetModelPacks()
+	//{
+	//	return gltf_wrappers_;
+	//}
 
 	const ImageView& BatchesManager::GetEnvImageView() const
 	{
@@ -100,18 +100,18 @@ namespace render
 		}
 	}
 
-	void BatchesManager::Add(const tinygltf::Model& model, DescriptorSetsManager& manager, const RenderSetup& render_setup)
-	{
-		gltf_wrappers_.push_back(GLTFWrapper(global_, model, manager, render_setup));
+	//void BatchesManager::Add(const tinygltf::Model& model, DescriptorSetsManager& manager, const RenderSetup& render_setup)
+	//{
+	//	gltf_wrappers_.push_back(GLTFWrapper(global_, model, manager, render_setup));
 
-		auto&& wrapper = gltf_wrappers_.back();
+	//	auto&& wrapper = gltf_wrappers_.back();
 
 
-		for (auto&& mesh : wrapper.meshes)
-		{
-			meshes_.push_back(mesh);
-		}
-	}
+	//	for (auto&& mesh : wrapper.meshes)
+	//	{
+	//		meshes_.push_back(mesh);
+	//	}
+	//}
 
 	glm::mat4 Node::GetGlobalTransformMatrix() const
 	{

@@ -18,6 +18,8 @@
 #include "render/vertex_buffer.h"
 #include "render/descriptor_set_holder.h"
 
+#include "byes-reference-to-movable\reference_to_movable.h"
+
 namespace render
 {
 
@@ -51,7 +53,7 @@ namespace render
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler>& sampler) override;
 	};
 
-	struct Node
+	struct Node: byes::RM<Node>
 	{
 		glm::vec3 translation;
 		glm::quat rotation;
@@ -59,7 +61,7 @@ namespace render
 		
 		glm::mat4 local_transform;
 
-		unsigned short parent_node_index;
+		byes::RTM<Node> parent;
 
 		glm::mat4 GetGlobalTransformMatrix() const;
 	};
@@ -67,14 +69,15 @@ namespace render
 	struct NodeTree
 	{
 		std::vector<Node> nodes;
-		util::NullableRef<Node> NodeParent(const Node& child_node) { if (child_node.parent_node_index < std::numeric_limits<unsigned short>::max()) return nodes[child_node.parent_node_index]; else return std::nullopt; }
+		//util::NullableRef<Node> NodeParent(const Node& child_node) { if (child_node.parent_node_index < std::numeric_limits<unsigned short>::max()) return nodes[child_node.parent_node_index]; else return std::nullopt; }
 	};
 
 
 	struct Skin
 	{
-		NodeTree node_tree;
+		std::vector<Node> nodes;
 		std::vector<glm::mat4> inverse_bind_matrices;
+		std::vector<short> parent_indices;
 	};
 
 	struct Mesh
@@ -92,18 +95,32 @@ namespace render
 		util::NullableRef<Skin> skin;
 	};
 
-	struct NodeRef
-	{
-		std::reference_wrapper<NodeTree>& node_tree;
-		unsigned node_index;
-		Node& Get() { return node_tree.get().nodes[node_index]; }
-	};
+	//struct NodeRef
+	//{
+	//	std::reference_wrapper<NodeTree>& node_tree;
+	//	unsigned node_index;
+	//	Node& Get() { return node_tree.get().nodes[node_index]; }
+	//};
 
 	struct Model
 	{
-		NodeRef node_ref;
+		util::NullableRef<Node> node;
 		util::NullableRef<Mesh> mesh;
 		util::NullableRef<Skin> skin;
+	};
+
+	using RenderModelDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kModelMatrix>;
+
+	struct RenderModel : RenderModelDescriptorSetHolder
+	{
+		RenderModel(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in);
+		RenderModel(const RenderModel&) = delete;
+		RenderModel(RenderModel&&) = default;
+		byes::RTM<Node> node;
+		util::NullableRef<Mesh> mesh;
+		util::NullableRef<Skin> skin;
+
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 	};
 
 	struct ModelInstance: public ModelDescriptorSetHolder

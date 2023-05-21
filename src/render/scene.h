@@ -57,7 +57,7 @@ namespace render
 
 		Node node;
 		Mesh mesh;
-		Model model;
+		RenderModel model;
 	};
 
 	using SceneDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>;
@@ -75,17 +75,16 @@ namespace render
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data, util::NullableRef<const Sampler>& sampler) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<1>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<0>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<1>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<2>::Data& data) override;
-		//void FillData(render::DescriptorSet<render::DescriptorSetType::kGBuffers>::Binding<3>::Data& data) override;
+
+		Node& AddNode(const Node& node);
+		void AddModel(Node& node, Mesh& mesh);
 
 		Node viewport_node_;
 		Mesh viewport_mesh_;
-		Model viewport_model_;
+		RenderModel viewport_model_;
 
-		std::vector<std::reference_wrapper<Model>> models_;
+		std::vector<Node> nodes_;
+		std::vector<RenderModel> models_;
 		DebugGeometry debug_geometry_;
 
 		~SceneImpl() {}
@@ -94,6 +93,7 @@ namespace render
 		GPULocalVertexBuffer viewport_vertex_buffer_;
 		/*Primitive viewport_primitive;*/
 		Image env_image_;
+		DescriptorSetsManager& desc_set_manage_;
 
 
 	};

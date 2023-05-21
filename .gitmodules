@@ -13,3 +13,6 @@
 [submodule "submodules/byes-static-allocator"]
 	path = submodules/byes-static-allocator
 	url = git@github.com:YahorSubach/byes-static-allocator.git
+[submodule "submodules/byes-reference-to-movable"]
+	path = submodules/byes-reference-to-movable
+	url = git@github.com:YahorSubach/byes-reference-to-movable.git

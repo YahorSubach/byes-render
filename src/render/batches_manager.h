@@ -34,12 +34,12 @@ namespace render
 		BatchesManager& operator=(const BatchesManager&) = delete;
 		BatchesManager& operator=(BatchesManager&&) = default;
 
-		std::vector<ModelPack>& GetModelPacks();
+		//std::vector<ModelPack>& GetModelPacks();
 
 		const ImageView& GetEnvImageView() const;
 
 		void Update();
-		void Add(const tinygltf::Model& model, DescriptorSetsManager& manager, const RenderSetup& render_setup);
+		//void Add(const tinygltf::Model& model, DescriptorSetsManager& manager, const RenderSetup& render_setup);
 
 	private:
 

@@ -16,7 +16,7 @@
 #include "global.h"
 
 render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup,
-	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const BatchesManager& batches_manager, 
+	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
 	const ui::UI& ui, const Scene& scene) :
 	RenderObjBase(global), swapchain_(swapchain.GetHandle()), graphics_queue_(global.graphics_queue),
 	command_buffer_(global.graphics_cmd_pool->GetCommandBuffer()),
@@ -270,8 +270,8 @@ bool render::FrameHandler::Draw(const FrameInfo& frame_info, Scene::SceneImpl& s
 scene.Update(frame_info.frame_index);
 for (auto&& model : scene.models_)
 {
-	model.get().UpdateAndTryFillWrites(frame_info.frame_index);
-	for (auto&& primitive : model.get().mesh->primitives)
+	model.UpdateAndTryFillWrites(frame_info.frame_index);
+	for (auto&& primitive : model.mesh->primitives)
 	{
 		primitive.UpdateAndTryFillWrites(frame_info.frame_index);
 	}

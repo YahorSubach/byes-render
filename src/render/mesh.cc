@@ -11,8 +11,8 @@
 namespace render
 {
 
-	render::Model::Model(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in) :
-		ModelDescriptorSetHolder(global, manager),
+	render::RenderModel::RenderModel(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in) :
+		RenderModelDescriptorSetHolder(global, manager),
 		node(node_in),
 		mesh(mesh_in)
 	{
@@ -69,13 +69,21 @@ namespace render
 		sampler = global_.mipmap_cnt_to_global_samplers[data.normal_map->GetMipMapLevelsCount()];
 	}
 
-	void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
-	{
-		
-	}
+	//void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)
+	//{
+	//	
+	//}
 
-	void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
+	//void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
+	//{
+	//	data.model_mat = node.GetGlobalTransformMatrix();
+	//}
+
+
+	void RenderModel::FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data)
 	{
-		data.model_mat = node.GetGlobalTransformMatrix();
+		if (node)
+			data.model_mat = node->GetGlobalTransformMatrix();
+		else data.model_mat = glm::identity<glm::mat4>();
 	}
 }

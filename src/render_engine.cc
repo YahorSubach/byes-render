@@ -231,6 +231,8 @@ namespace render
 		void RenderLoop()
 		{
 
+			std::vector<ModelPack> model_packs;
+
 			static auto start_time = std::chrono::high_resolution_clock::now();
 
 			platform::ShowWindow(surface_ptr_->GetWindow());
@@ -255,7 +257,7 @@ namespace render
 			DescriptorSetsManager descriptor_set_manager(global_);
 			RenderSetup render_setup(global_);
 			
-			BatchesManager batches_manager(global_);
+			//BatchesManager batches_manager(global_);
 
 			scene_.impl_ = std::make_unique<Scene::SceneImpl>(global_, descriptor_set_manager);
 			ready = true;
@@ -303,7 +305,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, batches_manager, ui, scene_));
+					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, ui, scene_));
 				}
 
 
@@ -312,8 +314,6 @@ namespace render
 					current_frame_index = (current_frame_index + 1) % kFramesCount;
 
 					uint32_t image_index;
-
-					batches_manager.Update();
 
 					VkResult result = vkAcquireNextImageKHR(global_.logical_device, swapchain.GetHandle(), UINT64_MAX,
 						frames[current_frame_index].GetImageAvailableSemaphore(), VK_NULL_HANDLE, &image_index);
@@ -340,17 +340,15 @@ namespace render
 
 					if (external_command_queue_.Size() > 0)
 					{
+						model_packs.push_back(ModelPack(global_, descriptor_set_manager));
+
 						LoadCommand command = external_command_queue_.Pop();
-						batches_manager.Add(*command.model, descriptor_set_manager, render_setup);
-
-						auto&& model_packs = batches_manager.GetModelPacks();
-
-						for (auto&& pack : model_packs)
+						model_packs.back().AddGLTF(*command.model);
+						
+						for (auto&& model : model_packs.back().models)
 						{
-							for (auto&& model : pack.models)
-							{
-								scene_.impl_->models_.push_back(model);
-							}
+							auto&& node = scene_.impl_->AddNode(*model.node);
+							scene_.impl_->AddModel(node, *model.mesh);
 						}
 					}
 				}
