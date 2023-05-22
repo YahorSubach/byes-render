@@ -85,7 +85,6 @@ namespace render
 			images_views_.push_back(ImageView(global_, images_.back()));
 		}
 
-		std::vector<Node> nodes;
 		std::vector<short> index_to_parent;
 
 		nodes.resize(gltf_model.nodes.size());
