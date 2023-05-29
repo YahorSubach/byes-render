@@ -18,7 +18,7 @@ namespace render
 	{
 	}
 
-	Primitive::Primitive(const Global& global, DescriptorSetsManager& manager): PrimitiveDescriptorSetHolder(global, manager)
+	Primitive::Primitive(const Global& global, DescriptorSetsManager& manager, RenderModelCategory category): PrimitiveDescriptorSetHolder(global, manager), category(category)
 	{
 	}
 

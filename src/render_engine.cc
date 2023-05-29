@@ -257,6 +257,8 @@ namespace render
 			DescriptorSetsManager descriptor_set_manager(global_);
 			RenderSetup render_setup(global_);
 			
+			model_packs.push_back(ModelPack(global_, descriptor_set_manager));
+
 			//BatchesManager batches_manager(global_);
 
 			scene_.impl_ = std::make_unique<Scene::SceneImpl>(global_, descriptor_set_manager);
@@ -340,15 +342,34 @@ namespace render
 
 					if (external_command_queue_.Size() > 0)
 					{
-						model_packs.push_back(ModelPack(global_, descriptor_set_manager));
 
-						LoadCommand command = external_command_queue_.Pop();
-						model_packs.back().AddGLTF(*command.model);
-						
-						for (auto&& model : model_packs.back().models)
+
+						auto&& command = external_command_queue_.Pop();
+
+						if (std::holds_alternative<LoadCommand>(command))
 						{
-							auto&& node = scene_.impl_->AddNode(*model.node);
-							scene_.impl_->AddModel(node, *model.mesh);
+							model_packs.push_back(ModelPack(global_, descriptor_set_manager));
+
+							auto&& specified_command = std::get<LoadCommand>(command);
+							model_packs.back().AddGLTF(*specified_command.model);
+
+							for (auto&& model : model_packs.back().models)
+							{
+								auto&& node = scene_.impl_->AddNode(*model.node);
+								scene_.impl_->AddModel(node, *model.mesh);
+							}
+						}
+
+						if (std::holds_alternative<GeomCommand>(command))
+						{
+							auto&& specified_command = std::get<GeomCommand>(command);
+
+							model_packs[0].AddSimpleMesh(specified_command.faces);
+
+							Node node{};
+							node.local_transform = glm::identity<glm::mat4>();
+							auto&& scene_node = scene_.impl_->AddNode(node);
+							scene_.impl_->AddModel(scene_node, model_packs[0].meshes[0]);
 						}
 					}
 				}
@@ -382,7 +403,7 @@ namespace render
 
 		}
 
-		byes::sync_util::ConcQueue1P1C<LoadCommand> external_command_queue_;
+		byes::sync_util::ConcQueue1P1C<RenderCommand> external_command_queue_;
 
 	private:
 
@@ -775,7 +796,7 @@ namespace render
 
 	void RenderEngine::QueueCommand(const RenderCommand& render_command)
 	{
-		impl_->external_command_queue_.Push(std::get<LoadCommand>(render_command));
+		impl_->external_command_queue_.Push(render_command);
 	}
 
 	RenderEngine::~RenderEngine() = default;

@@ -51,7 +51,12 @@ namespace render
 		std::shared_ptr<tinygltf::Model> model;
 	};
 
-	using RenderCommand = std::variant<LoadCommand>;
+	struct GeomCommand
+	{
+		std::vector<glm::vec3> faces;
+	};
+
+	using RenderCommand = std::variant<LoadCommand, GeomCommand>;
 
 
 	class RenderEngine

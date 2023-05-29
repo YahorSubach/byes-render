@@ -26,7 +26,7 @@ namespace render
 	class GraphicsPipeline;
 	struct Material
 	{
-		PipelineId pipeline_type;
+		PipelineId pipeline_type = PipelineId::kBuildGBuffers;
 
 		util::NullableRef<const Image> albedo;
 		util::NullableRef<const Image> metallic_roughness;
@@ -39,7 +39,7 @@ namespace render
 
 	struct Primitive: public PrimitiveDescriptorSetHolder
 	{
-		Primitive(const Global& global, DescriptorSetsManager& manager);
+		Primitive(const Global& global, DescriptorSetsManager& manager, RenderModelCategory category);
 
 		RenderModelCategory category;
 		Material material;

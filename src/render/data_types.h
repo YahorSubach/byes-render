@@ -44,7 +44,9 @@ namespace render
 		kBuildGBuffers,
 		kCollectGBuffers,
 
-		kDebugLines
+		kPos,
+		kDebugLines,
+
 	};
 
 	enum class RenderPassId

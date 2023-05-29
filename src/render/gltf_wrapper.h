@@ -28,6 +28,8 @@ namespace render
 		ModelPack(ModelPack&&) = default;
 
 		void AddGLTF(const tinygltf::Model& gltf_model);
+		void AddSimpleMesh(const std::vector<glm::vec3>& faces);
+
 		std::vector<Node> nodes;
 		std::vector<Model> models;
 		std::vector<Mesh> meshes;

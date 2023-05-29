@@ -144,6 +144,13 @@ namespace render
 
 			pipelines_.emplace(PipelineId::kDebugLines, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, GraphicsPipeline::EParams::kLineTopology));
 		}
+
+		{
+			ShaderModule vert_shader_module(global_, "pos.vert", descriptor_set_manager.GetLayouts());
+			ShaderModule frag_shader_module(global_, "pos.frag", descriptor_set_manager.GetLayouts());
+
+			pipelines_.emplace(PipelineId::kPos, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents));
+		}
 	}
 
 	const GraphicsPipeline& RenderSetup::GetPipeline(PipelineId pipeline_id) const
