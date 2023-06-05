@@ -670,18 +670,29 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 						std::array<VkDeviceSize, kVertexBufferTypesCount> vertex_buffer_offsets;
 						uint32_t vertex_buffers_cnt = 0;
 
+						bool valid = true;
+
 						for (auto&& [vertex_binding_index, vertex_binding] : primitive_pipeline.GetVertexBindingsDescs())
 						{
 							for (auto&& [attr_location, attr] : vertex_binding.attributes)
 							{
-								assert(primitive.vertex_buffers[u32(attr.type)]);
+								if (!primitive.vertex_buffers[u32(attr.type)])
+								{
+									valid = false;
+									break;
+								}
 
 								vertex_buffers[vertex_binding_index] = primitive.vertex_buffers[u32(attr.type)]->buffer->GetHandle();
 								vertex_buffer_offsets[vertex_binding_index] = primitive.vertex_buffers[u32(attr.type)]->offset;
 								vertex_buffers_cnt = std::max(vertex_buffers_cnt, vertex_binding_index + 1);
 							}
+
+							if (!valid)
+								break;
 						}
 
+						if (!valid)
+							continue;
 
 						vkCmdBindVertexBuffers(command_buffer, 0, vertex_buffers_cnt, vertex_buffers.data(), vertex_buffer_offsets.data());
 
