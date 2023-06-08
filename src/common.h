@@ -9,7 +9,7 @@ namespace render
 }
 
 template<typename T>
-uint32_t u32(T t) {
+constexpr uint32_t u32(T t) {
 	return static_cast<uint32_t>(t);
 }
 

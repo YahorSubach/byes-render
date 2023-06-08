@@ -39,6 +39,9 @@ namespace render
 		size_t size_;
 	};
 
+	template<typename T>
+	struct ElemType {};
+
 	struct BufferAccessor
 	{
 		BufferAccessor(const Buffer& buffer, size_t stride, size_t offset, size_t count) :buffer(buffer), stride(stride), offset(offset), count(count) {}
@@ -48,7 +51,7 @@ namespace render
 		//BufferAccessor() :stride(0), offset(0), count(0) {}
 
 		template<typename T>
-		BufferAccessor(const Buffer& buffer) : BufferAccessor(buffer, sizeof(T), 0, buffer.GetSize() / sizeof(T)) {}
+		BufferAccessor(ElemType<T>, const Buffer& buffer) : BufferAccessor(buffer, sizeof(T), 0, buffer.GetSize() / sizeof(T)) {}
 
 		const util::NullableRef<const Buffer> buffer;
 		const size_t stride;

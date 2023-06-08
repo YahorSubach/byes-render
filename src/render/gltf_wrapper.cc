@@ -43,9 +43,11 @@ namespace render
 	//	{
 		std::vector<uint32_t> queue_indices = { global_.graphics_queue_index, global_.transfer_queue_index };
 
+		buffers_.reserve(16);
+
 		for (auto&& buffer : gltf_model.buffers)
 		{
-			buffers_.push_back(GPULocalBuffer(global_, gltf_model.buffers[0].data.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
+			buffers_.push_back(GPULocalBuffer(global_, buffer.data.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
 			buffers_.back().LoadData(buffer.data.data(), buffer.data.size());
 		}
 
@@ -146,16 +148,79 @@ namespace render
 				primitive.material.pipeline_type = PipelineId::kBuildGBuffers;
 				primitive.indices.emplace(BuildBufferAccessor(gltf_model, gltf_primitive.indices));
 
+				std::array<int, u32(VertexBufferType::Count)> attribute_accessor_indices{};
+
 				for (VertexBufferType vertex_buffer_type = VertexBufferType::Begin; vertex_buffer_type != VertexBufferType::End; vertex_buffer_type = util::enums::Next(vertex_buffer_type))
 				{
-					if (int buffer_view_index = GetBufferViewIndexFromAttributes(gltf_primitive.attributes, vertex_buffer_type); buffer_view_index >= 0)
+					if (int buffer_acc_index = GetBufferViewIndexFromAttributes(gltf_primitive.attributes, vertex_buffer_type); buffer_acc_index >= 0)
 					{
-						primitive.vertex_buffers[u32(vertex_buffer_type)].emplace(BuildBufferAccessor(gltf_model, buffer_view_index));
+						attribute_accessor_indices[u32(vertex_buffer_type)] = buffer_acc_index;
+						primitive.vertex_buffers[u32(vertex_buffer_type)].emplace(BuildBufferAccessor(gltf_model, buffer_acc_index));
 					}
-					else if (buffer_view_index = GetBufferViewIndexFromAttributes(gltf_primitive.attributes, vertex_buffer_type, 0); buffer_view_index >= 0)
+					else if (buffer_acc_index = GetBufferViewIndexFromAttributes(gltf_primitive.attributes, vertex_buffer_type, 0); buffer_acc_index >= 0)
 					{
-						primitive.vertex_buffers[u32(vertex_buffer_type)].emplace(BuildBufferAccessor(gltf_model, buffer_view_index));
+						attribute_accessor_indices[u32(vertex_buffer_type)] = buffer_acc_index;
+						primitive.vertex_buffers[u32(vertex_buffer_type)].emplace(BuildBufferAccessor(gltf_model, buffer_acc_index));
 					}
+				}
+
+				if (attribute_accessor_indices[u32(VertexBufferType::kPOSITION)] && attribute_accessor_indices[u32(VertexBufferType::kTEXCOORD)] 
+					&& attribute_accessor_indices[u32(VertexBufferType::kNORMAL)] && !attribute_accessor_indices[u32(VertexBufferType::kTANGENT)])
+				{
+					std::span<const short> indices = GetBufferSpanByAccessor<short>(gltf_model, gltf_primitive.indices);
+					std::span<const glm::vec3> positions = GetBufferSpanByAccessor<glm::vec3>(gltf_model, attribute_accessor_indices[u32(VertexBufferType::kPOSITION)]);
+					std::span<const glm::vec2> uvs = GetBufferSpanByAccessor<glm::vec2>(gltf_model, attribute_accessor_indices[u32(VertexBufferType::kTEXCOORD)]);
+					std::span<const glm::vec3> normals = GetBufferSpanByAccessor<glm::vec3>(gltf_model, attribute_accessor_indices[u32(VertexBufferType::kNORMAL)]);
+
+					assert(normals.size() == positions.size());
+
+					std::vector<glm::vec3> tangents(normals.size());
+
+					for (auto it = indices.begin(); it != indices.end();)
+					{
+						std::array<short, 3> tri_verts_indices;
+						std::array<glm::vec3, 3> tri_verts;
+						std::array<glm::vec2, 3> tri_uvs;
+
+						for (int i = 0; i < 3; i++)
+						{
+							tri_verts_indices[i] = *it++;
+							tri_verts[i] = positions[tri_verts_indices[i]];
+							tri_uvs[i] = uvs[tri_verts_indices[i]];
+						}
+
+						for (int i = 0; i < 3; i++)
+						{							
+							short ind_0 = i;
+							short ind_1 = (i + 1) % 3;
+							short ind_2 = (i + 2) % 3;
+
+							glm::vec2 duv1 = tri_uvs[ind_1] - tri_uvs[ind_0];
+							glm::vec2 duv2 = tri_uvs[ind_2] - tri_uvs[ind_0];
+
+							glm::vec3 dpos1 = tri_verts[ind_1] - tri_verts[ind_0];
+							glm::vec3 dpos2 = tri_verts[ind_2] - tri_verts[ind_0];
+
+							float u1v2_minus_u2v1 = duv1.x * duv2.y - duv2.x * duv1.y;
+
+							assert(fabs(u1v2_minus_u2v1) > glm::epsilon<float>());
+
+							float a = duv2.y / u1v2_minus_u2v1;
+							float b = - duv1.y / u1v2_minus_u2v1;
+
+							float test_u = a * duv1.x + b * duv2.x;
+							float test_v = a * duv1.y + b * duv2.y;
+
+							glm::vec3 tangent = glm::normalize(a * dpos1 + b * dpos2);
+							tangents[tri_verts_indices[ind_0]] = tangent;
+						}
+
+					}
+
+					buffers_.push_back(GPULocalBuffer(global_, tangents.size()*sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, queue_indices));
+					buffers_.back().LoadData(tangents.data(), tangents.size() * sizeof(glm::vec3));
+
+					primitive.vertex_buffers[u32(VertexBufferType::kTANGENT)].emplace(BufferAccessor(ElemType<glm::vec3>{}, buffers_.back()));
 				}
 
 				if (gltf_primitive.material >= 0)
@@ -274,11 +339,11 @@ namespace render
 				{
 					int sampler_ind = anim.channels[channel_ind].sampler;
 
-					std::span<const float> times = BuildVectorFromAccessorIndex<float>(gltf_model, anim.samplers[sampler_ind].input);
+					std::span<const float> times = GetBufferSpanByAccessor<float>(gltf_model, anim.samplers[sampler_ind].input);
 
 					if (anim.channels[channel_ind].target_path == "translation")
 					{
-						std::span<const glm::vec3> values = BuildVectorFromAccessorIndex<glm::vec3>(gltf_model, anim.samplers[sampler_ind].output);
+						std::span<const glm::vec3> values = GetBufferSpanByAccessor<glm::vec3>(gltf_model, anim.samplers[sampler_ind].output);
 						AnimSampler<glm::vec3> sampler;
 						sampler.node_index = anim.channels[channel_ind].target_node;
 						sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;
@@ -293,7 +358,7 @@ namespace render
 					}
 					else if (anim.channels[channel_ind].target_path == "scale")
 					{
-						std::span<const glm::vec3> values = BuildVectorFromAccessorIndex<glm::vec3>(gltf_model, anim.samplers[sampler_ind].output);
+						std::span<const glm::vec3> values = GetBufferSpanByAccessor<glm::vec3>(gltf_model, anim.samplers[sampler_ind].output);
 						AnimSampler<glm::vec3> sampler;
 						sampler.node_index = anim.channels[channel_ind].target_node;
 						sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;
@@ -308,7 +373,7 @@ namespace render
 					}
 					else if (anim.channels[channel_ind].target_path == "rotation")
 					{
-						std::span<const glm::vec4> values = BuildVectorFromAccessorIndex<glm::vec4>(gltf_model, anim.samplers[sampler_ind].output);
+						std::span<const glm::vec4> values = GetBufferSpanByAccessor<glm::vec4>(gltf_model, anim.samplers[sampler_ind].output);
 						AnimSampler<glm::quat> sampler;
 						sampler.node_index = anim.channels[channel_ind].target_node;
 						sampler.interpolation_type = anim.samplers[sampler_ind].interpolation == "CUBICSPLINE" ? InterpolationType::kCubicSpline : InterpolationType::kLinear;

@@ -46,7 +46,7 @@ namespace render
 		std::vector<ImageView> images_views_;
 
 		template<typename ElementType>
-		static std::span<const ElementType> BuildVectorFromAccessorIndex(const tinygltf::Model& gltf_model, int acc_ind)
+		static std::span<const ElementType> GetBufferSpanByAccessor(const tinygltf::Model& gltf_model, int acc_ind)
 		{
 			auto&& buffer_acc = gltf_model.accessors[acc_ind];
 			auto&& buffer_view = gltf_model.bufferViews[buffer_acc.bufferView];
