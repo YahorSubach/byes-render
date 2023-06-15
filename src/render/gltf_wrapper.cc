@@ -264,7 +264,7 @@ namespace render
 				//if (primitive.weights.buffer) primitive.vertex_buffers.push_back(primitive.weights);
 
 
-				meshes.back().primitives.push_back(std::move(primitive));
+				meshes[mesh_index].primitives.push_back(std::move(primitive));
 			}
 
 		}
