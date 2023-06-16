@@ -142,6 +142,4 @@ void main() {
 			outColor = texColor;
 	}
 
-
-
 }

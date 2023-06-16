@@ -704,6 +704,7 @@ bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffe
 						else
 						{
 							vkCmdDraw(command_buffer, u32(primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)]->count), 1, 0, 0);
+							int a = 1;
 						}
 					}
 				}

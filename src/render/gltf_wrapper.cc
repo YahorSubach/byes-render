@@ -402,7 +402,7 @@ namespace render
 
 		Mesh mesh;
 
-		Primitive primitive(global_, desc_set_manager_, RenderModelCategory::kRenderModel);
+		Primitive primitive(global_, desc_set_manager_, RenderModelCategory::kUIShape);
 		primitive.material.pipeline_type = PipelineId::kPos;
 		primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(buffers_.back(), sizeof(glm::vec3), 0, faces.size()));
 		mesh.primitives.push_back(std::move(primitive));
