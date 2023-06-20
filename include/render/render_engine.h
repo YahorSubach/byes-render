@@ -9,6 +9,7 @@
 #include <windows.h>
 
 #include "glm/vec3.hpp"
+#include "glm/mat4x4.hpp"
 
 #pragma warning(push, 0)
 #include "tiny_gltf.h"
@@ -24,20 +25,6 @@ namespace render
 		glm::vec3 position;
 		glm::vec3 orientation;
 		glm::vec3 up;
-	};
-
-	struct Scene
-	{
-		Scene();
-		Camera& GetActiveCamera();
-		const Camera& GetActiveCamera() const;
-
-		~Scene();
-
-		class SceneImpl;
-		std::unique_ptr<SceneImpl> impl_;
-	private:
-
 	};
 
 	struct InputState
@@ -56,8 +43,25 @@ namespace render
 		std::vector<glm::vec3> faces;
 	};
 
-	using RenderCommand = std::variant<LoadCommand, GeomCommand>;
+	struct ObjectsUpdate
+	{
+		std::vector<std::pair<uint32_t, glm::mat4>> updates;
+	};
+	
+	using RenderCommand = std::variant<LoadCommand, GeomCommand, ObjectsUpdate>;
 
+	enum class ObjectType
+	{
+		Camera,
+		StaticModel
+	};
+
+	template<ObjectType Type>
+	struct ObjectId
+	{
+		std::string name;
+		uint32_t id;
+	};
 
 	class RenderEngine
 	{
@@ -66,8 +70,6 @@ namespace render
 
 		//void CreateGraphicsPipeline();
 		void StartRender();
-
-		Scene& GetCurrentScene();
 
 		const InputState& GetInputState();
 
@@ -78,6 +80,10 @@ namespace render
 		};
 
 		void SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>>& lines);
+
+		template<ObjectType Type>
+		ObjectId<Type> AddObject(const std::string& name);
+
 		void QueueCommand(const RenderCommand& render_command);
 
 		~RenderEngine();

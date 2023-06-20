@@ -560,7 +560,7 @@ render::RenderGraphHandler::RenderGraphHandler(const Global& global, const Rende
 	}
 }
 
-bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const std::map<PipelineId, GraphicsPipeline>& pipelines, Scene::SceneImpl& scene) const
+bool render::RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const std::map<PipelineId, GraphicsPipeline>& pipelines, /*Scene::*/SceneImpl& scene) const
 {
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

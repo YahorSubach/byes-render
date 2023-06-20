@@ -324,36 +324,38 @@ namespace render
 	//}
 
 
-	Scene::Scene()
-	{
-	}
+	//Scene::Scene()
+	//{
+	//}
 
-	Camera& Scene::GetActiveCamera()
-	{
-		return impl_->camera;
-	}
-	const Camera& Scene::GetActiveCamera() const
-	{
-		return impl_->camera;
-	}
+	//Camera& Scene::GetActiveCamera()
+	//{
+	//	return impl_->camera;
+	//}
+	//const Camera& Scene::GetActiveCamera() const
+	//{
+	//	return impl_->camera;
+	//}
 
-	Scene::~Scene()
-	{
-	}
+	//Scene::~Scene()
+	//{
+	//}
 
 
-	Scene::SceneImpl::SceneImpl(const Global& global, DescriptorSetsManager& manager):
+	/*Scene::*/SceneImpl::SceneImpl(const Global& global, DescriptorSetsManager& manager, DebugGeometry& debug_geometry_):
 		SceneDescriptorSetHolder(global, manager),
 		viewport_vertex_buffer_(global, 6 * sizeof(glm::vec3)),
 		//viewport_primitive(global, manager),
 		env_image_(global, Image::BuiltinImageType::kBlack),
-		debug_geometry_(global, manager),
+		debug_geometry_(debug_geometry_),
 		viewport_node_(),
 		viewport_mesh_(),
 		viewport_model_(global, manager, viewport_node_, viewport_mesh_),
-		camera{},
-		desc_set_manage_(manager)
+		desc_set_manager_(manager)
 	{
+
+		active_camera_ = 0;
+
 		std::vector<glm::vec3> viewport_vertex_data = {
 			{-1, -1, 0},
 			{-1, 1, 0},
@@ -375,14 +377,16 @@ namespace render
 		models_.push_back(std::move(debug_geometry_.model));
 	}
 
-	void Scene::SceneImpl::Update(int frame_index)
+	void /*Scene::*/SceneImpl::Update(int frame_index)
 	{
 		debug_geometry_.Update();
 		UpdateAndTryFillWrites(frame_index);
 	}
 
-	void Scene::SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
+	void /*Scene::*/SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
 	{
+		auto&& camera = cameras_[active_camera_];
+
 		data.position.x = camera.position.x;
 		data.position.y = camera.position.y;
 		data.position.z = camera.position.z;
@@ -404,7 +408,7 @@ namespace render
 		data.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
-	void Scene::SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
+	void /*Scene::*/SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
 	{
 		data.near_plane = 0.1f;
 		data.far_plane = 100.f;
@@ -417,22 +421,27 @@ namespace render
 		data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 
-	void Scene::SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data, util::NullableRef<const Sampler>& sampler)
+	void /*Scene::*/SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data, util::NullableRef<const Sampler>& sampler)
 	{
 		data.environement = env_image_;
 		sampler = global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()];
 	}
 
-	Node& Scene::SceneImpl::AddNode(const Node& node)
+	Node& /*Scene::*/SceneImpl::AddNode(const Node& node)
 	{
 		nodes_.push_back(node);
 		return nodes_.back();
 	}
 
-	void Scene::SceneImpl::AddModel(Node& node, Mesh& mesh)
+	void /*Scene::*/SceneImpl::AddModel(Node& node, Mesh& mesh)
 	{
-		RenderModel model(global_, desc_set_manage_, node, mesh);
+		RenderModel model(global_, desc_set_manager_, node, mesh);
 		models_.push_back(std::move(model));
+	}
+
+	void SceneImpl::AddCamera()
+	{
+		cameras_.push_back(Camera());
 	}
 
 

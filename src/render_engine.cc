@@ -259,9 +259,10 @@ namespace render
 			
 			model_packs.push_back(ModelPack(global_, descriptor_set_manager));
 
-			//BatchesManager batches_manager(global_);
+			DebugGeometry dg(global_, descriptor_set_manager);
+			
+			scenes_.push_back(SceneImpl(global_, descriptor_set_manager, dg));
 
-			scene_.impl_ = std::make_unique<Scene::SceneImpl>(global_, descriptor_set_manager);
 			ready = true;
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
@@ -307,7 +308,7 @@ namespace render
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
-					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, ui, scene_));
+					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, ui, scenes_[0]));
 				}
 
 
@@ -338,7 +339,7 @@ namespace render
 						current_frame_index
 					};
 
-					should_refresh_swapchain = !frames[current_frame_index].Draw(frame_info, *scene_.impl_);
+					should_refresh_swapchain = !frames[current_frame_index].Draw(frame_info, scenes_[0]);
 
 					if (external_command_queue_.Size() > 0)
 					{
@@ -355,8 +356,8 @@ namespace render
 
 							for (auto&& model : model_packs.back().models)
 							{
-								auto&& node = scene_.impl_->AddNode(*model.node);
-								scene_.impl_->AddModel(node, *model.mesh);
+								auto&& node = scenes_[0].AddNode(*model.node);
+								scenes_[0].AddModel(node, *model.mesh);
 							}
 						}
 
@@ -368,8 +369,8 @@ namespace render
 
 							Node node{};
 							node.local_transform = glm::identity<glm::mat4>();
-							auto&& scene_node = scene_.impl_->AddNode(node);
-							scene_.impl_->AddModel(scene_node, model_packs[0].meshes[0]);
+							auto&& scene_node = scenes_[0].AddNode(node);
+							scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
 						}
 					}
 				}
@@ -379,8 +380,6 @@ namespace render
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
 		}
-
-		Scene& GetScene() { return scene_; }
 
 		void SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>> lines)
 		{
@@ -395,8 +394,18 @@ namespace render
 				);
 			}
 
-			scene_.impl_->debug_geometry_.SetDebugLines(debug_lines);
+			scenes_[0].debug_geometry_.SetDebugLines(debug_lines);
 		}
+
+		template<ObjectType Type>
+		ObjectId<Type> AddObject(const std::string& name);
+
+		ObjectId<ObjectType::Camera> AddObject(const std::string& name)
+		{
+			scenes_[0].AddCamera();
+			return { name , 0 };
+		}
+
 
 		~RenderEngineImpl()
 		{
@@ -776,7 +785,7 @@ namespace render
 
 		std::thread render_thread_;
 
-		Scene scene_;
+		std::vector<SceneImpl> scenes_;
 
 		bool ready;
 
@@ -810,13 +819,15 @@ namespace render
 	{
 		impl_->StartRenderThread();
 	}
-	Scene& RenderEngine::GetCurrentScene()
-	{
-		return impl_->GetScene();
-	}
 
 	const InputState& RenderEngine::GetInputState()
 	{
 		return platform::GetInputState();
+	}
+
+	template<>
+	ObjectId<ObjectType::Camera> RenderEngine::AddObject(const std::string& name)
+	{
+		return impl_->AddObject(name);
 	}
 }

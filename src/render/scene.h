@@ -62,13 +62,10 @@ namespace render
 
 	using SceneDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kLightPositionAndViewProjMat, DescriptorSetType::kEnvironement>;
 
-	class Scene::SceneImpl : public SceneDescriptorSetHolder
+	class /*Scene::*/SceneImpl : public SceneDescriptorSetHolder
 	{
 	public:
-		SceneImpl(const Global& global, DescriptorSetsManager& manager);
-		Camera camera;
-		//std::array<ModelSceneDescSetHolder, kFramesCount> scene_decriptor_sets_holder;
-		//const std::vector<std::pair<Model, std::array<ModelSceneDescSetHolder, kFramesCount>>>& GetModels() { return models; }
+		SceneImpl(const Global& global, DescriptorSetsManager& manager, DebugGeometry& debug_geometry_);
 
 		void Update(int frame_index);
 
@@ -78,23 +75,24 @@ namespace render
 
 		Node& AddNode(const Node& node);
 		void AddModel(Node& node, Mesh& mesh);
+		void AddCamera();
 
 		Node viewport_node_;
 		Mesh viewport_mesh_;
 		RenderModel viewport_model_;
 
+		std::vector<Camera> cameras_;
 		std::vector<Node> nodes_;
 		std::vector<RenderModel> models_;
-		DebugGeometry debug_geometry_;
+		DebugGeometry& debug_geometry_;
 
-		~SceneImpl() {}
+		int active_camera_;
 
 	private:
 		GPULocalVertexBuffer viewport_vertex_buffer_;
 		/*Primitive viewport_primitive;*/
 		Image env_image_;
-		DescriptorSetsManager& desc_set_manage_;
-
+		DescriptorSetsManager& desc_set_manager_;
 
 	};
 
