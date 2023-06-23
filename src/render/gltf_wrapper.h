@@ -31,7 +31,7 @@ namespace render
 		void AddSimpleMesh(const std::vector<glm::vec3>& faces);
 
 		std::vector<Node> nodes;
-		std::vector<Model> models;
+		std::unordered_map<std::string, Model> models;
 		std::vector<Mesh> meshes;
 		std::vector<Skin> skins;
 

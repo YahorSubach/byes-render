@@ -87,7 +87,7 @@ namespace render
 		RenderEngineImpl(const RenderEngineImpl&) = delete;
 		RenderEngineImpl& operator=(const RenderEngineImpl&) = delete;
 
-		RenderEngineImpl(InitParam param) : external_command_queue_(32)
+		RenderEngineImpl(InitParam param) : external_command_queue_(32), last_object_id_(0)
 		{
 			vk_init_success_ = false;
 
@@ -232,6 +232,7 @@ namespace render
 		{
 
 			std::vector<ModelPack> model_packs;
+			std::unordered_map<std::string, uint32_t> model_packs_name_to_index;
 
 			static auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -261,7 +262,7 @@ namespace render
 
 			DebugGeometry dg(global_, descriptor_set_manager);
 			
-			scenes_.push_back(SceneImpl(global_, descriptor_set_manager, dg));
+			scenes_.emplace_back(global_, descriptor_set_manager, dg); // TODO fix scene impl move
 
 			ready = true;
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
@@ -353,12 +354,15 @@ namespace render
 
 							auto&& specified_command = std::get<LoadCommand>(command);
 							model_packs.back().AddGLTF(*specified_command.model);
+							model_packs_name_to_index.emplace(specified_command.pack_name, model_packs.size() - 1);
 
-							for (auto&& model : model_packs.back().models)
-							{
-								auto&& node = scenes_[0].AddNode(*model.node);
-								scenes_[0].AddModel(node, *model.mesh);
-							}
+
+
+							//for (auto&& model : model_packs.back().models)
+							//{
+							//	auto&& node = scenes_[0].AddNode(*model.node);
+							//	scenes_[0].AddModel(node, *model.mesh);
+							//}
 						}
 
 						if (std::holds_alternative<GeomCommand>(command))
@@ -372,6 +376,18 @@ namespace render
 							auto&& scene_node = scenes_[0].AddNode(node);
 							scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
 						}
+
+						if (std::holds_alternative<AddObjectCommand>(command))
+						{
+							auto&& specified_command = std::get<AddObjectCommand>(command);
+
+							auto&& pack = model_packs[model_packs_name_to_index.at(specified_command.desc.pack_name)];
+							auto&& pack_model = pack.models[specified_command.desc.model_name];
+
+							auto&& node = scenes_[0].AddNode(*pack_model.node);
+							scenes_[0].AddModel(node, *pack_model.mesh);
+						}
+
 					}
 				}
 
@@ -398,12 +414,24 @@ namespace render
 		}
 
 		template<ObjectType Type>
-		ObjectId<Type> AddObject(const std::string& name);
+		ObjectId<Type> AddObject(const ObjectDescription<Type>& desc);
 
-		ObjectId<ObjectType::Camera> AddObject(const std::string& name)
+		template<>
+		ObjectId<ObjectType::Camera> AddObject(const ObjectDescription<ObjectType::Camera>& desc)
 		{
 			scenes_[0].AddCamera();
-			return { name , 0 };
+			return { desc.name , 0 };
+		}
+
+		template<>
+		ObjectId<ObjectType::StaticModel> AddObject(const ObjectDescription<ObjectType::StaticModel>& desc)
+		{
+			ObjectId<ObjectType::StaticModel> result{ desc.model_name, last_object_id_};
+			last_object_id_++;
+
+			external_command_queue_.Push(render::AddObjectCommand{ desc });
+
+			return result;
 		}
 
 
@@ -413,7 +441,7 @@ namespace render
 		}
 
 		byes::sync_util::ConcQueue1P1C<RenderCommand> external_command_queue_;
-
+		std::vector<SceneImpl> scenes_;
 	private:
 
 		const std::vector<const char*>& GetRequiredDeviceExtensions()
@@ -785,9 +813,11 @@ namespace render
 
 		std::thread render_thread_;
 
-		std::vector<SceneImpl> scenes_;
+
 
 		bool ready;
+
+		uint32_t last_object_id_;
 
 		//VkSemaphore image_available_semaphore_;
 		//VkSemaphore render_finished_semaphore_;
@@ -801,6 +831,15 @@ namespace render
 	void RenderEngine::SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>>& lines)
 	{
 		impl_->SetDebugLines(lines);
+	}
+
+	void RenderEngine::UpdateCamera(uint32_t id, glm::vec3 pos, glm::vec3 dir)
+	{
+		if (impl_)
+		{
+			impl_->scenes_[0].cameras_[impl_->scenes_[0].active_camera_].orientation = dir;
+			impl_->scenes_[0].cameras_[impl_->scenes_[0].active_camera_].position = pos;
+		}
 	}
 
 	void RenderEngine::QueueCommand(const RenderCommand& render_command)
@@ -826,8 +865,14 @@ namespace render
 	}
 
 	template<>
-	ObjectId<ObjectType::Camera> RenderEngine::AddObject(const std::string& name)
+	ObjectId<ObjectType::Camera> RenderEngine::AddObject(const ObjectDescription<ObjectType::Camera>& desc)
 	{
-		return impl_->AddObject(name);
+		return impl_->AddObject<ObjectType::Camera>(desc);
+	}
+
+	template<>
+	ObjectId<ObjectType::StaticModel> RenderEngine::AddObject(const ObjectDescription<ObjectType::StaticModel>& desc)
+	{
+		return impl_->AddObject<ObjectType::StaticModel>(desc);
 	}
 }

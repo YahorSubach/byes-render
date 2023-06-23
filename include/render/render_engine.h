@@ -20,6 +20,12 @@ namespace render
 	using InitParam = HINSTANCE;
 #endif
 
+	enum class ObjectType
+	{
+		Camera,
+		StaticModel
+	};
+
 	struct Camera
 	{
 		glm::vec3 position;
@@ -35,6 +41,7 @@ namespace render
 
 	struct LoadCommand
 	{
+		std::string pack_name;
 		std::shared_ptr<tinygltf::Model> model;
 	};
 
@@ -47,14 +54,28 @@ namespace render
 	{
 		std::vector<std::pair<uint32_t, glm::mat4>> updates;
 	};
-	
-	using RenderCommand = std::variant<LoadCommand, GeomCommand, ObjectsUpdate>;
 
-	enum class ObjectType
+	template<ObjectType Type> 
+	struct ObjectDescription
 	{
-		Camera,
-		StaticModel
+		std::string name;
 	};
+
+	template<>
+	struct ObjectDescription<ObjectType::StaticModel>
+	{
+		std::string pack_name;
+		std::string model_name;
+	};
+
+	struct AddObjectCommand
+	{
+		ObjectDescription<ObjectType::StaticModel> desc;
+	};
+	
+	using RenderCommand = std::variant<LoadCommand, GeomCommand, ObjectsUpdate, AddObjectCommand>;
+
+
 
 	template<ObjectType Type>
 	struct ObjectId
@@ -81,8 +102,13 @@ namespace render
 
 		void SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>>& lines);
 
+
+
+
 		template<ObjectType Type>
-		ObjectId<Type> AddObject(const std::string& name);
+		ObjectId<Type> AddObject(const ObjectDescription<Type>& desc);
+
+		void UpdateCamera(uint32_t id, glm::vec3 pos, glm::vec3 dir);
 
 		void QueueCommand(const RenderCommand& render_command);
 

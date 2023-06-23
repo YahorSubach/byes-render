@@ -278,10 +278,9 @@ namespace render
 
 			if (gltf_node.mesh != -1)
 			{
-				models.push_back(Model{ node, meshes[gltf_node.mesh] });
-
 				const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
 
+				models.emplace(gltf_node.name, Model{ node, meshes[gltf_node.mesh] });
 
 				if (gltf_node.skin != -1)
 				{

@@ -429,6 +429,7 @@ namespace render
 
 	Node& /*Scene::*/SceneImpl::AddNode(const Node& node)
 	{
+		nodes_.reserve(32);  // TODO FIX ME!!!
 		nodes_.push_back(node);
 		return nodes_.back();
 	}
