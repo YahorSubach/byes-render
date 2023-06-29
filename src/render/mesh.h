@@ -84,6 +84,7 @@ namespace render
 	{
 		//std::vector<Bone> joints;
 		std::vector<Primitive> primitives;
+		std::string name;
 	};
 
 	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton>;

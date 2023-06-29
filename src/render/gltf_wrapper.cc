@@ -162,10 +162,11 @@ namespace render
 						attribute_accessor_indices[u32(vertex_buffer_type)] = buffer_acc_index;
 						primitive.vertex_buffers[u32(vertex_buffer_type)].emplace(BuildBufferAccessor(gltf_model, buffer_acc_index));
 					}
+					else attribute_accessor_indices[u32(vertex_buffer_type)] = -1;
 				}
 
-				if (attribute_accessor_indices[u32(VertexBufferType::kPOSITION)] && attribute_accessor_indices[u32(VertexBufferType::kTEXCOORD)] 
-					&& attribute_accessor_indices[u32(VertexBufferType::kNORMAL)] && !attribute_accessor_indices[u32(VertexBufferType::kTANGENT)])
+				if (attribute_accessor_indices[u32(VertexBufferType::kPOSITION)] >= 0 && attribute_accessor_indices[u32(VertexBufferType::kTEXCOORD)] >= 0
+					&& attribute_accessor_indices[u32(VertexBufferType::kNORMAL)] >= 0 && attribute_accessor_indices[u32(VertexBufferType::kTANGENT)] < 0)
 				{
 					std::span<const short> indices = GetBufferSpanByAccessor<short>(gltf_model, gltf_primitive.indices);
 					std::span<const glm::vec3> positions = GetBufferSpanByAccessor<glm::vec3>(gltf_model, attribute_accessor_indices[u32(VertexBufferType::kPOSITION)]);
@@ -265,6 +266,7 @@ namespace render
 
 
 				meshes[mesh_index].primitives.push_back(std::move(primitive));
+				meshes[mesh_index].name = gltf_mesh.name;
 			}
 
 		}

@@ -1,6 +1,7 @@
 #ifndef RENDER_ENGINE_RENDER_VKVF_H_
 #define RENDER_ENGINE_RENDER_VKVF_H_
 
+#include <span>
 #include <array>
 #include <variant>
 #include <vector>
@@ -19,6 +20,30 @@ namespace render
 #ifdef WIN32
 	using InitParam = HINSTANCE;
 #endif
+
+	template<typename ElementType>
+	static std::span<const ElementType> GetBufferSpanByAccessor(const tinygltf::Model& gltf_model, int acc_ind)
+	{
+		auto&& buffer_acc = gltf_model.accessors[acc_ind];
+		auto&& buffer_view = gltf_model.bufferViews[buffer_acc.bufferView];
+
+		auto overriden_stride = buffer_view.byteStride;
+		auto element_size = tinygltf::GetNumComponentsInType(buffer_acc.type) * tinygltf::GetComponentSizeInBytes(buffer_acc.componentType);
+
+		assert(sizeof(ElementType) == element_size);
+
+		auto actual_stride = overriden_stride > 0 ? overriden_stride : element_size;
+
+		auto offset = buffer_view.byteOffset + buffer_acc.byteOffset;
+
+
+		const ElementType* begin = reinterpret_cast<const ElementType*>(gltf_model.buffers[buffer_view.buffer].data.data() + offset);
+		const ElementType* end = begin + (buffer_acc.count);
+
+		std::span<const ElementType> result(begin, end);
+
+		return result;
+	}
 
 	enum class ObjectType
 	{
