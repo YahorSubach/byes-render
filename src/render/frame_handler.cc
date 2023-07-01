@@ -277,7 +277,7 @@ for (auto&& model : scene.models_)
 	}
 }
 
-	render_graph_handler_.FillCommandBuffer(command_buffer_, frame_info, render_setup_.GetPipelines(), scene);
+	render_graph_handler_.FillCommandBuffer(command_buffer_, frame_info, scene);
 
 	
 	present_info_.pImageIndices = &frame_info.swapchain_image_index;

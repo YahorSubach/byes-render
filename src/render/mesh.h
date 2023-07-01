@@ -26,7 +26,7 @@ namespace render
 	class GraphicsPipeline;
 	struct Material
 	{
-		PipelineId pipeline_type = PipelineId::kBuildGBuffers;
+		glm::vec4 color;
 
 		util::NullableRef<const Image> albedo;
 		util::NullableRef<const Image> metallic_roughness;
@@ -35,13 +35,13 @@ namespace render
 		uint32_t flags = 0;
 	};
 
-	using PrimitiveDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kMaterial>;
+	using PrimitiveDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kMaterial, DescriptorSetType::kColor>;
 
 	struct Primitive: public PrimitiveDescriptorSetHolder
 	{
-		Primitive(const Global& global, DescriptorSetsManager& manager, RenderModelCategory category);
+		Primitive(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags);
 
-		RenderModelCategory category;
+		PrimitiveFlags flags;
 		Material material;
 
 		std::optional<BufferAccessor> indices;
@@ -51,6 +51,8 @@ namespace render
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data, util::NullableRef<const Sampler>& sampler) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data, util::NullableRef<const Sampler>& sampler) override;
 		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler>& sampler) override;
+
+		void FillData(render::DescriptorSet<render::DescriptorSetType::kColor>::Binding<0>::Data& data) override;
 	};
 
 	struct Node: byes::RM<Node>

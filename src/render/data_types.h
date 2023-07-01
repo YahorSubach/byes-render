@@ -15,12 +15,18 @@ namespace render
 {
 	struct Global;
 
-	enum class RenderModelCategory
+	enum class PrimitiveProps
 	{
-		kRenderModel,
+		kOpaque,
 		kViewport,
-		kUIShape
+		kUIShape,
+
+		kDebugPoints,
+		kDebugLines,
+		kDebugPos,
 	};
+
+	using PrimitiveFlags = util::enums::Flags<PrimitiveProps>;
 
 	enum class ExtentType
 	{
@@ -46,6 +52,7 @@ namespace render
 
 		kPos,
 		kDebugLines,
+		kDebugPoints,
 
 	};
 

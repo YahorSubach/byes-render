@@ -38,13 +38,14 @@ namespace render
 		EParams
 		{
 			kDisableDepthTest,
-			kLineTopology
+			kLineTopology,
+			kPointTopology
 		};
 
 		using Params = util::enums::Flags<EParams>;
 
 		GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module,
-			const std::array<Extent, kExtentTypeCnt>& extents, Params params = {});
+			const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params = {});
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;
 		GraphicsPipeline(GraphicsPipeline&&) = default;
@@ -54,6 +55,8 @@ namespace render
 
 		const std::map<uint32_t, const DescriptorSetLayout&>& GetDescriptorSetLayouts() const;
 		const std::map<uint32_t, ShaderModule::VertexBindingDesc>& GetVertexBindingsDescs() const;
+
+		PrimitiveFlags GetRequiredPrimitiveFlags() const;
 
 		const VkPipelineLayout& GetLayout() const;
 
@@ -69,6 +72,8 @@ namespace render
 		std::map<uint32_t, const DescriptorSetLayout&> descriptor_sets_;
 
 		VkPipelineLayout layout_;
+
+		PrimitiveFlags required_primitive_flags_;
 
 		uint32_t vertex_bindings_count_;
 	};

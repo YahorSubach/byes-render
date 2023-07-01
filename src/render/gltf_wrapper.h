@@ -28,7 +28,7 @@ namespace render
 		ModelPack(ModelPack&&) = default;
 
 		void AddGLTF(const tinygltf::Model& gltf_model);
-		void AddSimpleMesh(const std::vector<glm::vec3>& faces);
+		void AddSimpleMesh(const std::vector<glm::vec3>& faces, PrimitiveFlags primitive_flags);
 
 		std::vector<Node> nodes;
 		std::unordered_map<std::string, Model> models;

@@ -16,9 +16,9 @@ namespace render
 	{
 
 
-		g_build_node = render_graph_.AddNode("g_build", ExtentType::kPresentation, { RenderModelCategory::kRenderModel });
-		g_collect_node = render_graph_.AddNode("g_collect", ExtentType::kPresentation, { RenderModelCategory::kViewport });
-		ui_node = render_graph_.AddNode("ui", ExtentType::kPresentation, { RenderModelCategory::kUIShape });
+		g_build_node = render_graph_.AddNode("g_build", ExtentType::kPresentation);
+		g_collect_node = render_graph_.AddNode("g_collect", ExtentType::kPresentation);
+		ui_node = render_graph_.AddNode("ui", ExtentType::kPresentation);
 
 		g_collect_node->use_swapchain_framebuffer = true;
 		ui_node->use_swapchain_framebuffer = true;
@@ -121,35 +121,48 @@ namespace render
 			ShaderModule vert_shader_module(global_, "bitmap.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule frag_shader_module(global_, "bitmap.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, GraphicsPipeline::EParams::kDisableDepthTest));
+			pipelines_.emplace(PipelineId::kUI, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kUIShape, GraphicsPipeline::EParams::kDisableDepthTest));
+			ui_node->AddPipeline(pipelines_.at(PipelineId::kUI));
 		}
 
 		{
 			ShaderModule vert_shader_module(global_, "build_g_buffers.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule frag_shader_module(global_, "build_g_buffers.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.emplace(PipelineId::kBuildGBuffers, GraphicsPipeline(global_, *g_build_node, vert_shader_module, frag_shader_module, extents));
+			pipelines_.emplace(PipelineId::kBuildGBuffers, GraphicsPipeline(global_, *g_build_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kOpaque));
+			g_build_node->AddPipeline(pipelines_.at(PipelineId::kBuildGBuffers));
 		}
 
 		{
 			ShaderModule vert_shader_module(global_, "collect_g_buffers.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule frag_shader_module(global_, "collect_g_buffers.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.emplace(PipelineId::kCollectGBuffers, GraphicsPipeline(global_, *g_collect_node, vert_shader_module, frag_shader_module, extents));
+			pipelines_.emplace(PipelineId::kCollectGBuffers, GraphicsPipeline(global_, *g_collect_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kViewport));
+			g_collect_node->AddPipeline(pipelines_.at(PipelineId::kCollectGBuffers));
 		}
 
 		{
 			ShaderModule vert_shader_module(global_, "pos_color.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule frag_shader_module(global_, "pos_color.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.emplace(PipelineId::kDebugLines, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, GraphicsPipeline::EParams::kLineTopology));
+			pipelines_.emplace(PipelineId::kDebugLines, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kDebugLines, GraphicsPipeline::EParams::kLineTopology));
+			ui_node->AddPipeline(pipelines_.at(PipelineId::kDebugLines));
 		}
 
 		{
 			ShaderModule vert_shader_module(global_, "pos.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule frag_shader_module(global_, "pos.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.emplace(PipelineId::kPos, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents));
+			pipelines_.emplace(PipelineId::kPos, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kUIShape));
+			ui_node->AddPipeline(pipelines_.at(PipelineId::kPos));
+		}
+
+		{
+			ShaderModule vert_shader_module(global_, "dbg_color_uni.vert", descriptor_set_manager.GetLayouts());
+			ShaderModule frag_shader_module(global_, "dbg_color_uni.frag", descriptor_set_manager.GetLayouts());
+
+			pipelines_.emplace(PipelineId::kDebugPoints, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kDebugPoints, { GraphicsPipeline::EParams::kLineTopology, GraphicsPipeline::EParams::kDisableDepthTest }));
+			ui_node->AddPipeline(pipelines_.at(PipelineId::kDebugPoints));
 		}
 	}
 

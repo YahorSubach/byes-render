@@ -19,8 +19,15 @@ if(Vulkan_FOUND)
 
 	add_subdirectory(src)
 	
+
+
 	get_target_property (_render_engine_sources render_engine SOURCES)
+	
+	message(WARNING ${_render_engine_sources})
+	message(WARNING ${CMAKE_CURRENT_SOURCE_DIR}/src)
+	
 	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${_render_engine_sources}) 
+	#source_group(TEST_GROUP FILES ${_render_engine_sources}) 
 
 
 	target_sources(render_engine 

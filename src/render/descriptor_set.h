@@ -359,6 +359,29 @@ namespace render
 		};
 	};
 
+
+	template<>
+	struct DescriptorSetBindings<DescriptorSetType::kColor>
+	{
+		template<int i>
+		struct Binding { using NotBinded = void; };
+
+		template<>
+		struct Binding<0>
+		{
+			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
+			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
+
+			struct Data
+			{
+				glm::vec4 color;
+			};
+
+			Data data;
+		};
+	};
+
+
 	template<DescriptorSetType Type>
 	struct DescriptorSet : DescriptorSetBindings<Type>
 	{

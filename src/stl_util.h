@@ -159,6 +159,12 @@ namespace render::util
 				return (value_ & (1 << static_cast<StorageType>(check_value))) != 0;
 			}
 
+			template<>
+			bool Check(Flags<EnumType> check_flags) const
+			{
+				return (value_ & (check_flags.value_)) == value_;
+			}
+
 			template<typename T1, typename ... Ts>
 			void Set(T1 first_value, Ts ... values)
 			{
@@ -170,6 +176,12 @@ namespace render::util
 			void Set(EnumType set_value)
 			{
 				value_ |= (1 << static_cast<StorageType>(set_value));
+			}
+
+			template<>
+			void Set(Flags<EnumType> set_flags)
+			{
+				value_ |= set_flags.value_;
 			}
 
 		private:

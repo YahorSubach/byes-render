@@ -144,8 +144,8 @@ namespace render
 
 			for (auto&& gltf_primitive : gltf_mesh.primitives)
 			{
-				Primitive primitive(global_, desc_set_manager_, RenderModelCategory::kRenderModel);
-				primitive.material.pipeline_type = PipelineId::kBuildGBuffers;
+				Primitive primitive(global_, desc_set_manager_, PrimitiveProps::kOpaque);
+
 				primitive.indices.emplace(BuildBufferAccessor(gltf_model, gltf_primitive.indices));
 
 				std::array<int, u32(VertexBufferType::Count)> attribute_accessor_indices{};
@@ -394,7 +394,7 @@ namespace render
 		}
 	}
 
-	void ModelPack::AddSimpleMesh(const std::vector<glm::vec3>& faces)
+	void ModelPack::AddSimpleMesh(const std::vector<glm::vec3>& faces, PrimitiveFlags primitive_flags)
 	{
 		std::vector<uint32_t> queue_indices = { global_.graphics_queue_index, global_.transfer_queue_index };
 
@@ -403,8 +403,7 @@ namespace render
 
 		Mesh mesh;
 
-		Primitive primitive(global_, desc_set_manager_, RenderModelCategory::kUIShape);
-		primitive.material.pipeline_type = PipelineId::kPos;
+		Primitive primitive(global_, desc_set_manager_, primitive_flags);
 		primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(buffers_.back(), sizeof(glm::vec3), 0, faces.size()));
 		mesh.primitives.push_back(std::move(primitive));
 		meshes.push_back(std::move(mesh));

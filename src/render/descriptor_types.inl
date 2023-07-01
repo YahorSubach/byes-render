@@ -11,3 +11,5 @@ ENUM_OP(Texture)
 ENUM_OP(BitmapAtlas)
 
 ENUM_OP(GBuffers)
+
+ENUM_OP(Color)

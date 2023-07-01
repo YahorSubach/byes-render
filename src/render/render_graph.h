@@ -26,8 +26,6 @@ namespace render
 		uint32_t frame_index;
 	};
 
-	using RenderModelCategoryFlags = util::enums::Flags<RenderModelCategory>;
-
 	class GraphicsPipeline;
 
 	//struct RenderModel
@@ -99,13 +97,16 @@ namespace render
 		};
 
 
-		RenderNode(const RenderGraph2& render_graph, const std::string& name, const ExtentType& extent, RenderModelCategoryFlags category_flags);
+		RenderNode(const RenderGraph2& render_graph, const std::string& name, const ExtentType& extent);
 
 		Attachment& Attach(const std::string& name, Format format);
 		Attachment& AttachSwapchain();
 		Attachment& GetAttachment(const std::string& name);
 
 		const std::vector<Attachment>& GetAttachments() const;
+
+		void AddPipeline(const GraphicsPipeline& pipeline);
+		const std::vector<std::reference_wrapper<const GraphicsPipeline>>& GetPipelines() const;
 
 		const std::string& GetName() const;
 		void Build();
@@ -119,12 +120,15 @@ namespace render
 		bool use_swapchain_framebuffer;
 
 		int order;
-		RenderModelCategoryFlags category_flags;
+
+		PrimitiveFlags required_primitive_flags;
+
 	private:
 		const RenderGraph2& render_graph_;
 		ExtentType extent_type_;
 		std::string name_;
 		std::vector<Attachment> attachments_;
+		std::vector<std::reference_wrapper<const GraphicsPipeline>> pipelines_;
 		std::optional<RenderPass> render_pass_;
 
 		/*std::vector<Dependency> to_dependencies_;*/
@@ -139,7 +143,7 @@ namespace render
 
 		RenderGraph2(const Global& global);
 
-		RenderNode& AddNode(const std::string& name, ExtentType extent_type, RenderModelCategoryFlags category_flags);
+		RenderNode& AddNode(const std::string& name, ExtentType extent_type);
 		void Build();
 
 		const std::map<std::string, RenderNode>& GetNodes() const;
@@ -157,7 +161,7 @@ namespace render
 
 		RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager);
 
-		bool FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const std::map<PipelineId, GraphicsPipeline>& pipelines, SceneImpl& scene) const;
+		bool FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, SceneImpl& scene) const;
 		bool FillCommandBufferPrimitive(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const std::map<PipelineId, GraphicsPipeline>& pipelines, const Primitive& scene) const;
 
 	private:

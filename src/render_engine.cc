@@ -369,7 +369,7 @@ namespace render
 						{
 							auto&& specified_command = std::get<GeomCommand>(command);
 
-							model_packs[0].AddSimpleMesh(specified_command.faces);
+							model_packs[0].AddSimpleMesh(specified_command.faces, PrimitiveProps::kDebugPos);
 
 							Node node{};
 							node.local_transform = glm::identity<glm::mat4>();
@@ -377,15 +377,27 @@ namespace render
 							scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
 						}
 
-						if (std::holds_alternative<AddObjectCommand>(command))
+						if (std::holds_alternative<AddObjectCommand<ObjectType::StaticModel>>(command))
 						{
-							auto&& specified_command = std::get<AddObjectCommand>(command);
+							auto&& specified_command = std::get<AddObjectCommand<ObjectType::StaticModel>>(command);
 
 							auto&& pack = model_packs[model_packs_name_to_index.at(specified_command.desc.pack_name)];
 							auto&& pack_model = pack.models[specified_command.desc.model_name];
 
 							auto&& node = scenes_[0].AddNode(*pack_model.node);
 							scenes_[0].AddModel(node, *pack_model.mesh);
+						}
+
+						if (std::holds_alternative<AddObjectCommand<ObjectType::DbgPoints>>(command))
+						{
+							auto&& specified_command = std::get<GeomCommand>(command);
+
+							model_packs[0].AddSimpleMesh(specified_command.faces, PrimitiveProps::kDebugPoints);
+
+							Node node{};
+							node.local_transform = glm::identity<glm::mat4>();
+							auto&& scene_node = scenes_[0].AddNode(node);
+							scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
 						}
 
 					}
@@ -427,6 +439,17 @@ namespace render
 		ObjectId<ObjectType::StaticModel> AddObject(const ObjectDescription<ObjectType::StaticModel>& desc)
 		{
 			ObjectId<ObjectType::StaticModel> result{ desc.model_name, last_object_id_};
+			last_object_id_++;
+
+			external_command_queue_.Push(render::AddObjectCommand{ desc });
+
+			return result;
+		}
+
+		template<>
+		ObjectId<ObjectType::DbgPoints> AddObject(const ObjectDescription<ObjectType::DbgPoints>& desc)
+		{
+			ObjectId<ObjectType::DbgPoints> result{ std::string("dbg_points_") + std::to_string(last_object_id_), last_object_id_};
 			last_object_id_++;
 
 			external_command_queue_.Push(render::AddObjectCommand{ desc });
@@ -874,5 +897,11 @@ namespace render
 	ObjectId<ObjectType::StaticModel> RenderEngine::AddObject(const ObjectDescription<ObjectType::StaticModel>& desc)
 	{
 		return impl_->AddObject<ObjectType::StaticModel>(desc);
+	}
+
+	template<>
+	ObjectId<ObjectType::DbgPoints> RenderEngine::AddObject(const ObjectDescription<ObjectType::DbgPoints>& desc)
+	{
+		return impl_->AddObject<ObjectType::DbgPoints>(desc);
 	}
 }

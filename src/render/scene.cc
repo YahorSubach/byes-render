@@ -367,8 +367,7 @@ namespace render
 		};
 
 		viewport_vertex_buffer_.LoadData(viewport_vertex_data.data(), viewport_vertex_data.size() * sizeof(glm::vec3));
-		Primitive viewport_primitive(global, manager, RenderModelCategory::kViewport);
-		viewport_primitive.material.pipeline_type = PipelineId::kCollectGBuffers;
+		Primitive viewport_primitive(global, manager, PrimitiveProps::kViewport);
 		viewport_primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(viewport_vertex_buffer_, sizeof(glm::vec3), 0, 6));
 
 		viewport_mesh_.primitives.push_back(std::move(viewport_primitive));
@@ -465,15 +464,13 @@ namespace render
 		ready_to_write.store(true);
 		ready_to_read.store(false);
 
-		mesh.primitives.push_back(Primitive(global, manager, RenderModelCategory::kViewport));
+		mesh.primitives.push_back(Primitive(global, manager, PrimitiveProps::kDebugLines));
 
-		mesh.primitives.back().material = {PipelineId::kDebugLines};
 		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(coords_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
 		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(coords_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
 
-		mesh.primitives.push_back(Primitive(global, manager, RenderModelCategory::kViewport));
+		mesh.primitives.push_back(Primitive(global, manager, PrimitiveProps::kDebugLines));
 
-		mesh.primitives.back().material = { PipelineId::kDebugLines };
 		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(debug_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
 		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(debug_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
 	}

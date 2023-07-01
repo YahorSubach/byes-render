@@ -18,7 +18,7 @@ namespace render
 	{
 	}
 
-	Primitive::Primitive(const Global& global, DescriptorSetsManager& manager, RenderModelCategory category): PrimitiveDescriptorSetHolder(global, manager), category(category)
+	Primitive::Primitive(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags): PrimitiveDescriptorSetHolder(global, manager), flags(flags)
 	{
 	}
 
@@ -67,6 +67,11 @@ namespace render
 		}
 
 		sampler = global_.mipmap_cnt_to_global_samplers[data.normal_map->GetMipMapLevelsCount()];
+	}
+
+	void render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kColor>::Binding<0>::Data& data)
+	{
+		data.color = material.color;
 	}
 
 	//void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)

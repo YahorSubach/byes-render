@@ -13,8 +13,8 @@
 namespace render
 {
 
-	GraphicsPipeline::GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, Params params) :
-		RenderObjBase(global), layout_(VK_NULL_HANDLE)
+	GraphicsPipeline::GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params) :
+		RenderObjBase(global), layout_(VK_NULL_HANDLE), required_primitive_flags_(required_primitive_flags)
 	{
 		std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
 		std::vector<VkVertexInputBindingDescription> vertex_input_bindings_descs;
@@ -62,7 +62,7 @@ namespace render
 
 		VkPipelineInputAssemblyStateCreateInfo input_assembly{};
 		input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		input_assembly.topology = params.Check(EParams::kLineTopology) ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST : VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		input_assembly.topology = params.Check(EParams::kLineTopology) ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST : params.Check(EParams::kPointTopology) ? VK_PRIMITIVE_TOPOLOGY_POINT_LIST : VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		input_assembly.primitiveRestartEnable = VK_FALSE;
 
 		VkViewport viewport{};
@@ -89,7 +89,7 @@ namespace render
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE; //then geometry never passes through the rasterizer stage. This basically disables any output to the framebuffer.
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizer.lineWidth = 1.0f;
+		rasterizer.lineWidth = params.Check(EParams::kPointTopology) ? 3.0f : 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
@@ -261,6 +261,11 @@ namespace render
 	const std::map<uint32_t, ShaderModule::VertexBindingDesc>& GraphicsPipeline::GetVertexBindingsDescs() const
 	{
 		return vertex_bindings_descs_;
+	}
+
+	PrimitiveFlags GraphicsPipeline::GetRequiredPrimitiveFlags() const
+	{
+		return required_primitive_flags_;
 	}
 
 	const VkPipelineLayout& GraphicsPipeline::GetLayout() const

@@ -48,7 +48,8 @@ namespace render
 	enum class ObjectType
 	{
 		Camera,
-		StaticModel
+		StaticModel,
+		DbgPoints
 	};
 
 	struct Camera
@@ -68,6 +69,13 @@ namespace render
 	{
 		std::string pack_name;
 		std::shared_ptr<tinygltf::Model> model;
+	};
+
+
+	struct DbgPoints
+	{
+		std::vector<glm::vec3> poists;
+		glm::vec4 color;
 	};
 
 	struct GeomCommand
@@ -93,12 +101,23 @@ namespace render
 		std::string model_name;
 	};
 
+	template<>
+	struct ObjectDescription<ObjectType::DbgPoints>
+	{
+		std::vector<glm::vec3> points;
+		glm::vec4 color;
+	};
+
+	template<ObjectType Type>
 	struct AddObjectCommand
 	{
-		ObjectDescription<ObjectType::StaticModel> desc;
+		ObjectDescription<Type> desc;
 	};
 	
-	using RenderCommand = std::variant<LoadCommand, GeomCommand, ObjectsUpdate, AddObjectCommand>;
+	using RenderCommand = std::variant<LoadCommand, GeomCommand, ObjectsUpdate, 
+		AddObjectCommand<ObjectType::StaticModel>,
+		AddObjectCommand<ObjectType::DbgPoints>
+	>;
 
 
 
