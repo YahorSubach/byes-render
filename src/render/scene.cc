@@ -342,19 +342,18 @@ namespace render
 	//}
 
 
-	/*Scene::*/SceneImpl::SceneImpl(const Global& global, DescriptorSetsManager& manager, DebugGeometry& debug_geometry_):
+	/*Scene::*/Scene::Scene(const Global& global, DescriptorSetsManager& manager, DebugGeometry& debug_geometry_):
 		SceneDescriptorSetHolder(global, manager),
 		viewport_vertex_buffer_(global, 6 * sizeof(glm::vec3)),
 		//viewport_primitive(global, manager),
 		env_image_(global, Image::BuiltinImageType::kBlack),
 		debug_geometry_(debug_geometry_),
 		viewport_node_(),
-		viewport_mesh_(),
+		viewport_mesh_{"viewport"},
 		viewport_model_(global, manager, viewport_node_, viewport_mesh_),
-		desc_set_manager_(manager)
+		desc_set_manager_(manager),
+		camera_node_index_(-1)
 	{
-
-		active_camera_ = 0;
 
 		std::vector<glm::vec3> viewport_vertex_data = {
 			{-1, -1, 0},
@@ -376,38 +375,43 @@ namespace render
 		models_.push_back(std::move(debug_geometry_.model));
 	}
 
-	void /*Scene::*/SceneImpl::Update(int frame_index)
+	void /*Scene::*/Scene::Update(int frame_index)
 	{
 		debug_geometry_.Update();
 		UpdateAndTryFillWrites(frame_index);
 	}
 
-	void /*Scene::*/SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
+	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
 	{
-		auto&& camera = cameras_[active_camera_];
+		if (camera_node_index_ >= 0)
+		{
+			auto&& camera_node = nodes_[camera_node_index_];
 
-		data.position.x = camera.position.x;
-		data.position.y = camera.position.y;
-		data.position.z = camera.position.z;
-		data.position.w = 1.0f;
+			data.position = glm::vec4(camera_node.translation, 1);
 
-		glm::vec3 position;
-		glm::vec3 orientation;
+			glm::vec3 orientation = glm::rotate(camera_node.rotation, glm::vec3(0, 1, 0));
 
-		position.x = camera.position.x;
-		position.y = camera.position.y;
-		position.z = camera.position.z;
+			glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
+			proj[1][1] *= -1;
+			data.proj_view_mat = proj * glm::lookAt(camera_node.translation, camera_node.translation + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
+		}
+		else
+		{
+			glm::vec3 position = glm::vec3(1, 1, 2);
 
-		orientation.x = camera.orientation.x;
-		orientation.y = camera.orientation.y;
-		orientation.z = camera.orientation.z;
+			data.position = glm::vec4(position, 1);
 
-		glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
-		proj[1][1] *= -1;
-		data.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
+			glm::vec3 orientation = glm::normalize(glm::vec3(-1, -1, -2));
+
+			glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
+			proj[1][1] *= -1;
+			data.proj_view_mat = proj * glm::lookAt(position, position + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
+		}
+
+		return true;
 	}
 
-	void /*Scene::*/SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
+	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data)
 	{
 		data.near_plane = 0.1f;
 		data.far_plane = 100.f;
@@ -418,31 +422,33 @@ namespace render
 		data.proj_mat[1][1] *= -1;
 
 		data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		return true;
 	}
 
-	void /*Scene::*/SceneImpl::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data, util::NullableRef<const Sampler>& sampler)
+	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
 	{
-		data.environement = env_image_;
-		sampler = global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()];
+		SamplerData sampler_data{ env_image_ , global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()] };
+		data.environement = sampler_data;
+
+		return true;
 	}
 
-	Node& /*Scene::*/SceneImpl::AddNode(const Node& node)
+	Node& /*Scene::*/Scene::AddNode(const Node& node)
 	{
-		nodes_.reserve(32);  // TODO FIX ME!!!
 		nodes_.push_back(node);
 		return nodes_.back();
 	}
 
-	void /*Scene::*/SceneImpl::AddModel(Node& node, Mesh& mesh)
+	void /*Scene::*/Scene::AddModel(Node& node, Mesh& mesh)
 	{
 		RenderModel model(global_, desc_set_manager_, node, mesh);
 		models_.push_back(std::move(model));
 	}
 
-	void SceneImpl::AddCamera()
-	{
-		cameras_.push_back(Camera());
-	}
+	//void Scene::AddCamera()
+	//{
+	//	cameras_.push_back(Camera());
+	//}
 
 
 	std::pair<render::DebugGeometry::Point, render::DebugGeometry::Point> render::DebugGeometry::Point::operator>>(const Point& rhs)
@@ -458,7 +464,7 @@ namespace render
 		debug_lines_color_buffer_(global, sizeof(glm::vec3) * 512),
 		debug_lines_vertex_cnt(0),
 		node(),
-		mesh(),
+		mesh{ "debug" },
 		model(global, manager, node, mesh)
 	{
 		ready_to_write.store(true);

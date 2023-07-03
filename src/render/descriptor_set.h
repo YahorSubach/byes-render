@@ -54,7 +54,22 @@ namespace render
 	{};
 
 
+	template<DescriptorBindingType binding_type, ShaderTypeFlags shader_flags>
+	struct BindingBase
+	{
+		static const DescriptorBindingType type = binding_type;
+		static const ShaderTypeFlags shaders_flags = shader_flags;
+	};
 
+	template<ShaderTypeFlags shader_flags>
+	struct BindingBase<DescriptorBindingType::kSampler, shader_flags>
+	{
+		static const DescriptorBindingType type = DescriptorBindingType::kSampler;
+		static const ShaderTypeFlags shaders_flags = shader_flags;
+
+		struct Data
+		{};
+	};
 
 
 	template<DescriptorSetType Type>
@@ -67,19 +82,21 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Vertex | ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Vertex | ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
 				glm::vec4 position;
 				glm::mat4 proj_view_mat;
 			};
-
-			Data data;
 		};
+	};
+
+	struct SamplerData
+	{
+		std::reference_wrapper<const Image> image;
+		//std::reference_wrapper<ImageView> image_view;
+		std::reference_wrapper<const Sampler> sampler;
 	};
 
 	template<>
@@ -89,11 +106,8 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Vertex | ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Vertex | ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
 				glm::vec4 position;
@@ -102,8 +116,6 @@ namespace render
 				float near_plane;
 				float far_plane;
 			};
-
-			Data data;
 		};
 	};
 
@@ -114,17 +126,12 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Vertex>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Vertex;
-
 			struct Data
 			{
 				glm::mat4 model_mat;
 			};
-
-			Data data;
 		};
 	};
 
@@ -135,17 +142,12 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Vertex>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Vertex;
-
 			struct Data
 			{
 				glm::mat4 matrices[32];
 			};
-
-			Data data;
 		};
 	};
 
@@ -156,59 +158,39 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
 				uint32_t flags;
 			};
-
-			Data data;
 		};
 
 		template<>
-		struct Binding<1>
+		struct Binding<1> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> albedo;
+				std::optional<SamplerData> albedo;
 			};
-
-			Data data;
 		};
 
 		template<>
-		struct Binding<2>
+		struct Binding<2> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> metallic_roughness;
+				std::optional<SamplerData> metallic_roughness;
 			};
-
-			Data data;
 		};
 
 		template<>
-		struct Binding<3>
+		struct Binding<3> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> normal_map;
+				std::optional<SamplerData> normal_map;
 			};
-
-			Data data;
 		};
 	};
 
@@ -220,36 +202,13 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> environement;
+				std::optional<SamplerData> environement;
 			};
-
-			Data data;
 		};
-
-		//template<>
-		//struct Binding<1>
-		//{
-		//	static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-		//	static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
-		//	struct Data
-		//	{
-		//		util::NullableRef<const Image> shadow_map;
-		//		util::NullableRef<const Image> GetImage() const { return shadow_map; }
-
-		//		util::NullableRef<const Sampler> shadow_map_sampler;
-		//		util::NullableRef<const Sampler> GetSampler() const { return shadow_map_sampler; }
-		//	};
-
-		//	Data data;
-		//};
 	};
 
 	template<>
@@ -259,17 +218,12 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> texture;
+				std::optional<SamplerData> texture;
 			};
-
-			Data data;
 		};
 	};
 
@@ -280,19 +234,14 @@ namespace render
 		struct Binding { using NotBinded = void; };
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Vertex>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Vertex;
-
 			struct Data
 			{
 				glm::vec2 atlas_position;
 				glm::vec2 width_heigth;
 				glm::vec4 color;
 			};
-
-			Data data;
 		};
 	};
 
@@ -303,59 +252,39 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> albedo;
+				std::optional<SamplerData> albedo;
 			};
-
-			Data data;
 		};
 
 		template<>
-		struct Binding<1>
+		struct Binding<1> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> position;
+				std::optional<SamplerData> position;
 			};
-
-			Data data;
 		};
 
 		template<>
-		struct Binding<2>
+		struct Binding<2> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> normal;
+				std::optional<SamplerData> normal;
 			};
-
-			Data data;
 		};
 
 		template<>
-		struct Binding<3>
+		struct Binding<3> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kSampler;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
-				util::NullableRef<const Image> metallic_roughness;
+				std::optional<SamplerData> metallic_roughness;
 			};
-
-			Data data;
 		};
 	};
 
@@ -367,17 +296,12 @@ namespace render
 		struct Binding { using NotBinded = void; };
 
 		template<>
-		struct Binding<0>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Fragment>
 		{
-			static const DescriptorBindingType type = DescriptorBindingType::kUniform;
-			static const ShaderTypeFlags shaders_flags = ShaderTypeFlags::Fragment;
-
 			struct Data
 			{
 				glm::vec4 color;
 			};
-
-			Data data;
 		};
 	};
 

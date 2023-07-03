@@ -47,12 +47,12 @@ namespace render
 		std::optional<BufferAccessor> indices;
 		std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
 
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data, util::NullableRef<const Sampler>& sampler) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data, util::NullableRef<const Sampler>& sampler) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data, util::NullableRef<const Sampler>& sampler) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
 
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kColor>::Binding<0>::Data& data) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kColor>::Binding<0>::Data& data) override;
 	};
 
 	struct Node: byes::RM<Node>
@@ -82,11 +82,16 @@ namespace render
 		std::vector<short> parent_indices;
 	};
 
-	struct Mesh
+	struct Mesh: byes::RM<Mesh>
 	{
+		Mesh() = default;
+		Mesh(const std::string& name) : name(name) {};
+		Mesh(const Mesh&) = delete;
+		Mesh(Mesh&&) = default;
+
+		std::string name;
 		//std::vector<Bone> joints;
 		std::vector<Primitive> primitives;
-		std::string name;
 	};
 
 	using ModelDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kModelMatrix, DescriptorSetType::kSkeleton>;
@@ -114,16 +119,16 @@ namespace render
 
 	using RenderModelDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kModelMatrix>;
 
-	struct RenderModel : RenderModelDescriptorSetHolder
+	struct RenderModel : byes::RM<RenderModel>, RenderModelDescriptorSetHolder
 	{
 		RenderModel(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in);
 		RenderModel(const RenderModel&) = delete;
 		RenderModel(RenderModel&&) = default;
 		byes::RTM<Node> node;
-		util::NullableRef<Mesh> mesh;
+		byes::RTM<Mesh> mesh;
 		util::NullableRef<Skin> skin;
 
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 	};
 
 	struct ModelInstance: public ModelDescriptorSetHolder
@@ -134,8 +139,8 @@ namespace render
 		util::NullableRef<Mesh> mesh;
 		util::NullableRef<Skin> skin;
 
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
-		void FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 	};
 
 	template<typename ValueType>

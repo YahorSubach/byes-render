@@ -390,14 +390,28 @@ namespace render
 
 						if (std::holds_alternative<AddObjectCommand<ObjectType::DbgPoints>>(command))
 						{
-							auto&& specified_command = std::get<GeomCommand>(command);
+							auto&& specified_command = std::get<AddObjectCommand<ObjectType::DbgPoints>>(command);
 
-							model_packs[0].AddSimpleMesh(specified_command.faces, PrimitiveProps::kDebugPoints);
+							model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
+							model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
 
 							Node node{};
 							node.local_transform = glm::identity<glm::mat4>();
 							auto&& scene_node = scenes_[0].AddNode(node);
-							scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
+							scenes_[0].AddModel(scene_node, model_packs[0].meshes.back());
+						}
+
+						if (std::holds_alternative<AddObjectCommand<ObjectType::Camera>>(command))
+						{
+							auto&& specified_command = std::get<AddObjectCommand<ObjectType::Camera>>(command);
+
+							//model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
+							//model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
+
+							//Node node{};
+							//node.local_transform = glm::identity<glm::mat4>();
+							//auto&& scene_node = scenes_[0].AddNode(node);
+							//scenes_[0].AddModel(scene_node, model_packs[0].meshes.back());
 						}
 
 					}
@@ -431,7 +445,7 @@ namespace render
 		template<>
 		ObjectId<ObjectType::Camera> AddObject(const ObjectDescription<ObjectType::Camera>& desc)
 		{
-			scenes_[0].AddCamera();
+			external_command_queue_.Push(render::AddObjectCommand{ desc });
 			return { desc.name , 0 };
 		}
 
@@ -464,7 +478,7 @@ namespace render
 		}
 
 		byes::sync_util::ConcQueue1P1C<RenderCommand> external_command_queue_;
-		std::vector<SceneImpl> scenes_;
+		std::vector<Scene> scenes_;
 	private:
 
 		const std::vector<const char*>& GetRequiredDeviceExtensions()
@@ -856,14 +870,14 @@ namespace render
 		impl_->SetDebugLines(lines);
 	}
 
-	void RenderEngine::UpdateCamera(uint32_t id, glm::vec3 pos, glm::vec3 dir)
-	{
-		if (impl_)
-		{
-			impl_->scenes_[0].cameras_[impl_->scenes_[0].active_camera_].orientation = dir;
-			impl_->scenes_[0].cameras_[impl_->scenes_[0].active_camera_].position = pos;
-		}
-	}
+	//void RenderEngine::UpdateCamera(uint32_t id, glm::vec3 pos, glm::vec3 dir)
+	//{
+	//	if (impl_)
+	//	{
+	//		impl_->scenes_[0].cameras_[impl_->scenes_[0].active_camera_].orientation = dir;
+	//		impl_->scenes_[0].cameras_[impl_->scenes_[0].active_camera_].position = pos;
+	//	}
+	//}
 
 	void RenderEngine::QueueCommand(const RenderCommand& render_command)
 	{

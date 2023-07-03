@@ -161,7 +161,7 @@ namespace render
 			ShaderModule vert_shader_module(global_, "dbg_color_uni.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule frag_shader_module(global_, "dbg_color_uni.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.emplace(PipelineId::kDebugPoints, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kDebugPoints, { GraphicsPipeline::EParams::kLineTopology, GraphicsPipeline::EParams::kDisableDepthTest }));
+			pipelines_.emplace(PipelineId::kDebugPoints, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kDebugPoints, { GraphicsPipeline::EParams::kPointTopology, GraphicsPipeline::EParams::kDisableDepthTest }));
 			ui_node->AddPipeline(pipelines_.at(PipelineId::kDebugPoints));
 		}
 	}

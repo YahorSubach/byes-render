@@ -573,7 +573,7 @@ namespace render
 		}
 	}
 
-	bool RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, /*Scene::*/SceneImpl& scene) const
+	bool RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, /*Scene::*/Scene& scene) const
 	{
 		VkCommandBufferBeginInfo begin_info{};
 		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -651,7 +651,7 @@ namespace render
 				for (auto&& render_model_ref : scene.models_)
 				{
 					auto&& model = render_model_ref;
-					auto&& mesh = *model.mesh;
+					Mesh& mesh = model.mesh;
 
 					for (auto&& primitive : mesh.primitives)
 					{

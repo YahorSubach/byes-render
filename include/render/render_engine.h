@@ -47,6 +47,7 @@ namespace render
 
 	enum class ObjectType
 	{
+		Node,
 		Camera,
 		StaticModel,
 		DbgPoints
@@ -115,6 +116,7 @@ namespace render
 	};
 	
 	using RenderCommand = std::variant<LoadCommand, GeomCommand, ObjectsUpdate, 
+		AddObjectCommand<ObjectType::Camera>,
 		AddObjectCommand<ObjectType::StaticModel>,
 		AddObjectCommand<ObjectType::DbgPoints>
 	>;
@@ -124,6 +126,8 @@ namespace render
 	template<ObjectType Type>
 	struct ObjectId
 	{
+		ObjectId() : id(-1) {}
+		ObjectId(const std::string& name, uint32_t id) : name(name), id(id) {}
 		std::string name;
 		uint32_t id;
 	};
@@ -146,13 +150,10 @@ namespace render
 
 		void SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>>& lines);
 
-
-
-
 		template<ObjectType Type>
 		ObjectId<Type> AddObject(const ObjectDescription<Type>& desc);
 
-		void UpdateCamera(uint32_t id, glm::vec3 pos, glm::vec3 dir);
+		//void UpdateCamera(uint32_t id, glm::vec3 pos, glm::vec3 dir);
 
 		void QueueCommand(const RenderCommand& render_command);
 

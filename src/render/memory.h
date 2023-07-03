@@ -29,6 +29,10 @@ namespace render
 
 		static uint32_t GetMemoryTypeIndex(const Global& global, uint32_t acceptable_memory_types_bits, VkMemoryPropertyFlags memory_flags);
 
+	private:
+
+		uint64_t size_;
+
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_MEMORY_HOLDER_H_

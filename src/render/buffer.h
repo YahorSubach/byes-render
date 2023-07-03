@@ -7,6 +7,8 @@
 
 #include "vulkan/vulkan.h"
 
+#include "byes-reference-to-movable\reference_to_movable.h"
+
 #include "stl_util.h"
 #include "common.h"
 #include "render/object_base.h"
@@ -15,7 +17,7 @@
 
 namespace render
 {
-	class Buffer : public RenderObjBase<VkBuffer>
+	class Buffer : public byes::RM<Buffer>, public RenderObjBase<VkBuffer>
 	{
 	public:
 		Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indices);
@@ -53,7 +55,7 @@ namespace render
 		template<typename T>
 		BufferAccessor(ElemType<T>, const Buffer& buffer) : BufferAccessor(buffer, sizeof(T), 0, buffer.GetSize() / sizeof(T)) {}
 
-		const util::NullableRef<const Buffer> buffer;
+		byes::RTM<const Buffer> buffer;
 		const size_t stride;
 
 		const size_t offset;

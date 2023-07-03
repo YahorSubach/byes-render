@@ -17,7 +17,7 @@
 
 render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup,
 	const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, 
-	const ui::UI& ui, const SceneImpl& scene) :
+	const ui::UI& ui, const Scene& scene) :
 	RenderObjBase(global), swapchain_(swapchain.GetHandle()), graphics_queue_(global.graphics_queue),
 	command_buffer_(global.graphics_cmd_pool->GetCommandBuffer()),
 	image_available_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
@@ -44,7 +44,7 @@ render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapch
 //	model_scene_.AddModel(model);
 //}
 
-bool render::FrameHandler::Draw(const FrameInfo& frame_info, /*Scene::*/SceneImpl& scene)
+bool render::FrameHandler::Draw(const FrameInfo& frame_info, /*Scene::*/Scene& scene)
 {
 	//scene.Update(frame_info.swapchain_image_index);
 	//CommandBufferFiller command_filler(render_setup, framebuffer_collection);

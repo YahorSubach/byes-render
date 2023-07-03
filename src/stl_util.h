@@ -162,7 +162,7 @@ namespace render::util
 			template<>
 			bool Check(Flags<EnumType> check_flags) const
 			{
-				return (value_ & (check_flags.value_)) == value_;
+				return (value_ & (check_flags.value_)) == check_flags.value_;
 			}
 
 			template<typename T1, typename ... Ts>

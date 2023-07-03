@@ -47,20 +47,21 @@ namespace render
 			}
 			{}
 
-			virtual void FillData(DataType& data) = 0;
+			virtual bool FillData(DataType& data) = 0;
 
 			bool UpdateAndTryFillWrite(int frame_index, VkWriteDescriptorSet& write_desc_set)
 			{
 				uint32_t size = sizeof(DataType);
 
 				DataType new_data;
-				FillData(new_data);
+				if (FillData(new_data))
+				{
 
-				void* mapped_data;
-				vkMapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory(), 0, size, 0, &mapped_data);
-				memcpy(mapped_data, &new_data, size);
-				vkUnmapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory());
-
+					void* mapped_data;
+					vkMapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory(), 0, size, 0, &mapped_data);
+					memcpy(mapped_data, &new_data, size);
+					vkUnmapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory());
+				}
 				if (!attached_per_frame_[frame_index])
 				{
 					attached_per_frame_[frame_index] = true;
@@ -96,8 +97,6 @@ namespace render
 
 			VkDescriptorImageInfo vk_image_info_;
 
-			util::NullableRef<const Sampler> sampler_;
-
 		public:
 
 			BindingData(const Global& global) : gloabl_(global),
@@ -107,12 +106,12 @@ namespace render
 			}
 			{}
 
-			void FillWriteDescriptorSet(int frame_index, VkWriteDescriptorSet& write_desc_set)
+			void FillWriteDescriptorSet(int frame_index, VkWriteDescriptorSet& write_desc_set, SamplerData& sampler_data)
 			{
 				vk_image_info_.imageLayout = image_views_[frame_index]->GetFormat() == image_views_[frame_index]->GetDeviceCfg().depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 				vk_image_info_.imageView = image_views_[frame_index]->GetHandle();
-				vk_image_info_.sampler = sampler_->GetHandle();
+				vk_image_info_.sampler = sampler_data.sampler.get().GetHandle();
 
 				write_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 				write_desc_set.dstArrayElement = 0;
@@ -121,23 +120,25 @@ namespace render
 				write_desc_set.pImageInfo = &vk_image_info_;
 			}
 
-			virtual void FillData(DataType& data, util::NullableRef<const Sampler>& sampler) = 0;
+			virtual bool FillData(DataType& data) = 0;
 
 			bool UpdateAndTryFillWrite(int frame_index, VkWriteDescriptorSet& write_desc_set)
 			{
 				DataType new_data;
-				FillData(new_data, sampler_);
-
-				auto&& [image] = new_data;
-
-				if (image && images_per_frame_[frame_index] != image->GetHandle())
+				if (FillData(new_data))
 				{
-					image_views_[frame_index].emplace(gloabl_, *image);
-					images_per_frame_[frame_index] = image->GetHandle();
-					FillWriteDescriptorSet(frame_index, write_desc_set);
-					return true;
-				}
 
+					auto&& [sampler_data] = new_data;
+
+					if (images_per_frame_[frame_index] != sampler_data->image.get().GetHandle())
+					{
+						image_views_[frame_index].emplace(gloabl_, sampler_data->image.get());
+						images_per_frame_[frame_index] = sampler_data->image.get().GetHandle();
+						FillWriteDescriptorSet(frame_index, write_desc_set, *sampler_data);
+						return true;
+					}
+
+				}
 				return false;
 			}
 
