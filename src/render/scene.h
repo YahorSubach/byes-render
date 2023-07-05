@@ -73,8 +73,10 @@ namespace render
 		bool FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		bool FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
 
-		Node& AddNode(const Node& node);
+		uint32_t AddNode();
+		Node& GetNode(uint32_t id);
 		void AddModel(Node& node, Mesh& mesh);
+
 		//void AddCamera();
 
 		Node viewport_node_;

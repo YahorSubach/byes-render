@@ -7,6 +7,7 @@
 
 
 #include <vector>
+#include <stack>
 #include <map>
 #include <tuple>
 #include <chrono>
@@ -371,9 +372,8 @@ namespace render
 
 							model_packs[0].AddSimpleMesh(specified_command.faces, PrimitiveProps::kDebugPos);
 
-							Node node{};
-							node.local_transform = glm::identity<glm::mat4>();
-							auto&& scene_node = scenes_[0].AddNode(node);
+							auto node_id = scenes_[0].AddNode();
+							auto&& scene_node = scenes_[0].GetNode(node_id);
 							scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
 						}
 
@@ -384,7 +384,17 @@ namespace render
 							auto&& pack = model_packs[model_packs_name_to_index.at(specified_command.desc.pack_name)];
 							auto&& pack_model = pack.models[specified_command.desc.model_name];
 
-							auto&& node = scenes_[0].AddNode(*pack_model.node);
+							auto node_id = scenes_[0].AddNode();
+							auto&& node = scenes_[0].GetNode(node_id);
+
+							while (object_id_to_scene_object_id_.size() <= specified_command.object_id)
+							{
+								object_id_to_scene_object_id_.resize(object_id_to_scene_object_id_.size() * 3 / 2 + 1, ObjectInfo{ {}, (uint32_t)-1});
+							}
+
+							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
+							object_id_to_scene_object_id_[specified_command.object_id].typed_id = node_id;
+
 							scenes_[0].AddModel(node, *pack_model.mesh);
 						}
 
@@ -395,15 +405,41 @@ namespace render
 							model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
 							model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
 
-							Node node{};
-							node.local_transform = glm::identity<glm::mat4>();
-							auto&& scene_node = scenes_[0].AddNode(node);
-							scenes_[0].AddModel(scene_node, model_packs[0].meshes.back());
+							auto node_id = scenes_[0].AddNode();
+							auto&& node = scenes_[0].GetNode(node_id);
+
+							scenes_[0].AddModel(node, model_packs[0].meshes.back());
 						}
 
 						if (std::holds_alternative<AddObjectCommand<ObjectType::Camera>>(command))
 						{
 							auto&& specified_command = std::get<AddObjectCommand<ObjectType::Camera>>(command);
+
+							//model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
+							//model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
+
+							//Node node{};
+							//node.local_transform = glm::identity<glm::mat4>();
+							//auto&& scene_node = scenes_[0].AddNode(node);
+							//scenes_[0].AddModel(scene_node, model_packs[0].meshes.back());
+						}
+
+						if (std::holds_alternative<ObjectsUpdate>(command))
+						{
+							auto&& specified_command = std::get<ObjectsUpdate>(command);
+
+							for (auto&& [id, transform] : specified_command.updates)
+							{
+								if (object_id_to_scene_object_id_.size() > id)
+								{
+									if (object_id_to_scene_object_id_[id].type == ObjectType::Node)
+									{
+										uint32_t node_id = object_id_to_scene_object_id_[id].typed_id;
+										auto&& node = scenes_[0].GetNode(node_id);
+										node.local_transform = transform;
+									}
+								}
+							}
 
 							//model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
 							//model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
@@ -440,33 +476,23 @@ namespace render
 		}
 
 		template<ObjectType Type>
-		ObjectId<Type> AddObject(const ObjectDescription<Type>& desc);
-
-		template<>
-		ObjectId<ObjectType::Camera> AddObject(const ObjectDescription<ObjectType::Camera>& desc)
+		ObjectId<Type> AddObject(const ObjectDescription<Type>& desc)
 		{
-			external_command_queue_.Push(render::AddObjectCommand{ desc });
-			return { desc.name , 0 };
-		}
+			uint32_t id = -1;
 
-		template<>
-		ObjectId<ObjectType::StaticModel> AddObject(const ObjectDescription<ObjectType::StaticModel>& desc)
-		{
-			ObjectId<ObjectType::StaticModel> result{ desc.model_name, last_object_id_};
-			last_object_id_++;
+			if (!free_ids_.empty())
+			{
+				id = free_ids_.top();
+				free_ids_.pop();
+			}
+			else
+			{
+				id = last_object_id_;
+				last_object_id_++;
+			}
 
-			external_command_queue_.Push(render::AddObjectCommand{ desc });
-
-			return result;
-		}
-
-		template<>
-		ObjectId<ObjectType::DbgPoints> AddObject(const ObjectDescription<ObjectType::DbgPoints>& desc)
-		{
-			ObjectId<ObjectType::DbgPoints> result{ std::string("dbg_points_") + std::to_string(last_object_id_), last_object_id_};
-			last_object_id_++;
-
-			external_command_queue_.Push(render::AddObjectCommand{ desc });
+			ObjectId<Type> result{ desc.name, id};
+			external_command_queue_.Push(render::AddObjectCommand{ id, desc });
 
 			return result;
 		}
@@ -855,6 +881,15 @@ namespace render
 		bool ready;
 
 		uint32_t last_object_id_;
+		
+		struct ObjectInfo
+		{
+			ObjectType type;
+			uint32_t typed_id;
+		};
+
+		std::vector<ObjectInfo> object_id_to_scene_object_id_;
+		std::stack<uint32_t> free_ids_;
 
 		//VkSemaphore image_available_semaphore_;
 		//VkSemaphore render_finished_semaphore_;
@@ -917,5 +952,11 @@ namespace render
 	ObjectId<ObjectType::DbgPoints> RenderEngine::AddObject(const ObjectDescription<ObjectType::DbgPoints>& desc)
 	{
 		return impl_->AddObject<ObjectType::DbgPoints>(desc);
+	}
+
+	template<>
+	ObjectId<ObjectType::Node> RenderEngine::AddObject(const ObjectDescription<ObjectType::Node>& desc)
+	{
+		return impl_->AddObject<ObjectType::Node>(desc);
 	}
 }

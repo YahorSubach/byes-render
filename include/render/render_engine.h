@@ -100,6 +100,8 @@ namespace render
 	{
 		std::string pack_name;
 		std::string model_name;
+
+		std::string name;
 	};
 
 	template<>
@@ -107,18 +109,22 @@ namespace render
 	{
 		std::vector<glm::vec3> points;
 		glm::vec4 color;
+
+		std::string name;
 	};
 
 	template<ObjectType Type>
 	struct AddObjectCommand
 	{
+		uint32_t object_id;
 		ObjectDescription<Type> desc;
 	};
 	
 	using RenderCommand = std::variant<LoadCommand, GeomCommand, ObjectsUpdate, 
 		AddObjectCommand<ObjectType::Camera>,
 		AddObjectCommand<ObjectType::StaticModel>,
-		AddObjectCommand<ObjectType::DbgPoints>
+		AddObjectCommand<ObjectType::DbgPoints>,
+		AddObjectCommand<ObjectType::Node>
 	>;
 
 

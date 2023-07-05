@@ -433,10 +433,15 @@ namespace render
 		return true;
 	}
 
-	Node& /*Scene::*/Scene::AddNode(const Node& node)
+	uint32_t Scene::AddNode()
 	{
-		nodes_.push_back(node);
-		return nodes_.back();
+		nodes_.push_back({});
+		return nodes_.size() - 1;
+	}
+
+	Node& Scene::GetNode(uint32_t id)
+	{
+		return nodes_[id];
 	}
 
 	void /*Scene::*/Scene::AddModel(Node& node, Mesh& mesh)
