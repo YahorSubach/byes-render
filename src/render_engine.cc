@@ -343,17 +343,19 @@ namespace render
 
 					should_refresh_swapchain = !frames[current_frame_index].Draw(frame_info, scenes_[0]);
 
-					if (external_command_queue_.Size() > 0)
+					int command_count_to_execute = external_command_queue_.Size();
+
+					while (command_count_to_execute-- > 0)
 					{
 
 
 						auto&& command = external_command_queue_.Pop();
 
-						if (std::holds_alternative<LoadCommand>(command))
+						if (std::holds_alternative<command::Load>(command))
 						{
 							model_packs.push_back(ModelPack(global_, descriptor_set_manager));
 
-							auto&& specified_command = std::get<LoadCommand>(command);
+							auto&& specified_command = std::get<command::Load>(command);
 							model_packs.back().AddGLTF(*specified_command.model);
 							model_packs_name_to_index.emplace(specified_command.pack_name, model_packs.size() - 1);
 
@@ -366,9 +368,9 @@ namespace render
 							//}
 						}
 
-						if (std::holds_alternative<GeomCommand>(command))
+						if (std::holds_alternative<command::Geometry>(command))
 						{
-							auto&& specified_command = std::get<GeomCommand>(command);
+							auto&& specified_command = std::get<command::Geometry>(command);
 
 							model_packs[0].AddSimpleMesh(specified_command.faces, PrimitiveProps::kDebugPos);
 
@@ -377,9 +379,9 @@ namespace render
 							scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
 						}
 
-						if (std::holds_alternative<AddObjectCommand<ObjectType::StaticModel>>(command))
+						if (std::holds_alternative<command::AddObject<ObjectType::StaticModel>>(command))
 						{
-							auto&& specified_command = std::get<AddObjectCommand<ObjectType::StaticModel>>(command);
+							auto&& specified_command = std::get<command::AddObject<ObjectType::StaticModel>>(command);
 
 							auto&& pack = model_packs[model_packs_name_to_index.at(specified_command.desc.pack_name)];
 							auto&& pack_model = pack.models[specified_command.desc.model_name];
@@ -398,9 +400,26 @@ namespace render
 							scenes_[0].AddModel(node, *pack_model.mesh);
 						}
 
-						if (std::holds_alternative<AddObjectCommand<ObjectType::DbgPoints>>(command))
+						if (std::holds_alternative<command::AddObject<ObjectType::Node>>(command))
 						{
-							auto&& specified_command = std::get<AddObjectCommand<ObjectType::DbgPoints>>(command);
+							auto&& specified_command = std::get<command::AddObject<ObjectType::Node>>(command);
+
+							auto node_id = scenes_[0].AddNode();
+							auto&& node = scenes_[0].GetNode(node_id);
+
+							while (object_id_to_scene_object_id_.size() <= specified_command.object_id)
+							{
+								object_id_to_scene_object_id_.resize(object_id_to_scene_object_id_.size() * 3 / 2 + 1, ObjectInfo{ {}, (uint32_t)-1 });
+							}
+
+							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
+							object_id_to_scene_object_id_[specified_command.object_id].typed_id = node_id;
+						}
+
+
+						if (std::holds_alternative<command::AddObject<ObjectType::DbgPoints>>(command))
+						{
+							auto&& specified_command = std::get<command::AddObject<ObjectType::DbgPoints>>(command);
 
 							model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
 							model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
@@ -411,9 +430,9 @@ namespace render
 							scenes_[0].AddModel(node, model_packs[0].meshes.back());
 						}
 
-						if (std::holds_alternative<AddObjectCommand<ObjectType::Camera>>(command))
+						if (std::holds_alternative<command::AddObject<ObjectType::Camera>>(command))
 						{
-							auto&& specified_command = std::get<AddObjectCommand<ObjectType::Camera>>(command);
+							auto&& specified_command = std::get<command::AddObject<ObjectType::Camera>>(command);
 
 							//model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
 							//model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
@@ -424,9 +443,17 @@ namespace render
 							//scenes_[0].AddModel(scene_node, model_packs[0].meshes.back());
 						}
 
-						if (std::holds_alternative<ObjectsUpdate>(command))
+						if (std::holds_alternative<command::SetActiveCameraNode>(command))
 						{
-							auto&& specified_command = std::get<ObjectsUpdate>(command);
+							auto&& specified_command = std::get<command::SetActiveCameraNode>(command);
+
+							auto&& info = object_id_to_scene_object_id_[specified_command.node_id.id];
+							scenes_[0].camera_node_index_ = info.typed_id;
+						}
+
+						if (std::holds_alternative<command::ObjectsUpdate>(command))
+						{
+							auto&& specified_command = std::get<command::ObjectsUpdate>(command);
 
 							for (auto&& [id, transform] : specified_command.updates)
 							{
@@ -449,7 +476,7 @@ namespace render
 							//auto&& scene_node = scenes_[0].AddNode(node);
 							//scenes_[0].AddModel(scene_node, model_packs[0].meshes.back());
 						}
-
+						
 					}
 				}
 
@@ -492,18 +519,17 @@ namespace render
 			}
 
 			ObjectId<Type> result{ desc.name, id};
-			external_command_queue_.Push(render::AddObjectCommand{ id, desc });
+			external_command_queue_.Push(render::command::AddObject{ id, desc });
 
 			return result;
 		}
-
 
 		~RenderEngineImpl()
 		{
 
 		}
 
-		byes::sync_util::ConcQueue1P1C<RenderCommand> external_command_queue_;
+		byes::sync_util::ConcQueue1P1C<command::Command> external_command_queue_;
 		std::vector<Scene> scenes_;
 	private:
 
@@ -515,7 +541,7 @@ namespace render
 
 		const std::vector<const char*>& GetValidationLayers()
 		{
-#ifndef NDEBUG
+#ifndef NDEBUG1
 			static const std::vector<const char*> layers{ "VK_LAYER_KHRONOS_validation" };
 			return layers;
 #else
@@ -888,8 +914,14 @@ namespace render
 			uint32_t typed_id;
 		};
 
-		std::vector<ObjectInfo> object_id_to_scene_object_id_;
 		std::stack<uint32_t> free_ids_;
+
+
+		public:
+		
+		std::vector<ObjectInfo> object_id_to_scene_object_id_;
+
+
 
 		//VkSemaphore image_available_semaphore_;
 		//VkSemaphore render_finished_semaphore_;
@@ -914,7 +946,7 @@ namespace render
 	//	}
 	//}
 
-	void RenderEngine::QueueCommand(const RenderCommand& render_command)
+	void RenderEngine::QueueCommand(const command::Command& render_command)
 	{
 		impl_->external_command_queue_.Push(render_command);
 	}
@@ -936,27 +968,13 @@ namespace render
 		return platform::GetInputState();
 	}
 
-	template<>
-	ObjectId<ObjectType::Camera> RenderEngine::AddObject(const ObjectDescription<ObjectType::Camera>& desc)
-	{
-		return impl_->AddObject<ObjectType::Camera>(desc);
-	}
+#define RENDER_ENGINE_OBJECT(x)																					\
+	template<>																									\
+	ObjectId<ObjectType::x> RenderEngine::AddObject(const ObjectDescription<ObjectType::x>& desc)				\
+	{																											\
+		return impl_->AddObject<ObjectType::x>(desc);															\
+	}																											
 
-	template<>
-	ObjectId<ObjectType::StaticModel> RenderEngine::AddObject(const ObjectDescription<ObjectType::StaticModel>& desc)
-	{
-		return impl_->AddObject<ObjectType::StaticModel>(desc);
-	}
+#include "render\render_engine_objects.inl"
 
-	template<>
-	ObjectId<ObjectType::DbgPoints> RenderEngine::AddObject(const ObjectDescription<ObjectType::DbgPoints>& desc)
-	{
-		return impl_->AddObject<ObjectType::DbgPoints>(desc);
-	}
-
-	template<>
-	ObjectId<ObjectType::Node> RenderEngine::AddObject(const ObjectDescription<ObjectType::Node>& desc)
-	{
-		return impl_->AddObject<ObjectType::Node>(desc);
-	}
 }

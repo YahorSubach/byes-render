@@ -83,7 +83,6 @@ namespace render
 		Mesh viewport_mesh_;
 		RenderModel viewport_model_;
 
-		std::vector<Camera> cameras_;
 		std::vector<Node> nodes_;
 		std::vector<RenderModel> models_;
 		DebugGeometry& debug_geometry_;

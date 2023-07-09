@@ -32,7 +32,9 @@ if(Vulkan_FOUND)
 
 	target_sources(render_engine 
 		PRIVATE
-			include/render/render_engine.h)
+			include/render/render_engine.h
+			include/render/render_engine_objects.inl
+)
 
 	target_include_directories(render_engine PUBLIC include)
 	target_include_directories(render_engine PUBLIC submodules/glm)

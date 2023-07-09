@@ -57,9 +57,9 @@ namespace render
 
 	struct Node: byes::RM<Node>
 	{
-		glm::vec3 translation;
-		glm::quat rotation;
-		glm::vec3 scale;
+		//glm::vec3 translation;
+		//glm::quat rotation;
+		//glm::vec3 scale;
 		
 		glm::mat4 local_transform;
 

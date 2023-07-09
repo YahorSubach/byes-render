@@ -47,17 +47,16 @@ namespace render
 
 	enum class ObjectType
 	{
-		Node,
-		Camera,
-		StaticModel,
-		DbgPoints
+#include "render_engine_objects.inl"
 	};
 
-	struct Camera
+	template<ObjectType Type>
+	struct ObjectId
 	{
-		glm::vec3 position;
-		glm::vec3 orientation;
-		glm::vec3 up;
+		ObjectId() : id(-1) {}
+		ObjectId(const std::string& name, uint32_t id) : name(name), id(id) {}
+		std::string name;
+		uint32_t id;
 	};
 
 	struct InputState
@@ -66,30 +65,8 @@ namespace render
 		std::pair<int, int> mouse_position;
 	};
 
-	struct LoadCommand
-	{
-		std::string pack_name;
-		std::shared_ptr<tinygltf::Model> model;
-	};
 
-
-	struct DbgPoints
-	{
-		std::vector<glm::vec3> poists;
-		glm::vec4 color;
-	};
-
-	struct GeomCommand
-	{
-		std::vector<glm::vec3> faces;
-	};
-
-	struct ObjectsUpdate
-	{
-		std::vector<std::pair<uint32_t, glm::mat4>> updates;
-	};
-
-	template<ObjectType Type> 
+	template<ObjectType Type>
 	struct ObjectDescription
 	{
 		std::string name;
@@ -113,29 +90,58 @@ namespace render
 		std::string name;
 	};
 
-	template<ObjectType Type>
-	struct AddObjectCommand
+
+
+
+	namespace command
 	{
-		uint32_t object_id;
-		ObjectDescription<Type> desc;
-	};
+		struct Load
+		{
+			std::string pack_name;
+			std::shared_ptr<tinygltf::Model> model;
+		};
+
+		struct SetActiveCameraNode
+		{
+			ObjectId<ObjectType::Node> node_id;
+		};
+
+		struct DbgPoints
+		{
+			std::vector<glm::vec3> poists;
+			glm::vec4 color;
+		};
+
+		struct Geometry
+		{
+			std::vector<glm::vec3> faces;
+		};
+
+		struct ObjectsUpdate
+		{
+			std::vector<std::pair<uint32_t, glm::mat4>> updates;
+		};
+
+		template<ObjectType Type>
+		struct AddObject
+		{
+			uint32_t object_id;
+			ObjectDescription<Type> desc;
+		};
+
+#define RENDER_ENGINE_OBJECT(x) AddObject<ObjectType::x>,
+		using Command = std::variant<
+#include "render_engine_objects.inl"
+			Load, Geometry, ObjectsUpdate, SetActiveCameraNode
+		>;
+	}
+
 	
-	using RenderCommand = std::variant<LoadCommand, GeomCommand, ObjectsUpdate, 
-		AddObjectCommand<ObjectType::Camera>,
-		AddObjectCommand<ObjectType::StaticModel>,
-		AddObjectCommand<ObjectType::DbgPoints>,
-		AddObjectCommand<ObjectType::Node>
-	>;
 
-
-
-	template<ObjectType Type>
-	struct ObjectId
+	class IRenderEngineInstance
 	{
-		ObjectId() : id(-1) {}
-		ObjectId(const std::string& name, uint32_t id) : name(name), id(id) {}
-		std::string name;
-		uint32_t id;
+	public:
+
 	};
 
 	class RenderEngine
@@ -161,7 +167,7 @@ namespace render
 
 		//void UpdateCamera(uint32_t id, glm::vec3 pos, glm::vec3 dir);
 
-		void QueueCommand(const RenderCommand& render_command);
+		void QueueCommand(const command::Command& render_command);
 
 		~RenderEngine();
 

@@ -101,27 +101,29 @@ namespace render
 
 			if (node.translation.size() == 3)
 			{
-				nodes[i].translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
-				nodes[i].local_transform = glm::translate(nodes[i].local_transform, nodes[i].translation);
+				//nodes[i].translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
+				glm::vec3 translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
+				nodes[i].local_transform = glm::translate(nodes[i].local_transform, translation);
 			}
 
-			nodes[i].rotation = glm::quat(1, 0, 0, 0);
+			//nodes[i].rotation = glm::quat(1, 0, 0, 0);
 			if (node.rotation.size() == 4)
 			{
 				//glm::rotate(glm::mat4(1.0f), (1 * (1.0f + 1 * 1.37f)) * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 				glm::quat rot_quat = glm::quat(static_cast<float>(node.rotation[3]), static_cast<float>(node.rotation[0]), static_cast<float>(node.rotation[1]), static_cast<float>(node.rotation[2]));
 
-				nodes[i].rotation = rot_quat;
+				//nodes[i].rotation = rot_quat;
 
 				nodes[i].local_transform = nodes[i].local_transform * glm::mat4_cast(rot_quat);
 				//nodes.back().node_matrix = glm::rotate(nodes.back().node_matrix, 1. glm::vec3());
 			}
 
-			nodes[i].scale = glm::vec3(1);
+			//nodes[i].scale = glm::vec3(1);
 			if (node.scale.size() == 3)
 			{
-				nodes[i].scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
-				nodes[i].local_transform = glm::scale(nodes[i].local_transform, nodes[i].scale);
+				//nodes[i].scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
+				glm::vec3 scale = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
+				nodes[i].local_transform = glm::scale(nodes[i].local_transform, scale);
 			}
 		}
 

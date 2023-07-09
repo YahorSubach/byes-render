@@ -69,7 +69,8 @@ namespace render
 		{
 			if (RenderObjBase<HandleType>::handle_ == VK_NULL_HANDLE)
 			{
-				assert(Construct());
+				bool res = Construct();
+				assert(res);
 			}
 
 			return RenderObjBase<HandleType>::handle_;
