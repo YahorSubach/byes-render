@@ -427,6 +427,14 @@ namespace render
 							auto node_id = scenes_[0].AddNode();
 							auto&& node = scenes_[0].GetNode(node_id);
 
+							while (object_id_to_scene_object_id_.size() <= specified_command.object_id)
+							{
+								object_id_to_scene_object_id_.resize(object_id_to_scene_object_id_.size() * 3 / 2 + 1, ObjectInfo{ {}, (uint32_t)-1 });
+							}
+
+							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
+							object_id_to_scene_object_id_[specified_command.object_id].typed_id = node_id;
+
 							scenes_[0].AddModel(node, model_packs[0].meshes.back());
 						}
 

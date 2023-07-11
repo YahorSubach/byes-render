@@ -61,7 +61,7 @@ namespace render
 		//glm::quat rotation;
 		//glm::vec3 scale;
 		
-		glm::mat4 local_transform;
+		glm::mat4 local_transform = glm::identity<glm::mat4>();
 
 		byes::RTM<Node> parent;
 
