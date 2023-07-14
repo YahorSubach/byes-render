@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project (render_engine)
+project (byesrender_engine)
 
 find_package(Vulkan REQUIRED)
 
@@ -14,27 +14,24 @@ if(Vulkan_FOUND)
 	add_subdirectory(submodules/freetype)
 
 	add_library(render_engine "")
-
+	set_target_properties(render_engine PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(render_engine PRIVATE Vulkan::Vulkan)
 
 	add_subdirectory(src)
 	
-
-
-	get_target_property (_render_engine_sources render_engine SOURCES)
-	
-	message(WARNING ${_render_engine_sources})
-	message(WARNING ${CMAKE_CURRENT_SOURCE_DIR}/src)
-	
-	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${_render_engine_sources}) 
-	#source_group(TEST_GROUP FILES ${_render_engine_sources}) 
-
+	file(GLOB_RECURSE render_engine_INC
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl"
+	)
 
 	target_sources(render_engine 
 		PRIVATE
-			include/render/render_engine.h
-			include/render/render_engine_objects.inl
-)
+		${render_engine_INC}
+	)
+	
+	get_target_property (_render_engine_sources render_engine SOURCES)
+	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${_render_engine_sources}) 
+
 
 	target_include_directories(render_engine PUBLIC include)
 	target_include_directories(render_engine PUBLIC submodules/glm)

@@ -47,6 +47,7 @@ namespace render
 
 	enum class ObjectType
 	{
+#define RENDER_ENGINE_OBJECTS
 #include "render_engine_objects.inl"
 	};
 
