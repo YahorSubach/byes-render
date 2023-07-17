@@ -56,7 +56,10 @@ namespace render
 			auto&& buffer_view = gltf_model.bufferViews[image.bufferView];
 			auto&& buffer = gltf_model.buffers[buffer_view.buffer];
 
-			if (image.name.find("albedo") != std::string::npos)
+			auto name = image.name;
+				std::transform(name.begin(), name.end(), name.begin(),
+					[](unsigned char c) { return std::tolower(c); });
+			if (name.find("normal") != std::string::npos || name.find("roughness") != std::string::npos)
 			{
 				images_.push_back(Image(global_, VK_FORMAT_R8G8B8A8_UNORM, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
 			}
@@ -64,6 +67,7 @@ namespace render
 			{
 				images_.push_back(Image(global_, VK_FORMAT_R8G8B8A8_SRGB, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
 			}
+
 
 
 			for (int i = 0; i < image.height; i++)
@@ -81,8 +85,6 @@ namespace render
 					}
 				}
 			}
-
-
 
 			images_views_.push_back(ImageView(global_, images_.back()));
 		}
