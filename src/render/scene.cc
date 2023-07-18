@@ -477,10 +477,10 @@ namespace render
 		ready_to_write.store(true);
 		ready_to_read.store(false);
 
-		mesh.primitives.push_back(Primitive(global, manager, PrimitiveProps::kDebugLines));
+		//mesh.primitives.push_back(Primitive(global, manager, PrimitiveProps::kDebugLines));
 
-		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(coords_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
-		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(coords_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
+		//mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(coords_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
+		//mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(coords_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
 
 		mesh.primitives.push_back(Primitive(global, manager, PrimitiveProps::kDebugLines));
 
