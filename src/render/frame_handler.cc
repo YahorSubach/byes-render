@@ -273,7 +273,7 @@ for (auto&& model : scene.models_)
 	model.UpdateAndTryFillWrites(frame_info.frame_index);
 	for (auto&& primitive : model.mesh->primitives)
 	{
-		primitive.UpdateAndTryFillWrites(frame_info.frame_index);
+		std::visit([&frame_info](auto&& primitive) {primitive.UpdateAndTryFillWrites(frame_info.frame_index); }, primitive);
 	}
 }
 

@@ -357,7 +357,7 @@ namespace render
 
 							auto&& specified_command = std::get<command::Load>(command);
 							model_packs.back().AddGLTF(*specified_command.model);
-							model_packs_name_to_index.emplace(specified_command.pack_name, model_packs.size() - 1);
+							model_packs_name_to_index.emplace(specified_command.pack_name, (uint32_t)(model_packs.size() - 1));
 
 
 
@@ -422,7 +422,7 @@ namespace render
 							auto&& specified_command = std::get<command::AddObject<ObjectType::DbgPoints>>(command);
 
 							model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
-							model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
+							std::get<primitive::Geometry>(model_packs[0].meshes.back().primitives.back()).material.color = specified_command.desc.color;
 
 							auto node_id = scenes_[0].AddNode();
 							auto&& node = scenes_[0].GetNode(node_id);

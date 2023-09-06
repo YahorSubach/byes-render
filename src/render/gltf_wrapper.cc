@@ -68,16 +68,14 @@ namespace render
 				images_.push_back(Image(global_, VK_FORMAT_R8G8B8A8_SRGB, { u32(image.width), u32(image.height) }, image.image.data()/*, {ImageProperty::kShaderInput, ImageProperty::kMipMap}*/));
 			}
 
-
-
 			for (int i = 0; i < image.height; i++)
 			{
 				for (int j = 0; j < image.width; j++)
 				{
-					char r = image.image[4 * (i * image.width + j)];
-					char g = image.image[4 * (i * image.width + j) + 1];
-					char b = image.image[4 * (i * image.width + j) + 2];
-					char a = image.image[4 * (i * image.width + j) + 3];
+					auto& r = image.image[4 * (i * image.width + j)];
+					auto& g = image.image[4 * (i * image.width + j) + 1];
+					auto& b = image.image[4 * (i * image.width + j) + 2];
+					auto& a = image.image[4 * (i * image.width + j) + 3];
 
 					if (r != -1 || g != -1 || b != -1)
 					{
@@ -148,7 +146,7 @@ namespace render
 
 			for (auto&& gltf_primitive : gltf_mesh.primitives)
 			{
-				Primitive primitive(global_, desc_set_manager_, PrimitiveProps::kOpaque);
+				primitive::Geometry primitive(global_, desc_set_manager_, PrimitiveProps::kOpaque);
 
 				primitive.indices.emplace(BuildBufferAccessor(gltf_model, gltf_primitive.indices));
 
@@ -407,7 +405,7 @@ namespace render
 
 		Mesh mesh;
 
-		Primitive primitive(global_, desc_set_manager_, primitive_flags);
+		primitive::Geometry primitive(global_, desc_set_manager_, primitive_flags);
 		primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(buffers_.back(), sizeof(glm::vec3), 0, faces.size()));
 		mesh.primitives.push_back(std::move(primitive));
 		meshes.push_back(std::move(mesh));

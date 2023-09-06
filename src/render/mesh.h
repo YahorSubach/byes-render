@@ -35,25 +35,53 @@ namespace render
 		uint32_t flags = 0;
 	};
 
-	using PrimitiveDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kMaterial, DescriptorSetType::kColor>;
 
-	struct Primitive: public PrimitiveDescriptorSetHolder
+
+
+	
+	namespace primitive
 	{
-		Primitive(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags);
+		using GeometryDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kMaterial, DescriptorSetType::kColor>;
 
-		PrimitiveFlags flags;
-		Material material;
+		struct Geometry : public GeometryDescriptorSetHolder
+		{
+			Geometry(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags);
 
-		std::optional<BufferAccessor> indices;
-		std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
+			PrimitiveFlags flags;
+			Material material;
+			int test;
 
-		bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
-		bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
-		bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
-		bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
+			std::optional<BufferAccessor> indices;
+			std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
 
-		bool FillData(render::DescriptorSet<render::DescriptorSetType::kColor>::Binding<0>::Data& data) override;
-	};
+			bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
+			bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
+			bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data) override;
+			bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data) override;
+
+			bool FillData(render::DescriptorSet<render::DescriptorSetType::kColor>::Binding<0>::Data& data) override;
+		};
+
+		using BitmapDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kBitmapAtlas, DescriptorSetType::kTexture>;
+
+		struct Bitmap : public BitmapDescriptorSetHolder
+		{
+			Bitmap(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags);
+
+			PrimitiveFlags flags;
+			Material material;
+			float test;
+
+
+			std::optional<BufferAccessor> indices;
+			std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
+
+			bool FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data) override;
+			bool FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data) override;
+		};
+	}
+
+	using Primitive = std::variant<primitive::Geometry, primitive::Bitmap>;
 
 	struct Node: byes::RM<Node>
 	{

@@ -17,69 +17,86 @@ namespace render
 		mesh(mesh_in)
 	{
 	}
-
-	Primitive::Primitive(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags): PrimitiveDescriptorSetHolder(global, manager), flags(flags)
+	namespace primitive
 	{
-	}
-
-	bool render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
-	{
-		data.flags = 0;
-		return true;
-	}
-
-	bool render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
-	{
-		if (material.albedo)
+		Geometry::Geometry(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags) : GeometryDescriptorSetHolder(global, manager), flags(flags)
 		{
-			SamplerData sampler_data{ *material.albedo, global_.mipmap_cnt_to_global_samplers[material.albedo->GetMipMapLevelsCount()] };
-			data.albedo = sampler_data;
-		}
-		else
-		{
-			SamplerData sampler_data{ *global_.error_image, global_.mipmap_cnt_to_global_samplers[global_.error_image->GetMipMapLevelsCount()] };
-			data.albedo = sampler_data;
 		}
 
-		return true;
-	}
-
-	bool render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
-	{
-		if (material.metallic_roughness)
+		bool Geometry::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data)
 		{
-			SamplerData sampler_data{ *material.metallic_roughness, global_.mipmap_cnt_to_global_samplers[material.metallic_roughness->GetMipMapLevelsCount()] };
-			data.metallic_roughness = sampler_data;
-		}
-		else
-		{
-			SamplerData sampler_data{ *global_.error_image, global_.mipmap_cnt_to_global_samplers[global_.error_image->GetMipMapLevelsCount()] };
-			data.metallic_roughness = sampler_data;
+			data.flags = 0;
+			return true;
 		}
 
-		return true;
-	}
-
-	bool render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
-	{
-		if (material.normal_map)
+		bool Geometry::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data)
 		{
-			SamplerData sampler_data{ *material.normal_map, global_.mipmap_cnt_to_global_samplers[material.normal_map->GetMipMapLevelsCount()] };
-			data.normal_map = sampler_data;
+			if (material.albedo)
+			{
+				SamplerData sampler_data{ *material.albedo, global_.mipmap_cnt_to_global_samplers[material.albedo->GetMipMapLevelsCount()] };
+				data.albedo = sampler_data;
+			}
+			else
+			{
+				SamplerData sampler_data{ *global_.error_image, global_.mipmap_cnt_to_global_samplers[global_.error_image->GetMipMapLevelsCount()] };
+				data.albedo = sampler_data;
+			}
+
+			return true;
 		}
-		else
+
+		bool Geometry::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<2>::Data& data)
 		{
-			SamplerData sampler_data{ *global_.error_image, global_.mipmap_cnt_to_global_samplers[global_.error_image->GetMipMapLevelsCount()] };
-			data.normal_map = sampler_data;
+			if (material.metallic_roughness)
+			{
+				SamplerData sampler_data{ *material.metallic_roughness, global_.mipmap_cnt_to_global_samplers[material.metallic_roughness->GetMipMapLevelsCount()] };
+				data.metallic_roughness = sampler_data;
+			}
+			else
+			{
+				SamplerData sampler_data{ *global_.error_image, global_.mipmap_cnt_to_global_samplers[global_.error_image->GetMipMapLevelsCount()] };
+				data.metallic_roughness = sampler_data;
+			}
+
+			return true;
 		}
 
-		return true;
-	}
+		bool Geometry::FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<3>::Data& data)
+		{
+			if (material.normal_map)
+			{
+				SamplerData sampler_data{ *material.normal_map, global_.mipmap_cnt_to_global_samplers[material.normal_map->GetMipMapLevelsCount()] };
+				data.normal_map = sampler_data;
+			}
+			else
+			{
+				SamplerData sampler_data{ *global_.error_image, global_.mipmap_cnt_to_global_samplers[global_.error_image->GetMipMapLevelsCount()] };
+				data.normal_map = sampler_data;
+			}
 
-	bool render::Primitive::FillData(render::DescriptorSet<render::DescriptorSetType::kColor>::Binding<0>::Data& data)
-	{
-		data.color = material.color;
-		return true;
+			return true;
+		}
+
+		bool Geometry::FillData(render::DescriptorSet<render::DescriptorSetType::kColor>::Binding<0>::Data& data)
+		{
+			data.color = material.color;
+			return true;
+		}
+
+
+		Bitmap::Bitmap(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags) : BitmapDescriptorSetHolder(global, manager)
+		{
+		}
+
+		bool Bitmap::FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data)
+		{
+			return false;
+		}
+
+		bool Bitmap::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
+		{
+			return false;
+		}
 	}
 
 	//void render::Model::FillData(render::DescriptorSet<render::DescriptorSetType::kSkeleton>::Binding<0>::Data& data)

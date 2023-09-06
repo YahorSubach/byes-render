@@ -366,7 +366,7 @@ namespace render
 		};
 
 		viewport_vertex_buffer_.LoadData(viewport_vertex_data.data(), viewport_vertex_data.size() * sizeof(glm::vec3));
-		Primitive viewport_primitive(global, manager, PrimitiveProps::kViewport);
+		primitive::Geometry viewport_primitive(global, manager, PrimitiveProps::kViewport);
 		viewport_primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(viewport_vertex_buffer_, sizeof(glm::vec3), 0, 6));
 
 		viewport_mesh_.primitives.push_back(std::move(viewport_primitive));
@@ -482,10 +482,10 @@ namespace render
 		//mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(coords_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
 		//mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(coords_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
 
-		mesh.primitives.push_back(Primitive(global, manager, PrimitiveProps::kDebugLines));
+		mesh.primitives.push_back(primitive::Geometry(global, manager, PrimitiveProps::kDebugLines));
 
-		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(debug_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
-		mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(debug_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
+		std::get<primitive::Geometry>(mesh.primitives.back()).vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(BufferAccessor(debug_lines_position_buffer_, sizeof(glm::vec3), 0, 512));
+		std::get<primitive::Geometry>(mesh.primitives.back()).vertex_buffers[u32(VertexBufferType::kCOLOR)].emplace(BufferAccessor(debug_lines_color_buffer_, sizeof(glm::vec3), 0, 512));
 	}
 
 	void DebugGeometry::Update()
@@ -545,8 +545,8 @@ namespace render
 			debug_lines_color_buffer_.LoadData(debug_lines_color_data_.data(), debug_lines_color_data_.size() * sizeof(glm::vec3));
 
 			debug_lines_vertex_cnt = u32(debug_lines_position_data_.size());
-			mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kPOSITION)]->count = debug_lines_vertex_cnt;
-			mesh.primitives.back().vertex_buffers[u32(VertexBufferType::kCOLOR)]->count = debug_lines_vertex_cnt;
+			std::get<primitive::Geometry>(mesh.primitives.back()).vertex_buffers[u32(VertexBufferType::kPOSITION)]->count = debug_lines_vertex_cnt;
+			std::get<primitive::Geometry>(mesh.primitives.back()).vertex_buffers[u32(VertexBufferType::kCOLOR)]->count = debug_lines_vertex_cnt;
 
 			ready_to_read.store(false, std::memory_order_relaxed);
 			ready_to_write.store(true, std::memory_order_release);

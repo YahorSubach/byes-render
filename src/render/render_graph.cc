@@ -655,13 +655,15 @@ namespace render
 
 					for (auto&& primitive : mesh.primitives)
 					{
-						if (render_node.required_primitive_flags.Check(primitive.flags))
+						auto [flags, primitive_vertex_buffers, primitive_indices] = std::visit([](auto&& primitive) { return std::tie(primitive.flags, primitive.vertex_buffers, primitive.indices); }, primitive);
+
+						if (render_node.required_primitive_flags.Check(flags))
 						{
 							for (auto&& primitive_pipeline_ref : render_node.GetPipelines())
 							{
 								auto&& primitive_pipeline = primitive_pipeline_ref.get();
 
-								if (!primitive_pipeline.GetRequiredPrimitiveFlags().Check(primitive.flags))
+								if (!primitive_pipeline.GetRequiredPrimitiveFlags().Check(flags))
 									continue;
 
 								if (current_pipeline != &primitive_pipeline)
@@ -681,27 +683,29 @@ namespace render
 								const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = primitive_pipeline.GetDescriptorSetLayouts();
 								ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, node_desc_set);
 								ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, model.GetDescriptorSets(frame_info.frame_index));
-								ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, primitive.GetDescriptorSets(frame_info.frame_index));
 
+								if (std::holds_alternative<primitive::Geometry>(primitive))
+								{
+									ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, std::get<primitive::Geometry>(primitive).GetDescriptorSets(frame_info.frame_index));
+								}
 
 								std::array<VkBuffer, kVertexBufferTypesCount> vertex_buffers;
 								std::array<VkDeviceSize, kVertexBufferTypesCount> vertex_buffer_offsets;
 								uint32_t vertex_buffers_cnt = 0;
 
 								bool valid = true;
-
 								for (auto&& [vertex_binding_index, vertex_binding] : primitive_pipeline.GetVertexBindingsDescs())
 								{
 									for (auto&& [attr_location, attr] : vertex_binding.attributes)
 									{
-										if (!primitive.vertex_buffers[u32(attr.type)])
+										if (!primitive_vertex_buffers[u32(attr.type)])
 										{
 											valid = false;
 											break;
 										}
 
-										vertex_buffers[vertex_binding_index] = primitive.vertex_buffers[u32(attr.type)]->buffer->GetHandle();
-										vertex_buffer_offsets[vertex_binding_index] = primitive.vertex_buffers[u32(attr.type)]->offset;
+										vertex_buffers[vertex_binding_index] = primitive_vertex_buffers[u32(attr.type)]->buffer->GetHandle();
+										vertex_buffer_offsets[vertex_binding_index] = primitive_vertex_buffers[u32(attr.type)]->offset;
 										vertex_buffers_cnt = std::max(vertex_buffers_cnt, vertex_binding_index + 1);
 									}
 
@@ -715,14 +719,14 @@ namespace render
 
 								vkCmdBindVertexBuffers(command_buffer, 0, vertex_buffers_cnt, vertex_buffers.data(), vertex_buffer_offsets.data());
 
-								if (primitive.indices)
+								if (primitive_indices)
 								{
-									vkCmdBindIndexBuffer(command_buffer, primitive.indices->buffer->GetHandle(), primitive.indices->offset, VK_INDEX_TYPE_UINT16);
-									vkCmdDrawIndexed(command_buffer, u32(primitive.indices->count), 1, 0, 0, 0);
+									vkCmdBindIndexBuffer(command_buffer, primitive_indices->buffer->GetHandle(), primitive_indices->offset, VK_INDEX_TYPE_UINT16);
+									vkCmdDrawIndexed(command_buffer, u32(primitive_indices->count), 1, 0, 0, 0);
 								}
 								else
 								{
-									vkCmdDraw(command_buffer, u32(primitive.vertex_buffers[u32(VertexBufferType::kPOSITION)]->count), 1, 0, 0);
+									vkCmdDraw(command_buffer, u32(primitive_vertex_buffers[u32(VertexBufferType::kPOSITION)]->count), 1, 0, 0);
 									int a = 1;
 								}
 							}
