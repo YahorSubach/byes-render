@@ -111,7 +111,7 @@ namespace render
 
 		bool Bitmap::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
 		{
-			SamplerData sampler_data{ atlas, global_.mipmap_cnt_to_global_samplers[1] };
+			SamplerData sampler_data{ atlas, global_.nearest_sampler.value()};
 
 			data.texture = sampler_data;
 			return true;

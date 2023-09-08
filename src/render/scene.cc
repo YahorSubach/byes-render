@@ -441,6 +441,12 @@ namespace render
 		return static_cast<uint32_t>(nodes_.size() - 1);
 	}
 
+	Node& Scene::AddNodeAndGet()
+	{
+		nodes_.push_back({});
+		return nodes_.back();
+	}
+
 	Node& Scene::GetNode(uint32_t id)
 	{
 		return nodes_[id];

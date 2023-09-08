@@ -43,7 +43,7 @@
 #include "render/scene.h"
 #include "render/swapchain.h"
 
-#include "render/ui/ui.h"
+#include "render/ui/panel.h"
 
 #include "sync_util.h"
 
@@ -256,6 +256,8 @@ namespace render
 				global_.mipmap_cnt_to_global_samplers.push_back(Sampler(global_, i));
 			}
 
+			global_.nearest_sampler.emplace(Sampler(global_, 0, Sampler::AddressMode::kClampToBorder, true));
+
 			DescriptorSetsManager descriptor_set_manager(global_);
 			RenderSetup render_setup(global_);
 			
@@ -463,11 +465,15 @@ namespace render
 							auto&& info = object_id_to_scene_object_id_[specified_command.node_id.id];
 							scenes_[0].camera_node_index_ = info.typed_id;
 
-							auto node_id = scenes_[0].AddNode();
-							auto&& node = scenes_[0].GetNode(node_id);
+							//auto node_id = scenes_[0].AddNode();
+							//auto&& node = scenes_[0].GetNode(node_id);
 
-							m.primitives.push_back(primitive::Bitmap(global_, descriptor_set_manager, ui, ui.GetGlyph(u'Ж', 30)));
-							scenes_[0].AddModel(node, m);
+							//m.primitives.push_back(primitive::Bitmap(global_, descriptor_set_manager, ui, ui.GetGlyph(u'Ж', 30)));
+							//scenes_[0].AddModel(node, m);
+							ui::Panel* panel = new ui::Panel(scenes_[0], 0, 0, extents[u32(ExtentType::kPresentation)].width, extents[u32(ExtentType::kPresentation)].height);
+							ui::TextBlock* block = new ui::TextBlock(ui, scenes_[0], descriptor_set_manager, 200, 300, 30, U"Жопич");
+							panel->AddChild(*block);
+
 						}
 
 						if (std::holds_alternative<command::ObjectsUpdate>(command))

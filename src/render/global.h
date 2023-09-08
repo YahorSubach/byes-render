@@ -25,6 +25,7 @@ namespace render
 		CommandPool* transfer_cmd_pool;
 
 		std::vector<Sampler> mipmap_cnt_to_global_samplers;
+		std::optional<Sampler> nearest_sampler;
 		std::optional<Sampler> shadowmap_sampler;
 
 		util::NullableRef<Image> error_image;

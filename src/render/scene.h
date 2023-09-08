@@ -11,8 +11,8 @@
 #include "render/image_view.h"
 #include "render/mesh.h"
 #include "render/render_engine.h"
-#include "render/ui/ui.h"
-#include "render/ui/panel.h"
+//#include "render/ui/ui.h"
+//#include "render/ui/panel.h"
 
 #include "render/descriptor_set_holder.h"
 
@@ -74,6 +74,7 @@ namespace render
 		bool FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
 
 		uint32_t AddNode();
+		Node& AddNodeAndGet();
 		Node& GetNode(uint32_t id);
 		void AddModel(Node& node, Mesh& mesh);
 
