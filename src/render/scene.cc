@@ -438,7 +438,7 @@ namespace render
 	uint32_t Scene::AddNode()
 	{
 		nodes_.push_back({});
-		return nodes_.size() - 1;
+		return static_cast<uint32_t>(nodes_.size() - 1);
 	}
 
 	Node& Scene::GetNode(uint32_t id)

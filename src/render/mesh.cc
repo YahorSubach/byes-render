@@ -19,7 +19,7 @@ namespace render
 	}
 	namespace primitive
 	{
-		Geometry::Geometry(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags) : GeometryDescriptorSetHolder(global, manager), flags(flags)
+		Geometry::Geometry(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags) : GeometryDescriptorSetHolder(global, manager), Base(flags)
 		{
 		}
 
@@ -84,18 +84,37 @@ namespace render
 		}
 
 
-		Bitmap::Bitmap(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags) : BitmapDescriptorSetHolder(global, manager)
+		Bitmap::Bitmap(const Global& global, DescriptorSetsManager& manager, const render::ui::UI& ui, glm::vec2 atlas_position, glm::vec2 atlas_width_height): 
+			Base(PrimitiveProps::kUIShape), BitmapDescriptorSetHolder(global, manager), atlas_position(atlas_position), atlas_width_height(atlas_width_height), atlas(ui.GetAtlas())
 		{
+			indices.emplace(ui.GetIndexBuffer());
+			vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(ui.GetVertexBuffers()[0]);
+			vertex_buffers[u32(VertexBufferType::kTEXCOORD)].emplace(ui.GetVertexBuffers()[1]);
+		}
+
+		Bitmap::Bitmap(const Global& global, DescriptorSetsManager& manager, const render::ui::UI& ui, const ui::Glyph glyph):
+			Base(PrimitiveProps::kUIShape), BitmapDescriptorSetHolder(global, manager), 
+			atlas_position(glyph.atlas_position), atlas_width_height(glyph.atlas_width_height), atlas(glyph.bitmap.value())
+		{
+			indices.emplace(ui.GetIndexBuffer());
+			vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(ui.GetVertexBuffers()[0]);
+			vertex_buffers[u32(VertexBufferType::kTEXCOORD)].emplace(ui.GetVertexBuffers()[1]);
 		}
 
 		bool Bitmap::FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data)
 		{
-			return false;
+			data.atlas_position = atlas_position;
+			data.width_heigth = atlas_width_height;
+			data.color = glm::vec4(0.5, 1, 0.5, 1);
+			return true;
 		}
 
 		bool Bitmap::FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data)
 		{
-			return false;
+			SamplerData sampler_data{ atlas, global_.mipmap_cnt_to_global_samplers[1] };
+
+			data.texture = sampler_data;
+			return true;
 		}
 	}
 

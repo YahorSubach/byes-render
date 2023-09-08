@@ -313,6 +313,7 @@ namespace render
 					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, ui, scenes_[0]));
 				}
 
+				Mesh m("glyph");
 
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
@@ -442,6 +443,10 @@ namespace render
 						{
 							auto&& specified_command = std::get<command::AddObject<ObjectType::Camera>>(command);
 
+
+
+
+
 							//model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
 							//model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
 
@@ -457,6 +462,12 @@ namespace render
 
 							auto&& info = object_id_to_scene_object_id_[specified_command.node_id.id];
 							scenes_[0].camera_node_index_ = info.typed_id;
+
+							auto node_id = scenes_[0].AddNode();
+							auto&& node = scenes_[0].GetNode(node_id);
+
+							m.primitives.push_back(primitive::Bitmap(global_, descriptor_set_manager, ui, ui.GetGlyph(u'Æ', 30)));
+							scenes_[0].AddModel(node, m);
 						}
 
 						if (std::holds_alternative<command::ObjectsUpdate>(command))

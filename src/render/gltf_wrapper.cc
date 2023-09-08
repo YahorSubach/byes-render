@@ -20,11 +20,6 @@
 #include "render/render_setup.h"
 
 
-
-
-
-
-
 namespace render
 {
 	ModelPack::ModelPack(const Global& global, DescriptorSetsManager& manager):global_(global), desc_set_manager_(manager)

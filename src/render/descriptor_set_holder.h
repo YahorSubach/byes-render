@@ -62,6 +62,12 @@ namespace render
 					memcpy(mapped_data, &new_data, size);
 					vkUnmapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory());
 				}
+				else
+				{
+					DebugBreak();
+				}
+
+
 				if (!attached_per_frame_[frame_index])
 				{
 					attached_per_frame_[frame_index] = true;
@@ -139,6 +145,11 @@ namespace render
 					}
 
 				}
+				else
+				{
+					DebugBreak();
+				}
+
 				return false;
 			}
 

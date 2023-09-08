@@ -18,6 +18,8 @@
 #include "render/vertex_buffer.h"
 #include "render/descriptor_set_holder.h"
 
+#include "render/ui/ui.h"
+
 #include "byes-reference-to-movable\reference_to_movable.h"
 
 namespace render
@@ -43,16 +45,21 @@ namespace render
 	{
 		using GeometryDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kMaterial, DescriptorSetType::kColor>;
 
-		struct Geometry : public GeometryDescriptorSetHolder
+		struct Base
 		{
-			Geometry(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags);
-
 			PrimitiveFlags flags;
-			Material material;
-			int test;
 
 			std::optional<BufferAccessor> indices;
 			std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
+
+			Base(PrimitiveFlags flags) :flags(flags) {}
+		};
+
+		struct Geometry : Base, public GeometryDescriptorSetHolder
+		{
+			Geometry(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags);
+
+			Material material;
 
 			bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<0>::Data& data) override;
 			bool FillData(render::DescriptorSet<render::DescriptorSetType::kMaterial>::Binding<1>::Data& data) override;
@@ -64,17 +71,14 @@ namespace render
 
 		using BitmapDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kBitmapAtlas, DescriptorSetType::kTexture>;
 
-		struct Bitmap : public BitmapDescriptorSetHolder
+		struct Bitmap : Base, public BitmapDescriptorSetHolder
 		{
-			Bitmap(const Global& global, DescriptorSetsManager& manager, PrimitiveFlags flags);
+			Bitmap(const Global& global, DescriptorSetsManager& manager, const ui::UI& ui, glm::vec2 atlas_position, glm::vec2 atlas_width_height);
+			Bitmap(const Global& global, DescriptorSetsManager& manager, const render::ui::UI& ui, const ui::Glyph glyph);
+			const Image& atlas;
 
-			PrimitiveFlags flags;
-			Material material;
-			float test;
-
-
-			std::optional<BufferAccessor> indices;
-			std::array<std::optional<BufferAccessor>, kVertexBufferTypesCount> vertex_buffers;
+			glm::vec2 atlas_position; 
+			glm::vec2 atlas_width_height;
 
 			bool FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data) override;
 			bool FillData(render::DescriptorSet<render::DescriptorSetType::kTexture>::Binding<0>::Data& data) override;

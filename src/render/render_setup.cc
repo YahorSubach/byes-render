@@ -149,13 +149,13 @@ namespace render
 			ui_node->AddPipeline(pipelines_.at(PipelineId::kDebugLines));
 		}
 
-		{
-			ShaderModule vert_shader_module(global_, "pos.vert", descriptor_set_manager.GetLayouts());
-			ShaderModule frag_shader_module(global_, "pos.frag", descriptor_set_manager.GetLayouts());
+		//{
+		//	ShaderModule vert_shader_module(global_, "pos.vert", descriptor_set_manager.GetLayouts());
+		//	ShaderModule frag_shader_module(global_, "pos.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.emplace(PipelineId::kPos, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kUIShape));
-			ui_node->AddPipeline(pipelines_.at(PipelineId::kPos));
-		}
+		//	pipelines_.emplace(PipelineId::kPos, GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kUIShape));
+		//	ui_node->AddPipeline(pipelines_.at(PipelineId::kPos));
+		//}
 
 		{
 			ShaderModule vert_shader_module(global_, "dbg_color_uni.vert", descriptor_set_manager.GetLayouts());

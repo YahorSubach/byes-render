@@ -684,10 +684,13 @@ namespace render
 								ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, node_desc_set);
 								ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, model.GetDescriptorSets(frame_info.frame_index));
 
-								if (std::holds_alternative<primitive::Geometry>(primitive))
-								{
-									ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, std::get<primitive::Geometry>(primitive).GetDescriptorSets(frame_info.frame_index));
-								}
+								std::visit(
+									[&](auto&& primitive)
+									{
+										ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, primitive.GetDescriptorSets(frame_info.frame_index));
+									},
+									primitive
+								);
 
 								std::array<VkBuffer, kVertexBufferTypesCount> vertex_buffers;
 								std::array<VkDeviceSize, kVertexBufferTypesCount> vertex_buffer_offsets;
