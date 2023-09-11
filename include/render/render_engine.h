@@ -1,6 +1,7 @@
 #ifndef RENDER_ENGINE_RENDER_VKVF_H_
 #define RENDER_ENGINE_RENDER_VKVF_H_
 
+#include <functional>
 #include <span>
 #include <array>
 #include <variant>
@@ -123,6 +124,28 @@ namespace render
 			std::vector<std::pair<uint32_t, glm::mat4>> updates;
 		};
 
+		template<typename T>
+		struct CallMethod;
+
+		template<typename Ret, class ObjType, typename ... Params, typename ... Params2>
+		CallMethod(Ret(ObjType::*)(Params...), Params2...) -> CallMethod<Ret(ObjType::*)(Params...)>;
+
+		template<typename Ret, class ObjType, typename ... Params>
+		struct CallMethod<Ret(ObjType::*)(Params...)>
+		{
+
+			using MehodPtr = Ret(ObjType::*)(Params...);
+
+			std::function<void(ObjType&)> f_;
+			uint32_t object_id_;
+
+			CallMethod(Ret (ObjType::* method)(Params...), Params ... args) : f_([=](ObjType& obj) { (obj.*method)(args...);  })
+			{
+
+			}
+		};
+
+
 		template<ObjectType Type>
 		struct AddObject
 		{
@@ -136,7 +159,6 @@ namespace render
 			Load, Geometry, ObjectsUpdate, SetActiveCameraNode
 		>;
 	}
-
 	
 
 	class IRenderEngineInstance
@@ -178,5 +200,23 @@ namespace render
 		class RenderEngineImpl;
 		std::unique_ptr<RenderEngineImpl> impl_;
 	};
+
+	namespace ui
+	{
+		struct TextBlockProxy
+		{
+			void SetText(const std::string& text)
+			{
+				int a = 1;
+			}
+
+
+		//	TextBlockProxy(render::RenderEngine::RenderEngineImpl& reimpl);
+		//public:
+
+		};
+
+		using T = decltype(TextBlockProxy::SetText);
+	}
 }
 #endif  // RENDER_ENGINE_RENDER_VKVF_H_

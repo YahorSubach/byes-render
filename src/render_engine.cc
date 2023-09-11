@@ -1003,3 +1003,7 @@ namespace render
 #include "render\render_engine_objects.inl"
 
 }
+
+//render::ui::TextBlockProxy::TextBlock(render::RenderEngine::RenderEngineImpl& reimpl)
+//{
+//}
