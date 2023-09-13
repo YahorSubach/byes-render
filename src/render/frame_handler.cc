@@ -274,6 +274,7 @@ for (auto&& model : scene.models_)
 	for (auto&& primitive : model.mesh->primitives)
 	{
 		std::visit([&frame_info](auto&& primitive) {primitive.UpdateAndTryFillWrites(frame_info.frame_index); }, primitive);
+		int a = 1;
 	}
 }
 

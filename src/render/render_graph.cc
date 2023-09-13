@@ -648,11 +648,12 @@ namespace render
 
 				const GraphicsPipeline* current_pipeline = nullptr;
 				VkPipelineLayout pipeline_layout;
+				int ind = 0;
 				for (auto&& render_model_ref : scene.models_)
 				{
 					auto&& model = render_model_ref;
 					Mesh& mesh = model.mesh;
-
+					ind++;
 					for (auto&& primitive : mesh.primitives)
 					{
 						auto [flags, primitive_vertex_buffers, primitive_indices] = std::visit([](auto&& primitive) { return std::tie(primitive.flags, primitive.vertex_buffers, primitive.indices); }, primitive);

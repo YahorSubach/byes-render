@@ -13,6 +13,8 @@
 #include "glm/vec3.hpp"
 #include "glm/mat4x4.hpp"
 
+#include "../src/stl_util.h"
+
 #pragma warning(push, 0)
 #include "tiny_gltf.h"
 #pragma warning(pop)
@@ -52,13 +54,15 @@ namespace render
 #include "render_engine_objects.inl"
 	};
 
+
+
 	template<ObjectType Type>
 	struct ObjectId
 	{
-		ObjectId() : id(-1) {}
-		ObjectId(const std::string& name, uint32_t id) : name(name), id(id) {}
+		ObjectId() : value(-1) {}
+		ObjectId(const std::string& name, uint32_t id) : name(name), value(id) {}
 		std::string name;
-		uint32_t id;
+		uint32_t value;
 	};
 
 	struct InputState
@@ -215,8 +219,6 @@ namespace render
 		//public:
 
 		};
-
-		using T = decltype(TextBlockProxy::SetText);
 	}
 }
 #endif  // RENDER_ENGINE_RENDER_VKVF_H_

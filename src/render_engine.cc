@@ -11,6 +11,7 @@
 #include <map>
 #include <tuple>
 #include <chrono>
+#include <sstream>
 
 #include "vulkan/vulkan.h"
 
@@ -316,7 +317,7 @@ namespace render
 				}
 
 				Mesh m("glyph");
-
+				ui::TextBlock* block = nullptr;
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
 					current_frame_index = (current_frame_index + 1) % kFramesCount;
@@ -347,6 +348,13 @@ namespace render
 					should_refresh_swapchain = !frames[current_frame_index].Draw(frame_info, scenes_[0]);
 
 					int command_count_to_execute = external_command_queue_.Size();
+
+					if (block)
+					{
+						//std::basic_stringstream<char32_t, std::char_traits<char32_t>, std::allocator<char32_t>> ss;
+						//ss << current_frame_index;
+						block->SetText(current_frame_index % 2 ? U"###########" : U"%%%%%%%%%%", 30);
+					}
 
 					while (command_count_to_execute-- > 0)
 					{
@@ -398,7 +406,7 @@ namespace render
 							}
 
 							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
-							object_id_to_scene_object_id_[specified_command.object_id].typed_id = node_id;
+							object_id_to_scene_object_id_[specified_command.object_id].id = node_id;
 
 							scenes_[0].AddModel(node, *pack_model.mesh);
 						}
@@ -416,7 +424,7 @@ namespace render
 							}
 
 							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
-							object_id_to_scene_object_id_[specified_command.object_id].typed_id = node_id;
+							object_id_to_scene_object_id_[specified_command.object_id].id = node_id;
 						}
 
 
@@ -436,7 +444,7 @@ namespace render
 							}
 
 							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
-							object_id_to_scene_object_id_[specified_command.object_id].typed_id = node_id;
+							object_id_to_scene_object_id_[specified_command.object_id].id = node_id;
 
 							scenes_[0].AddModel(node, model_packs[0].meshes.back());
 						}
@@ -462,8 +470,8 @@ namespace render
 						{
 							auto&& specified_command = std::get<command::SetActiveCameraNode>(command);
 
-							auto&& info = object_id_to_scene_object_id_[specified_command.node_id.id];
-							scenes_[0].camera_node_index_ = info.typed_id;
+							auto&& info = object_id_to_scene_object_id_[specified_command.node_id.value];
+							scenes_[0].camera_node_id_ = { info.id };
 
 							//auto node_id = scenes_[0].AddNode();
 							//auto&& node = scenes_[0].GetNode(node_id);
@@ -471,9 +479,12 @@ namespace render
 							//m.primitives.push_back(primitive::Bitmap(global_, descriptor_set_manager, ui, ui.GetGlyph(u'Ж', 30)));
 							//scenes_[0].AddModel(node, m);
 							ui::Panel* panel = new ui::Panel(scenes_[0], 0, 0, extents[u32(ExtentType::kPresentation)].width, extents[u32(ExtentType::kPresentation)].height);
-							ui::TextBlock* block = new ui::TextBlock(ui, scenes_[0], descriptor_set_manager, 200, 300, 30, U"Жопич");
-							panel->AddChild(*block);
-
+							block = new ui::TextBlock(ui, scenes_[0], descriptor_set_manager, 200, 300);
+							block->SetText(U"Жопич", 30);
+							panel->AddChild(std::move(*block));
+							ui::Panel* c = &panel->children_.back();
+							block = static_cast<ui::TextBlock*>(& panel->children_.back());
+							int a = 1;
 						}
 
 						if (std::holds_alternative<command::ObjectsUpdate>(command))
@@ -486,8 +497,8 @@ namespace render
 								{
 									if (object_id_to_scene_object_id_[id].type == ObjectType::Node)
 									{
-										uint32_t node_id = object_id_to_scene_object_id_[id].typed_id;
-										auto&& node = scenes_[0].GetNode(node_id);
+										NodeId node_id = object_id_to_scene_object_id_[id].id;
+										auto&& node = scenes_[0].GetNode({ node_id });
 										node.local_transform = transform;
 									}
 								}
@@ -933,10 +944,11 @@ namespace render
 
 		uint32_t last_object_id_;
 		
+
 		struct ObjectInfo
 		{
 			ObjectType type;
-			uint32_t typed_id;
+			util::UniId id;
 		};
 
 		std::stack<uint32_t> free_ids_;

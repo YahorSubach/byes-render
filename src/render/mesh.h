@@ -100,6 +100,8 @@ namespace render
 		glm::mat4 GetGlobalTransformMatrix() const;
 	};
 
+	using NodeId = util::container::ErVec<Node>::Id;
+
 	struct NodeTree
 	{
 		std::vector<Node> nodes;
@@ -156,12 +158,16 @@ namespace render
 		RenderModel(const Global& global, DescriptorSetsManager& manager, Node& node_in, Mesh& mesh_in);
 		RenderModel(const RenderModel&) = delete;
 		RenderModel(RenderModel&&) = default;
+		RenderModel& operator=(const RenderModel&) = delete;
+		RenderModel& operator=(RenderModel&&) = default;
 		byes::RTM<Node> node;
 		byes::RTM<Mesh> mesh;
 		util::NullableRef<Skin> skin;
 
 		bool FillData(render::DescriptorSet<render::DescriptorSetType::kModelMatrix>::Binding<0>::Data& data) override;
 	};
+
+	using RenderModelId = util::container::ErVec<RenderModel>::Id;
 
 	struct ModelInstance: public ModelDescriptorSetHolder
 	{

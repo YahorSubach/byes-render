@@ -63,7 +63,7 @@ render::ui::UI::UI(Global& global, Extent extent): RenderObjBase(global),
 
     std::map<char32_t, Glyph> glyphs;
 
-    std::basic_string_view<char32_t> char_array = U"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя1234567890*/!?,.-_=+@# \\";
+    std::basic_string_view<char32_t> char_array = U"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя1234567890*/!?,.-_=+@#% \\";
     
     int inline_cnt = static_cast<int>(sqrtf(static_cast<float>(char_array.size())) + 1);
 

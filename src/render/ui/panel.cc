@@ -37,15 +37,15 @@ namespace render::ui
     //    }
     //}
 
-    void Panel::AddChild(const Panel& panel)
+    void Panel::AddChild(Panel&& panel)
     {
-        children_.push_back(panel);
+        children_.push_back(std::move(panel));
         children_.back().SetParent(*this);
     }
 
     void Panel::AddModel(int x, int y, int width, int height, Mesh& mesh)
     {
-        uint32_t node_id = scene_.AddNode();
+        NodeId node_id = scene_.AddNode();
         Node& node = scene_.GetNode(node_id);
 
         node.parent = scene_.GetNode(node_id_);
@@ -53,8 +53,18 @@ namespace render::ui
         node.local_transform = glm::translate(glm::identity<glm::mat4>(), glm::vec3(1.0f * x / width_, 1.0f * y / height_, 1.0f));
         node.local_transform = glm::scale(node.local_transform, glm::vec3(1.0f * width / width_, 1.0f * height / height_, 1.0f));
 
-        scene_.AddModel(node, mesh);
-        //models_.push_back({node_id, })
+        RenderModelId model_id = scene_.AddModel(node, mesh);
+        node_models_ids_.push_back({ node_id, model_id });
+    }
+
+    void Panel::ClearModels()
+    {
+        for (auto&& [node_id, model_id] : node_models_ids_)
+        {
+            scene_.RemoveModel(model_id);
+            scene_.RemoveNode(node_id);
+        }
+        node_models_ids_.clear();
     }
 
     void Panel::SetParent(const Panel& parent)
@@ -69,27 +79,28 @@ namespace render::ui
         node.local_transform = glm::scale(node.local_transform, glm::vec3(1.0f * width_ / parent_->width_, 1.0f * height_ / parent_->height_, 1.0f));
     }
 
-    TextBlock::TextBlock(const UI& ui, Scene& scene, DescriptorSetsManager& desc_manager, int x, int y, int font_size, const std::basic_string<char32_t>& text) : Panel(scene, x, y, 0, 0)
+    TextBlock::TextBlock(const UI& ui, Scene& scene, DescriptorSetsManager& desc_manager, int x, int y) : Panel(scene, x, y, 0, 0), ui_(ui), desc_manager_(desc_manager)
+    {}
+
+    void TextBlock::SetText(const std::basic_string<char32_t>& text, int font_size)
     {
+        ClearModels();
+        meshes_.clear();
+
         width_ = 0;
-        height_ = font_size;
+        height_ = 0;
 
         std::vector<Glyph> glyphs;
         int mesh_cnt = 0;
         for (char32_t c : text)
         {
-            auto glyph = ui.GetGlyph(c, font_size);
+            auto glyph = ui_.GetGlyph(c, font_size);
             glyphs.emplace_back(glyph);
-            
+
             if (glyph.bitmap)
             {
                 mesh_cnt++;
             }
-            
-            //if (glyph.bitmap)
-            //{
-            //    //glyphs.emplace_back(width_, 0, font_size, glyph);
-            //}
 
             width_ += glyph.advance;
             height_ = std::max(height_, glyph.bitmap_y + glyph.bitmap_heigth);
@@ -98,44 +109,23 @@ namespace render::ui
         meshes_.reserve(mesh_cnt);
 
         int x_pos = 0;
-        height_ = font_size;
 
         for (auto&& glyph : glyphs)
         {
             if (glyph.bitmap)
             {
                 meshes_.push_back(Mesh());
-                meshes_.back().primitives.push_back(primitive::Bitmap(scene.GetDeviceCfg(), desc_manager,ui, glyph));
+                meshes_.back().primitives.push_back(primitive::Bitmap(scene_.GetDeviceCfg(), desc_manager_, ui_, glyph));
 
                 AddModel(x_pos, glyph.bitmap_y, glyph.bitmap_width, glyph.bitmap_heigth, meshes_.back());
             }
 
-            //if (glyph.bitmap)
-            //{
-            //    //glyphs.emplace_back(width_, 0, font_size, glyph);
-            //}
-
             x_pos += glyph.advance;
-            /*height_ = max(height_, glyph.bitmap_y + glyph.bitmap_heigth);*/
         }
 
-
-        //for (auto&& glyph : glyphs)
-        //{
-        //    AddChild(glyph);
-        //}
-
-        //image_ = ui.test_image_;
+        if (parent_)
+        {
+            SetParent(*parent_);
+        }
     }
-
-
-    //GlyphPanel::GlyphPanel(int x, int y, int font_size, Glyph glyph) : Panel(x, y, glyph.advance, font_size), character_panel_(glyph.bitmap_x, glyph.bitmap_y, glyph.bitmap_width, glyph.bitmap_heigth)
-    //{
-    //    character_panel_.image_ = util::NullableRef<const Image>(glyph.bitmap);
-
-    //    character_panel_.atlas_position = glyph.atlas_position;
-    //    character_panel_.atlas_width_heigth = glyph.atlas_width_height;
-
-    //    AddChild(character_panel_);
-    //}
 }

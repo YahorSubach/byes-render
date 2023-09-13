@@ -73,10 +73,13 @@ namespace render
 		bool FillData(render::DescriptorSet<render::DescriptorSetType::kLightPositionAndViewProjMat>::Binding<0>::Data& data) override;
 		bool FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
 
-		uint32_t AddNode();
+		NodeId AddNode();
 		Node& AddNodeAndGet();
-		Node& GetNode(uint32_t id);
-		void AddModel(Node& node, Mesh& mesh);
+		Node& GetNode(NodeId id);
+		void RemoveNode(NodeId id);
+
+		RenderModelId AddModel(Node& node, Mesh& mesh);
+		void RemoveModel(RenderModelId);
 
 		//void AddCamera();
 
@@ -84,11 +87,11 @@ namespace render
 		Mesh viewport_mesh_;
 		RenderModel viewport_model_;
 
-		std::vector<Node> nodes_;
-		std::vector<RenderModel> models_;
+		util::container::ErVec<Node> nodes_;
+		util::container::ErVec<RenderModel> models_;
 		DebugGeometry& debug_geometry_;
 
-		int camera_node_index_;
+		NodeId camera_node_id_;
 
 	private:
 		GPULocalVertexBuffer viewport_vertex_buffer_;

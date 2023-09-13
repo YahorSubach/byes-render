@@ -29,7 +29,12 @@ namespace render
 		}
 
 		RenderObjBase& operator=(const RenderObjBase&) = delete;
-		RenderObjBase& operator=(RenderObjBase&& rhs) = delete;
+		RenderObjBase& operator=(RenderObjBase&& rhs)
+		{
+			handle_ = rhs.handle_;
+			rhs.handle_ = VK_NULL_HANDLE;
+			return *this;
+		}
 
 		virtual HandleType GetHandle() const { return handle_; }
 

@@ -95,7 +95,7 @@ namespace render
 		template<typename DataType>
 		class BindingData<DataType, DescriptorBindingType::kSampler>
 		{
-			const Global& gloabl_;
+			std::reference_wrapper<const Global> global_ref_;
 
 			std::array<VkImage, kFramesCount> images_per_frame_;
 
@@ -105,7 +105,7 @@ namespace render
 
 		public:
 
-			BindingData(const Global& global) : gloabl_(global),
+			BindingData(const Global& global) : global_ref_(global),
 				images_per_frame_
 			{
 				VK_NULL_HANDLE,VK_NULL_HANDLE,VK_NULL_HANDLE,VK_NULL_HANDLE
@@ -138,7 +138,7 @@ namespace render
 
 					if (images_per_frame_[frame_index] != sampler_data->image.get().GetHandle())
 					{
-						image_views_[frame_index].emplace(gloabl_, sampler_data->image.get());
+						image_views_[frame_index].emplace(global_ref_.get(), sampler_data->image.get());
 						images_per_frame_[frame_index] = sampler_data->image.get().GetHandle();
 						FillWriteDescriptorSet(frame_index, write_desc_set, *sampler_data);
 						return true;
@@ -325,7 +325,7 @@ namespace render
 		{
 		public:
 
-			Holder(const Global& global, DescriptorSetsManager& manager) : SetIter<Ts..., DescriptorSetType::ListEnd>(global), global_(global)
+			Holder(const Global& global, DescriptorSetsManager& manager) : SetIter<Ts..., DescriptorSetType::ListEnd>(global)
 			{
 				for (int frame_index = 0; frame_index < kFramesCount; frame_index++)
 				{
@@ -347,19 +347,6 @@ namespace render
 			{
 				return SetIter<Ts..., DescriptorSetType::ListEnd>::descriptor_sets_per_frame_[frame_index];
 			}
-
-		protected:
-
-
-			//void AttachDescriptorSets(DescriptorSetsManager& manager)
-			//{
-			//	//TODO: calc preciesly
-			//	std::array<VkWriteDescriptorSet, 64> writes = {};
-			//	int writes_filled_cnt = SetIter<Ts..., DescriptorSetType::ListEnd>::FillDescriptorSetWrites(manager, writes);
-			//	vkUpdateDescriptorSets(RenderObjBase<void*>::global_.logical_device, writes_filled_cnt, writes.data(), 0, nullptr);
-			//}
-
-			const Global& global_;
 		};
 	}
 }

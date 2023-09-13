@@ -351,8 +351,7 @@ namespace render
 		viewport_node_(),
 		viewport_mesh_{"viewport"},
 		viewport_model_(global, manager, viewport_node_, viewport_mesh_),
-		desc_set_manager_(manager),
-		camera_node_index_(-1)
+		desc_set_manager_(manager)
 	{
 
 		std::vector<glm::vec3> viewport_vertex_data = {
@@ -371,8 +370,8 @@ namespace render
 
 		viewport_mesh_.primitives.push_back(std::move(viewport_primitive));
 
-		models_.push_back(std::move(viewport_model_));
-		models_.push_back(std::move(debug_geometry_.model));
+		models_.Add(std::move(viewport_model_));
+		models_.Add(std::move(debug_geometry_.model));
 	}
 
 	void /*Scene::*/Scene::Update(int frame_index)
@@ -383,9 +382,9 @@ namespace render
 
 	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
 	{
-		if (camera_node_index_ >= 0)
+		if (camera_node_id_)
 		{
-			auto&& camera_node = nodes_[camera_node_index_];
+			auto&& camera_node = nodes_.Get(camera_node_id_);
 
 			data.position = camera_node.local_transform[3];
 
@@ -435,27 +434,36 @@ namespace render
 		return true;
 	}
 
-	uint32_t Scene::AddNode()
+	NodeId Scene::AddNode()
 	{
-		nodes_.push_back({});
-		return static_cast<uint32_t>(nodes_.size() - 1);
+		return nodes_.Add();
 	}
 
 	Node& Scene::AddNodeAndGet()
 	{
-		nodes_.push_back({});
-		return nodes_.back();
+		auto id = nodes_.Add();
+		return nodes_.Get(id);
 	}
 
-	Node& Scene::GetNode(uint32_t id)
+	Node& Scene::GetNode(NodeId id)
 	{
-		return nodes_[id];
+		return nodes_.Get(id);
 	}
 
-	void /*Scene::*/Scene::AddModel(Node& node, Mesh& mesh)
+	void Scene::RemoveNode(NodeId id)
+	{
+		nodes_.Remove(id);
+	}
+
+	RenderModelId Scene::AddModel(Node& node, Mesh& mesh)
 	{
 		RenderModel model(global_, desc_set_manager_, node, mesh);
-		models_.push_back(std::move(model));
+		return models_.Add(std::move(model));
+	}
+
+	void Scene::RemoveModel(RenderModelId id)
+	{
+		models_.Remove(id);
 	}
 
 	//void Scene::AddCamera()

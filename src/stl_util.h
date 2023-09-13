@@ -5,6 +5,8 @@
 #include <any>
 #include <functional>
 #include <optional>
+#include <utility>
+#include <type_traits>
 
 namespace render::util
 {
@@ -193,6 +195,121 @@ namespace render::util
 		{
 			return static_cast<EnumType>(static_cast<int>(current) + 1);
 		}
+	}
+
+	struct UniId
+	{
+		uint32_t value = -1;
+	};
+
+	namespace container
+	{
+		template<typename T>
+		class ErVec
+		{
+			std::vector<T> data_;
+			std::vector<uint32_t> ids_;
+			uint32_t id_ = 0;
+			std::unordered_map<uint32_t, uint32_t> id_to_ind_;
+		public:
+
+			struct Id: UniId
+			{
+
+				Id() = default;
+
+				Id(uint32_t id)
+				{
+					value = id;
+				}
+
+				Id(UniId id)
+				{
+					value = id.value;
+				}
+
+				operator bool()
+				{
+					return value != -1;
+				}
+			};
+
+			template<class T>
+			Id Add(T&& t)
+			{
+				data_.push_back(std::forward<T>(t));
+				ids_.push_back(id_);
+				id_to_ind_.emplace(id_, data_.size() - 1);
+				return { id_++ };
+			}
+
+			template<bool T = std::is_default_constructible_v<T>>
+			std::enable_if_t < T, Id > Add()
+			{
+				data_.push_back({});
+				ids_.push_back(id_);
+				id_to_ind_.emplace(id_, data_.size() - 1);
+				return { id_++ };
+			}
+
+
+			T& Get(Id id)
+			{
+				return data_[id_to_ind_[id.value]];
+			}
+
+			bool Remove(Id id)
+			{
+				if (id.value < id_)
+				{
+					uint32_t ind = id_to_ind_.at(id.value);
+					if (ind < data_.size() - 1)
+					{
+						data_[ind] = std::move(data_.back());
+						ids_[ind] = ids_.back();
+						id_to_ind_[ids_[ind]] = ind;
+					}
+					
+					data_.pop_back();
+					ids_.pop_back();
+					if (data_.size() * 1.5 < data_.capacity())
+					{
+						data_.shrink_to_fit();
+						ids_.shrink_to_fit();
+					}
+
+					return true;
+				}
+
+				return false;
+			}
+
+			const std::vector<T>& GetData() const
+			{
+				return data_;
+			}
+
+			auto begin()
+			{
+				return data_.begin();
+			}
+
+			auto cbegin()
+			{
+				return data_.cbegin();
+			}
+
+			auto end()
+			{
+				return data_.end();
+			}
+
+			auto cend()
+			{
+				return data_.cend();
+			}
+
+		};
 	}
 }
 #endif  // RENDER_ENGINE_RENDER_util_H_
