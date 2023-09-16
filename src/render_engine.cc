@@ -237,6 +237,8 @@ namespace render
 			std::unordered_map<std::string, uint32_t> model_packs_name_to_index;
 
 			static auto start_time = std::chrono::high_resolution_clock::now();
+			static auto start_time_fps = std::chrono::high_resolution_clock::now();
+
 
 			platform::ShowWindow(surface_ptr_->GetWindow());
 
@@ -269,6 +271,8 @@ namespace render
 			scenes_.emplace_back(global_, descriptor_set_manager, dg); // TODO fix scene impl move
 
 			ready = true;
+			uint32_t frame_cnt = 0;
+
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
 				descriptor_set_manager.FreeAll();
@@ -317,10 +321,14 @@ namespace render
 				}
 
 				Mesh m("glyph");
-				ui::TextBlock* block = nullptr;
+				std::shared_ptr<ui::TextBlock> block;
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
+
+					frame_cnt++;
+
 					current_frame_index = (current_frame_index + 1) % kFramesCount;
+					global_.frame_ind = current_frame_index;
 
 					uint32_t image_index;
 
@@ -351,9 +359,18 @@ namespace render
 
 					if (block)
 					{
-						//std::basic_stringstream<char32_t, std::char_traits<char32_t>, std::allocator<char32_t>> ss;
-						//ss << current_frame_index;
-						block->SetText(current_frame_index % 2 ? U"###########" : U"%%%%%%%%%%", 30);
+						std::chrono::duration<float> dur = std::chrono::high_resolution_clock::now() - start_time_fps;
+
+						std::string s = std::to_string(1.0f * frame_cnt / dur.count());
+						std::basic_string<char32_t> us(s.data(), s.data() + s.length());
+
+						if (dur.count() > 3)
+						{
+							start_time_fps = std::chrono::high_resolution_clock::now();
+							frame_cnt = 0;
+						}
+
+						block->SetText(us, 30);
 					}
 
 					while (command_count_to_execute-- > 0)
@@ -369,14 +386,6 @@ namespace render
 							auto&& specified_command = std::get<command::Load>(command);
 							model_packs.back().AddGLTF(*specified_command.model);
 							model_packs_name_to_index.emplace(specified_command.pack_name, (uint32_t)(model_packs.size() - 1));
-
-
-
-							//for (auto&& model : model_packs.back().models)
-							//{
-							//	auto&& node = scenes_[0].AddNode(*model.node);
-							//	scenes_[0].AddModel(node, *model.mesh);
-							//}
 						}
 
 						if (std::holds_alternative<command::Geometry>(command))
@@ -479,12 +488,9 @@ namespace render
 							//m.primitives.push_back(primitive::Bitmap(global_, descriptor_set_manager, ui, ui.GetGlyph(u'Ж', 30)));
 							//scenes_[0].AddModel(node, m);
 							ui::Panel* panel = new ui::Panel(scenes_[0], 0, 0, extents[u32(ExtentType::kPresentation)].width, extents[u32(ExtentType::kPresentation)].height);
-							block = new ui::TextBlock(ui, scenes_[0], descriptor_set_manager, 200, 300);
+							block = std::make_shared<ui::TextBlock>(ui, scenes_[0], descriptor_set_manager, 30, 30);
 							block->SetText(U"Жопич", 30);
-							panel->AddChild(std::move(*block));
-							ui::Panel* c = &panel->children_.back();
-							block = static_cast<ui::TextBlock*>(& panel->children_.back());
-							int a = 1;
+							panel->AddChild(block);
 						}
 
 						if (std::holds_alternative<command::ObjectsUpdate>(command))

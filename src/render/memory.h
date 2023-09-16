@@ -28,7 +28,7 @@ namespace render
 		VkDeviceMemory GetMemoryHandle();
 
 		static uint32_t GetMemoryTypeIndex(const Global& global, uint32_t acceptable_memory_types_bits, VkMemoryPropertyFlags memory_flags);
-
+		bool deferred_free_ = true;
 	private:
 
 		uint64_t size_;

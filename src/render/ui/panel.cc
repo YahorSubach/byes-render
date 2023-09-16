@@ -37,10 +37,10 @@ namespace render::ui
     //    }
     //}
 
-    void Panel::AddChild(Panel&& panel)
+    void Panel::AddChild(const std::shared_ptr<Panel>& panel)
     {
         children_.push_back(std::move(panel));
-        children_.back().SetParent(*this);
+        children_.back()->SetParent(*this);
     }
 
     void Panel::AddModel(int x, int y, int width, int height, Mesh& mesh)

@@ -56,6 +56,7 @@ namespace render
 		VkQueue graphics_queue_;
 
 		const ui::UI& ui_;
+		DescriptorSetsManager& descriptor_set_manager_;
 
 		const RenderSetup& render_setup_;
 

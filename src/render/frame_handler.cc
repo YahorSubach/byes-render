@@ -23,32 +23,18 @@ render::FrameHandler::FrameHandler(const Global& global, const Swapchain& swapch
 	image_available_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
 	render_finished_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
 	cmd_buffer_fence_(vk_util::CreateFence(global.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
-	//model_scene_(global, scene),
 	render_setup_(render_setup),
 	render_graph_handler_(global, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
-	//ui_scene_(global, ui),
-	ui_(ui)
+	ui_(ui),
+	descriptor_set_manager_(descriptor_set_manager)
 {
-
-	//model_scene_.UpdateData();
-	//ui_scene_.UpdateData();
-
-	//model_scene_.AttachDescriptorSets(descriptor_set_manager);
-	//ui_scene_.AttachDescriptorSets(descriptor_set_manager);
-
 	handle_ = (void*)(1);
 }
 
-//void render::FrameHandler::AddModel(const render::Mesh& model)
-//{
-//	model_scene_.AddModel(model);
-//}
+extern void FreeMemory(VkDevice logical_device, VkDeviceMemory memory);
 
 bool render::FrameHandler::Draw(const FrameInfo& frame_info, /*Scene::*/Scene& scene)
 {
-	//scene.Update(frame_info.swapchain_image_index);
-	//CommandBufferFiller command_filler(render_setup, framebuffer_collection);
-
 	submit_info_.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 	submit_info_.waitSemaphoreCount = 1;
@@ -78,199 +64,55 @@ bool render::FrameHandler::Draw(const FrameInfo& frame_info, /*Scene::*/Scene& s
 
 	vkWaitForFences(global_.logical_device, 1, &cmd_buffer_fence_, VK_TRUE, UINT64_MAX);
 	vkResetFences(global_.logical_device, 1, &cmd_buffer_fence_);
-	//model_scene_.UpdateCameraData(scene pos, look, 1.0f * swapchain_framebuffer.GetExtent().width / swapchain_framebuffer.GetExtent().height);
 
-	//model_scene_.UpdateData();
-	//ui_scene_.UpdateData();
+	{
 
+		std::vector<std::pair<uint32_t, std::variant<VkBuffer, VkDeviceMemory, VkImageView, VkDescriptorSet>>> new_delete_list;
 
-//	std::vector<RenderPassInfo> render_info =
-//	{
-//		{
-//			RenderPassId::kBuildDepthmap,
-//			FramebufferId::kDepth,
-//			{
-//				{
-//					PipelineId::kDepth,
-//					RenderModelType::kStatic,
-//					model_scene_.GetRenderNode()
-//				},
-//				{
-//					PipelineId::kDepthSkinned,
-//					RenderModelType::kSkinned,
-//					model_scene_.GetRenderNode()
-//				}
-//			}
-//		},
-//
-//		//{
-//		//	RenderPassId::kSimpleRenderToScreen,
-//		//	FramebufferId::kScreen,
-//		//	{
-//		//		{
-//		//			PipelineId::kColor,
-//		//			RenderModelType::kStatic,
-//		//			model_scene_.GetRenderNode()
-//		//		},
-//		//		{
-//		//			PipelineId::kColorSkinned,
-//		//			RenderModelType::kSkinned,
-//		//			model_scene_.GetRenderNode()
-//		//		},
-//		//		{
-//		//			PipelineId::kUI,
-//		//			RenderModelType::kStatic,
-//		//			ui_scene_.GetRenderNode()
-//		//		},
-//		//	}
-//		//},
-//
-//		{
-//			RenderPassId::kBuildGBuffers,
-//			FramebufferId::kGBuffers,
-//			{
-//				{
-//					PipelineId::kBuildGBuffers,
-//					RenderModelType::kStatic,
-//					model_scene_.GetRenderNode()
-//				}
-//			}
-//		},
-//
-//		{
-//			RenderPassId::kCollectGBuffers,
-//			FramebufferId::kScreen,
-//			{
-//				{
-//					PipelineId::kCollectGBuffers,
-//					RenderModelType::kStatic,
-//					model_scene_.GetRenderNode()
-//				}
-//			}
-//		},
-////
-////		{
-////	RenderPassId::kSimpleRenderToScreen,
-////	FramebufferId::kScreen,
-////	{
-////		{
-////			PipelineId::kUI,
-////			RenderModelType::kStatic,
-////			ui_scene_.GetRenderNode()
-////		}
-////	}
-////},
-//	};
+		for (auto&& [frame_ind, handle_variant] : global_.delete_list)
+		{
+			if (frame_ind == global_.frame_ind)
+			{
+				if (void* handle = std::get_if<VkBuffer>(&handle_variant))
+				{
+					if (*(VkBuffer*)handle == (VkBuffer)0x41862000000117e)
+					{
+						int a = 1;
+					}
 
-	//std::vector<render::RenderModel> render_models;
-	//render_models.reserve(64);
-	//for (auto&& model : model_scene_.GetRenderNode().GetChildren())
-	//{
-	//	for (auto&& primitive : model.GetPrimitives())
-	//	{
-	//		render_models.push_back(RenderModel
-	//			{
-	//				RenderModelCategory::kRenderModel,
-	//				render_setup_.GetPipeline(PipelineId::kBuildGBuffers),
-	//				u32(primitive.indices.count),
-	//				model.GetDescriptorSets(),
-	//			{},
-	//			{},
-	//			std::make_pair(primitive.indices.buffer->GetHandle(), primitive.indices.offset)
-	//			});
+					vkDestroyBuffer(global_.logical_device, *(VkBuffer*)handle, nullptr);
+				} 
+				else if (void* handle = std::get_if<VkDeviceMemory>(&handle_variant))
+				{
+					//vkFreeMemory(global_.logical_device, *(VkDeviceMemory*)handle, nullptr);
+					FreeMemory(global_.logical_device, *(VkDeviceMemory*)handle);
+				}
+				else if(void* handle = std::get_if<VkImageView>(&handle_variant))
+				{
+					vkDestroyImageView(global_.logical_device, *(VkImageView*)handle, nullptr);
+				}
+				else if (void* handle = std::get_if<VkDescriptorSet>(&handle_variant))
+				{
+					descriptor_set_manager_.FreeDescriptorSet(*(VkDescriptorSet*)handle);
+				}
+			}
+			else
+			{
+				new_delete_list.push_back({ frame_ind, handle_variant });
+			}
+		}
 
-	//		for (auto&& vertex_buffer : primitive.vertex_buffers)
-	//		{
-	//			if (vertex_buffer)
-	//			{
-	//				render_models.back().vertex_buffers.push_back(vertex_buffer->buffer->GetHandle());
-	//				render_models.back().vertex_buffers_offsets.push_back(vertex_buffer->offset);
-	//			}
-	//		}
-	//	}
-	//}
+		global_.delete_list = std::move(new_delete_list);
 
-	//for (auto&& model : ui_scene_.GetRenderNode().GetChildren())
-	//{
-	//	for (auto&& primitive : model.GetPrimitives())
-	//	{
-	//		render_models.push_back(RenderModel
-	//			{
-	//				RenderModelCategory::kUIShape,
-	//				render_setup_.GetPipeline(PipelineId::kUI),
-	//				u32(primitive.indices.count),
-	//				model.GetDescriptorSets(),
-	//			{},
-	//			{},
-	//			std::make_pair(primitive.indices.buffer->GetHandle(), primitive.indices.offset),
+	}
 
-	//			});
-
-	//		for (auto&& vertex_buffer : primitive.vertex_buffers)
-	//		{
-	//			if (vertex_buffer)
-	//			{
-	//				render_models.back().vertex_buffers.push_back(vertex_buffer->buffer->GetHandle());
-	//				render_models.back().vertex_buffers_offsets.push_back(vertex_buffer->offset);
-	//			}
-	//		}
-	//	}
-	//}
-
-	//render_models.push_back(RenderModel
-	//	{
-	//		RenderModelCategory::kViewport,
-	//		render_setup_.GetPipeline(PipelineId::kCollectGBuffers),
-	//		6,
-	//	{},
-	//	{},
-	//	{},
-	//	{}
-	//	}
-	//);
-
-	//render_models.back().vertex_buffers.push_back(viewport_vertex_buffer_.GetHandle());
-	//render_models.back().vertex_buffers_offsets.push_back(0);
-
-	//debug_geometry_.Update();
-
-	//render_models.push_back(RenderModel
-	//	{
-	//		RenderModelCategory::kViewport,
-	//		render_setup_.GetPipeline(PipelineId::kDebugLines),
-	//		debug_geometry_.coords_lines_vertex_cnt,
-	//		{}
-	//	}
-	//);
-
-	//render_models.back().vertex_buffers.push_back(debug_geometry_.coords_lines_position_buffer_.GetHandle());
-	//render_models.back().vertex_buffers.push_back(debug_geometry_.coords_lines_color_buffer_.GetHandle());
-	//render_models.back().vertex_buffers_offsets.push_back(0);
-	//render_models.back().vertex_buffers_offsets.push_back(0);
-
-
-	//render_models.push_back(RenderModel
-	//	{
-	//		RenderModelCategory::kViewport,
-	//		render_setup_.GetPipeline(PipelineId::kDebugLines),
-	//		debug_geometry_.debug_lines_vertex_cnt,
-	//		{}
-	//	}
-	//);
-
-	//render_models.back().vertex_buffers.push_back(debug_geometry_.debug_lines_position_buffer_.GetHandle());
-	//render_models.back().vertex_buffers.push_back(debug_geometry_.debug_lines_color_buffer_.GetHandle());
-	//render_models.back().vertex_buffers_offsets.push_back(0);
-	//render_models.back().vertex_buffers_offsets.push_back(0);
-
-
-	//auto scene_descriptor_sets = model_scene_.GetRenderNode().GetDescriptorSets();
-	//scene_descriptor_sets.insert(ui_scene_.GetDescriptorSets().begin(), ui_scene_.GetDescriptorSets().end());
 
 scene.Update(frame_info.frame_index);
+int i = 0;
 for (auto&& model : scene.models_)
 {
 	model.UpdateAndTryFillWrites(frame_info.frame_index);
+	i++;
 	for (auto&& primitive : model.mesh->primitives)
 	{
 		std::visit([&frame_info](auto&& primitive) {primitive.UpdateAndTryFillWrites(frame_info.frame_index); }, primitive);

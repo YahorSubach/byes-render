@@ -1,8 +1,13 @@
 #ifndef RENDER_ENGINE_RENDER_GLOBAL_H_
 #define RENDER_ENGINE_RENDER_GLOBAL_H_
 
+#include <vector>
+#include <variant>
+
+
 #include "render/command_pool.h"
 #include "render/sampler.h"
+
 
 
 namespace render
@@ -34,6 +39,9 @@ namespace render
 		Format depth_map_format = VK_FORMAT_D32_SFLOAT;
 		Format high_range_color_format = VK_FORMAT_R32G32B32A32_SFLOAT;
 		Format color_format = VK_FORMAT_R8G8B8A8_SRGB;
+
+		uint32_t frame_ind;
+		mutable std::vector<std::pair<uint32_t, std::variant<VkBuffer, VkDeviceMemory, VkImageView, VkDescriptorSet>>> delete_list;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_GLOBAL_H_

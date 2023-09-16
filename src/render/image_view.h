@@ -37,6 +37,8 @@ namespace render
 
 		//util::NullableRef<const Image> GetImage() const;
 
+		bool deferred_delete_ = true;
+
 	protected:
 		
 		VkFormat format_;

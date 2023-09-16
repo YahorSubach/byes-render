@@ -39,6 +39,7 @@ namespace render
 	protected:
 		std::unique_ptr<Memory> memory_;
 		size_t size_;
+		bool deferred_destroy_ = true;
 	};
 
 	template<typename T>
@@ -66,7 +67,11 @@ namespace render
 	{
 	public:
 		StagingBuffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage = 0, const std::vector<uint32_t>& queue_famaly_indices = {}) :
-			Buffer(global, size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_famaly_indices) {}
+			Buffer(global, size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_famaly_indices) 
+		{
+			deferred_destroy_ = false;
+			memory_->deferred_free_ = false;
+		}
 
 		virtual void LoadData(const void* data, size_t size);
 	};

@@ -26,6 +26,10 @@ namespace render
 		RenderObjBase(RenderObjBase&& rhs): global_(rhs.global_), handle_(rhs.handle_)
 		{
 			rhs.handle_ = VK_NULL_HANDLE;
+			if (handle_ == reinterpret_cast<HandleType>(0x41862000000117e))
+			{
+				int a = 1;
+			}
 		}
 
 		RenderObjBase& operator=(const RenderObjBase&) = delete;
@@ -33,6 +37,11 @@ namespace render
 		{
 			handle_ = rhs.handle_;
 			rhs.handle_ = VK_NULL_HANDLE;
+
+			if (handle_ == reinterpret_cast<HandleType>(0x41862000000117e))
+			{
+				int a = 1;
+			}
 			return *this;
 		}
 

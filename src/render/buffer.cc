@@ -16,6 +16,11 @@ render::Buffer::Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFla
         throw std::runtime_error("failed to create vertex buffer!");
     }
 
+    if (handle_ == (VkBuffer)0x41862000000117e)
+    {
+        int a = 1;
+    }
+
 	VkMemoryRequirements memory_requirements;
 	vkGetBufferMemoryRequirements(global.logical_device, handle_, &memory_requirements);
 
@@ -44,7 +49,18 @@ render::Buffer::~Buffer()
 {
     if (handle_ != VK_NULL_HANDLE)
     {
-        vkDestroyBuffer(global_.logical_device, handle_, nullptr);
+        if (!deferred_destroy_)
+        {
+            vkDestroyBuffer(global_.logical_device, handle_, nullptr);
+        }
+        else
+        {
+            if (handle_ == (VkBuffer)0x41862000000117e)
+            {
+                int a = 1;
+            }
+            global_.delete_list.push_back({ global_.frame_ind, handle_ });
+        }
     }
 }
 

@@ -24,11 +24,11 @@ namespace render::ui
 
 		//glm::mat4 local_transform;
 		//std::vector<std::pair<uint32_t, const Mesh&>> models_;
-		std::vector<Panel> children_;
+		std::vector<std::shared_ptr<Panel>> children_;
 
 		//void CollectRender(glm::mat4 parent_transform, std::vector<std::pair<glm::mat4, std::pair<glm::vec2, glm::vec2>>>& to_render);
 
-		void AddChild(Panel&& panel);
+		void AddChild(const std::shared_ptr<Panel>& panel);
 		void AddModel(int x, int y, int width, int height, Mesh& model);
 		void ClearModels();
 
@@ -62,6 +62,7 @@ namespace render::ui
 	{
 	public:
 		TextBlock(const UI& ui, render::Scene& scene, render::DescriptorSetsManager& desc_manager, int x, int y);
+		TextBlock(const TextBlock&) = delete;
 		void SetText(const std::basic_string<char32_t>& text, int font_size);
 	protected:
 		std::vector<Mesh> meshes_;

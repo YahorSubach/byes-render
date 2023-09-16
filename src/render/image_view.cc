@@ -94,7 +94,14 @@ render::ImageView::~ImageView()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(global_.logical_device, handle_, nullptr);
+		if (!deferred_delete_)
+		{
+			vkDestroyImageView(global_.logical_device, handle_, nullptr);
+		}
+		else
+		{
+			global_.delete_list.push_back({ global_.frame_ind, handle_ });
+		}
 	}
 }
 

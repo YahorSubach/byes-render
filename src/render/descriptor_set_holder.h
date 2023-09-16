@@ -14,6 +14,7 @@
 #include "render/object_base.h"
 #include "render/descriptor_set.h"
 #include "render/descriptor_sets_manager.h"
+#include "render/global.h"
 
 namespace render
 {
@@ -31,6 +32,8 @@ namespace render
 			std::array<bool, kFramesCount> attached_per_frame_;
 
 			VkDescriptorBufferInfo vk_buffer_info_;
+		protected:
+			std::reference_wrapper<const Global> global_ref_;
 		public:
 
 			BindingData(const Global& global) :
@@ -44,7 +47,8 @@ namespace render
 			attached_per_frame_
 			{
 				false, false, false, false
-			}
+			},
+				global_ref_(global)
 			{}
 
 			virtual bool FillData(DataType& data) = 0;
@@ -56,7 +60,6 @@ namespace render
 				DataType new_data;
 				if (FillData(new_data))
 				{
-
 					void* mapped_data;
 					vkMapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory(), 0, size, 0, &mapped_data);
 					memcpy(mapped_data, &new_data, size);
@@ -95,13 +98,14 @@ namespace render
 		template<typename DataType>
 		class BindingData<DataType, DescriptorBindingType::kSampler>
 		{
-			std::reference_wrapper<const Global> global_ref_;
-
 			std::array<VkImage, kFramesCount> images_per_frame_;
 
 			std::array<std::optional<ImageView>, kFramesCount> image_views_;
 
 			VkDescriptorImageInfo vk_image_info_;
+
+		protected:
+			std::reference_wrapper<const Global> global_ref_;
 
 		public:
 
@@ -158,7 +162,7 @@ namespace render
 		template<DescriptorSetType Type, int BindingIndex>
 		class BindingIter :
 			public BindingIter<Type, BindingIndex - 1>,
-			BindingData<typename DescriptorSet<Type>::template Binding<BindingIndex>::Data, DescriptorSet<Type>::template Binding<BindingIndex>::type>
+			public BindingData<typename DescriptorSet<Type>::template Binding<BindingIndex>::Data, DescriptorSet<Type>::template Binding<BindingIndex>::type>
 		{
 			//using DescriptorSetDesc = typename DescriptorSet<Type>;
 			//using BindingDesc = typename DescriptorSetDesc::template BindingIter<BindingIndex>;
@@ -186,13 +190,6 @@ namespace render
 				return filled_writes;
 			}
 
-			//void FillDescriptorSetWrites(int frame_index, VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet>& descriptor_set_writes)
-			//{
-			//	descriptor_set_writes[BindingIndex].dstSet = descriptor_set;
-			//	descriptor_set_writes[BindingIndex].dstBinding = BindingIndex;
-
-			//	BindingIter<Type, BindingIndex - 1>::FillDescriptorSetWrites(frame_index, descriptor_set, descriptor_set_writes);
-			//}
 		};
 
 		template<DescriptorSetType Type>
@@ -219,10 +216,25 @@ namespace render
 			}
 			{}
 
-			//void FillDescriptorSetWrites(int frame_index, VkDescriptorSet descriptor_set, std::span<VkWriteDescriptorSet> write_descriptor_sets)
-			//{
-			//	BindingIter<Type, DescriptorSet<Type>::binding_count - 1>::FillDescriptorSetWrites(frame_index, descriptor_set, write_descriptor_sets);
-			//}
+			Set(const Set& set) = delete;
+			Set(Set&& set) : BindingIter<Type, DescriptorSet<Type>::binding_count - 1>(std::move(set))
+			{
+				vk_descriptor_sets_ = set.vk_descriptor_sets_;
+				set.vk_descriptor_sets_.fill(VK_NULL_HANDLE);
+			}
+
+			Set& operator=(const Set& set) = delete;
+			Set& operator=(Set&& set)
+			{
+				BindingIter<Type, DescriptorSet<Type>::binding_count - 1>::operator=(std::move(set));
+
+				FreeDescriptorSets(BindingIter<Type, DescriptorSet<Type>::binding_count - 1>::global_ref_);
+				vk_descriptor_sets_ = set.vk_descriptor_sets_;
+				set.vk_descriptor_sets_.fill(VK_NULL_HANDLE);
+
+				return *this;
+			}
+
 
 			int UpdateAndTryFillWrites(int frame_index, std::span<VkWriteDescriptorSet>& descriptor_set_writes)
 			{
@@ -236,6 +248,18 @@ namespace render
 				vk_descriptor_sets_[frame_index] = manager.GetFreeDescriptor(Type);
 
 				return vk_descriptor_sets_[frame_index];
+			}
+
+			void FreeDescriptorSets(const Global& global)
+			{
+				for (auto&& set : vk_descriptor_sets_)
+				{
+					if (set != VK_NULL_HANDLE)
+					{
+						global.delete_list.push_back({ global.frame_ind, set });
+						set = VK_NULL_HANDLE;
+					}
+				}
 			}
 
 		protected:
@@ -255,37 +279,20 @@ namespace render
 		{
 		public:
 
-			SetIter(const Global& global) : SetIter<Ts...>(global), Set<T1>(global)
+			SetIter(const Global& global, DescriptorSetsManager& manager) : SetIter<Ts...>(global, manager), Set<T1>(global)
 			{}
 
+			SetIter(const SetIter& iter) = delete;
+			SetIter(SetIter&& iter) = default;
+
+			SetIter& operator=(const SetIter& iter) = delete;
+			SetIter& operator=(SetIter&& iter) = default;
+			~SetIter()
+			{
+				Set<T1>::FreeDescriptorSets(SetIter<Ts...>::global_);
+			}
+
 		protected:
-
-			//int FillDescriptorSetWrites(DescriptorSetsManager& manager, std::span<VkWriteDescriptorSet> write_descriptor_sets)
-			//{
-			//	int writes_filled_cnt = 0;
-
-			//	for (int frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
-			//	{
-			//		VkDescriptorSet vk_descriptor_set = manager.GetFreeDescriptor(T1);
-			//		SetIter<Ts...>::descriptor_sets_per_frame_[frame_ind].emplace(T1, vk_descriptor_set);
-
-			//		std::span<VkWriteDescriptorSet> writes_to_fill(write_descriptor_sets.data() + writes_filled_cnt, DescriptorSet<T1>::binding_count);
-
-			//		Set<T1>::FillDescriptorSetWrites(vk_descriptor_set, writes_to_fill);
-			//		writes_filled_cnt += DescriptorSet<T1>::binding_count;
-			//	}
-
-			//	std::span<VkWriteDescriptorSet> writes_to_fill(write_descriptor_sets.data() + writes_filled_cnt, write_descriptor_sets.size() - writes_filled_cnt);
-			//	writes_filled_cnt += SetIter<Ts...>::FillDescriptorSetWrites(manager, writes_to_fill);
-
-			//	return writes_filled_cnt;
-			//}
-
-			//void UpdateDataInternal(int frame_index)
-			//{
-			//	Set<T1>::UpdateDataInternal(frame_index);
-			//	SetIter<Ts...>::UpdateDataInternal(frame_index);
-			//}
 
 			int UpdateAndTryFillWrites(int frame_index, std::span<VkWriteDescriptorSet> write_descriptor_sets)
 			{
@@ -294,12 +301,12 @@ namespace render
 				return writes_filled_by_this_set + SetIter<Ts...>::UpdateAndTryFillWrites(frame_index, std::span(write_descriptor_sets.begin() + writes_filled_by_this_set, write_descriptor_sets.end()));
 			}
 
-			void AttachVkDescriptorSet(int frame_index, DescriptorSetsManager& manager)
+			void AttachVkDescriptorSet(int frame_index)
 			{
-				VkDescriptorSet vk_descriptor_set = Set<T1>::AttachVkDescriptorSet(frame_index, manager);
+				VkDescriptorSet vk_descriptor_set = Set<T1>::AttachVkDescriptorSet(frame_index, SetIter<Ts...>::desc_set_manager_);
 				SetIter<Ts...>::descriptor_sets_per_frame_[frame_index].emplace(T1, vk_descriptor_set);
 
-				SetIter<Ts...>::AttachVkDescriptorSet(frame_index, manager);
+				SetIter<Ts...>::AttachVkDescriptorSet(frame_index);
 			}
 
 		};
@@ -309,15 +316,16 @@ namespace render
 		{
 		public:
 
-			SetIter(const Global& global) : RenderObjBase(global) {}
+			SetIter(const Global& global, DescriptorSetsManager& manager) : RenderObjBase(global), desc_set_manager_(manager) {}
 
 		protected:
 
 			int UpdateAndTryFillWrites(int frame_index, std::span<VkWriteDescriptorSet> write_descriptor_sets) { return 0; }
 
-			void AttachVkDescriptorSet(int frame_index, DescriptorSetsManager& manager) {}
+			void AttachVkDescriptorSet(int frame_index) {}
 
 			std::array<std::map<DescriptorSetType, VkDescriptorSet>, kFramesCount> descriptor_sets_per_frame_;
+			std::reference_wrapper<DescriptorSetsManager> desc_set_manager_;
 		};
 
 		template<DescriptorSetType... Ts>
@@ -325,11 +333,11 @@ namespace render
 		{
 		public:
 
-			Holder(const Global& global, DescriptorSetsManager& manager) : SetIter<Ts..., DescriptorSetType::ListEnd>(global)
+			Holder(const Global& global, DescriptorSetsManager& manager) : SetIter<Ts..., DescriptorSetType::ListEnd>(global, manager)
 			{
 				for (int frame_index = 0; frame_index < kFramesCount; frame_index++)
 				{
-					SetIter<Ts..., DescriptorSetType::ListEnd>::AttachVkDescriptorSet(frame_index, manager);
+					SetIter<Ts..., DescriptorSetType::ListEnd>::AttachVkDescriptorSet(frame_index);
 				}
 			}
 
