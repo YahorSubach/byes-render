@@ -392,7 +392,7 @@ namespace render
 
 			glm::vec3 orientation = glm::rotate(rotation, glm::vec3(0, 1, 0));
 
-			glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.5f, 0.1f, 200.0f);
+			glm::mat4 proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 200.0f);
 			proj[1][1] *= -1;
 			data.proj_view_mat = proj * glm::lookAt(glm::vec3(data.position), glm::vec3(data.position) + orientation, glm::vec3(0.0f, 0.0f, 1.0f));
 		}

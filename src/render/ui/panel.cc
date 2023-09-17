@@ -57,6 +57,24 @@ namespace render::ui
         node_models_ids_.push_back({ node_id, model_id });
     }
 
+    void Panel::SetWidth(float width)
+    {
+        width_ = width;
+        for (auto&& child : children_)
+        {
+            child->SetParent(*this);
+        }
+    }
+
+    void Panel::SetHeight(float height)
+    {
+        height_ = height;
+        for (auto&& child : children_)
+        {
+            child->SetParent(*this);
+        }
+    }
+
     void Panel::ClearModels()
     {
         for (auto&& [node_id, model_id] : node_models_ids_)

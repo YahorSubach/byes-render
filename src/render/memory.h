@@ -15,7 +15,7 @@ namespace render
 	class Memory : public RenderObjBase<VkDeviceMemory>
 	{
 	public:
-		Memory(const Global& global, uint64_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags);
+		Memory(const Global& global, uint32_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags);
 	
 		Memory(const Memory&) = delete;
 		Memory(Memory&&) = default;
@@ -31,7 +31,7 @@ namespace render
 		bool deferred_free_ = true;
 	private:
 
-		uint64_t size_;
+		uint32_t size_;
 
 	};
 }

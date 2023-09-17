@@ -8,19 +8,6 @@ render::Sampler::Sampler(const Global& global, uint32_t mipmap_cnt, AddressMode 
 
 }
 
-//render::Sampler::Sampler(const Global& global, util::NullableRef<const Image> image) : RenderObjBase(global)
-//{
-//	uint32_t mipmap_cnt = 0;
-//	AddressMode address_mode = AddressMode::kRepeat;
-//
-//	if (image)
-//	{
-//		mipmap_cnt = image->GetMipMapLevelsCount();
-//	}
-//
-//	Init(mipmap_cnt, address_mode);
-//}
-
 void render::Sampler::Init(uint32_t mipmap_cnt, AddressMode address_mode, bool use_nearest_filtering)
 {
 	VkSamplerCreateInfo sampler_info{};

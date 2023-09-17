@@ -273,9 +273,12 @@ namespace render
 			ready = true;
 			uint32_t frame_cnt = 0;
 
+			ui::UI ui(global_);
+			std::shared_ptr<ui::Panel> screen_panel;
+			std::shared_ptr<ui::TextBlock> block;
 			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
 			{
-				descriptor_set_manager.FreeAll();
+				//descriptor_set_manager.FreeAll();
 
 				graphics_command_pool_ptr_->ClearCommandBuffers();
 				graphics_command_pool_ptr_->CreateCommandBuffers(kFramesCount);
@@ -284,16 +287,20 @@ namespace render
 
 				Swapchain swapchain(global_, *surface_ptr_);
 
+				auto swapchain_extent = swapchain.GetExtent();
+
 				std::array<Extent, kExtentTypeCnt> extents
 				{
-					swapchain.GetExtent(),
-					swapchain.GetExtent(),
+					swapchain_extent,
+					swapchain_extent,
 					{512,512}
 				};
 
+				scenes_[0].aspect = 1.0f * swapchain_extent.width / swapchain_extent.height;
+
 				render_setup.InitPipelines(descriptor_set_manager, extents);
 
-				ui::UI ui(global_, swapchain.GetExtent());
+
 
 				std::vector<Framebuffer> swapchain_framebuffers;
 
@@ -313,15 +320,19 @@ namespace render
 				frames.clear();
 				frames.reserve(kFramesCount);
 
-
+				if (screen_panel)
+				{
+					screen_panel->SetWidth(swapchain_extent.width);
+					screen_panel->SetHeight(swapchain_extent.height);
+				}
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
 				{
 					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, ui, scenes_[0]));
 				}
 
-				Mesh m("glyph");
-				std::shared_ptr<ui::TextBlock> block;
+
+
 				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
 				{
 
@@ -356,6 +367,8 @@ namespace render
 					should_refresh_swapchain = !frames[current_frame_index].Draw(frame_info, scenes_[0]);
 
 					int command_count_to_execute = external_command_queue_.Size();
+
+
 
 					if (block)
 					{
@@ -461,18 +474,6 @@ namespace render
 						if (std::holds_alternative<command::AddObject<ObjectType::Camera>>(command))
 						{
 							auto&& specified_command = std::get<command::AddObject<ObjectType::Camera>>(command);
-
-
-
-
-
-							//model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
-							//model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
-
-							//Node node{};
-							//node.local_transform = glm::identity<glm::mat4>();
-							//auto&& scene_node = scenes_[0].AddNode(node);
-							//scenes_[0].AddModel(scene_node, model_packs[0].meshes.back());
 						}
 
 						if (std::holds_alternative<command::SetActiveCameraNode>(command))
@@ -482,15 +483,10 @@ namespace render
 							auto&& info = object_id_to_scene_object_id_[specified_command.node_id.value];
 							scenes_[0].camera_node_id_ = { info.id };
 
-							//auto node_id = scenes_[0].AddNode();
-							//auto&& node = scenes_[0].GetNode(node_id);
-
-							//m.primitives.push_back(primitive::Bitmap(global_, descriptor_set_manager, ui, ui.GetGlyph(u'Ж', 30)));
-							//scenes_[0].AddModel(node, m);
-							ui::Panel* panel = new ui::Panel(scenes_[0], 0, 0, extents[u32(ExtentType::kPresentation)].width, extents[u32(ExtentType::kPresentation)].height);
+							screen_panel = std::make_shared<ui::Panel>(scenes_[0], 0, 0, extents[u32(ExtentType::kPresentation)].width, extents[u32(ExtentType::kPresentation)].height);
 							block = std::make_shared<ui::TextBlock>(ui, scenes_[0], descriptor_set_manager, 30, 30);
 							block->SetText(U"Жопич", 30);
-							panel->AddChild(block);
+							screen_panel->AddChild(block);
 						}
 
 						if (std::holds_alternative<command::ObjectsUpdate>(command))

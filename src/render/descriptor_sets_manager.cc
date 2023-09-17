@@ -63,13 +63,17 @@ VkDescriptorSet render::DescriptorSetsManager::GetFreeDescriptor(DescriptorSetTy
 	//	std::cout << "Get " << result << "\n";
 	//}
 
+	free_sets_.erase(result);
+
 	return result;
 }
 
 void render::DescriptorSetsManager::FreeDescriptorSet(VkDescriptorSet set)
 {
-	DescriptorSetType set_type = descriptor_set_to_type_.at(set);
 
+	DescriptorSetType set_type = descriptor_set_to_type_.at(set);
+	assert(!free_sets_.contains(set));
+	free_sets_.insert(set);
 	
 	//if (global_.frame_ind != free_frame_ind)
 	//{

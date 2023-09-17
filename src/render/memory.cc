@@ -68,11 +68,11 @@ void FreeMemory(VkDevice logical_device, VkDeviceMemory memory)
 	}
 }
 
-render::Memory::Memory(const Global& global, size_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags) : RenderObjBase(global), size_(size)
+render::Memory::Memory(const Global& global, uint32_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags) : RenderObjBase(global), size_(size)
 {
 	uint32_t index = GetMemoryTypeIndex(global, memory_type_bits, memory_flags); // TODO pass memory properties
 
-	total += size;
+	//total += size;
 
 	if (size > 1024)
 	{
@@ -119,7 +119,7 @@ render::Memory::~Memory()
 {
 	if (handle_ != VK_NULL_HANDLE)
 	{
-		total -= size_;
+		//total -= size_;
 
 		if (!deferred_free_)
 		{

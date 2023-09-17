@@ -88,16 +88,6 @@ namespace render
 
 	}
 
-	//const RenderPass& RenderSetup::GetRenderPass(RenderPassId renderpass_id) const
-	//{
-	//	return render_passes_.at(renderpass_id);
-	//}
-	//
-	//const DescriptorSetLayout& RenderSetup::GetDescriptorSetLayout(DescriptorSetType type) const
-	//{
-	//	return descriptor_set_layouts_[static_cast<int>(type)];
-	//}
-
 	const RenderGraph2& RenderSetup::GetRenderGraph() const
 	{
 		return render_graph_;
@@ -116,6 +106,7 @@ namespace render
 	void RenderSetup::InitPipelines(const DescriptorSetsManager& descriptor_set_manager, const std::array<Extent, kExtentTypeCnt>& extents)
 	{
 		pipelines_.clear();
+		render_graph_.ClearPipelines();
 
 		{
 			ShaderModule vert_shader_module(global_, "bitmap.vert", descriptor_set_manager.GetLayouts());

@@ -239,7 +239,7 @@ namespace render::util
 			{
 				data_.push_back(std::forward<T>(t));
 				ids_.push_back(id_);
-				id_to_ind_.emplace(id_, data_.size() - 1);
+				id_to_ind_.emplace(id_, (uint32_t)(data_.size() - 1));
 				return { id_++ };
 			}
 
@@ -248,7 +248,7 @@ namespace render::util
 			{
 				data_.push_back({});
 				ids_.push_back(id_);
-				id_to_ind_.emplace(id_, data_.size() - 1);
+				id_to_ind_.emplace(id_, (uint32_t)(data_.size() - 1));
 				return { id_++ };
 			}
 

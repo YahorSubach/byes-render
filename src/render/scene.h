@@ -93,11 +93,14 @@ namespace render
 
 		NodeId camera_node_id_;
 
+		float aspect;
+
 	private:
 		GPULocalVertexBuffer viewport_vertex_buffer_;
 		/*Primitive viewport_primitive;*/
 		Image env_image_;
 		DescriptorSetsManager& desc_set_manager_;
+		
 
 	};
 

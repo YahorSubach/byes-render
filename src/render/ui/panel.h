@@ -30,6 +30,10 @@ namespace render::ui
 
 		void AddChild(const std::shared_ptr<Panel>& panel);
 		void AddModel(int x, int y, int width, int height, Mesh& model);
+
+		void SetWidth(float width);
+		void SetHeight(float height);
+
 		void ClearModels();
 
 	protected:

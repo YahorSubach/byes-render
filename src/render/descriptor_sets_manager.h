@@ -3,6 +3,8 @@
 
 #include <map>
 #include <vector>
+#include <unordered_set>
+
 
 
 #include "vulkan/vulkan.h"
@@ -45,6 +47,8 @@ namespace render
 		std::map<DescriptorSetType, std::vector<VkDescriptorSet>> descriptor_sets_;
 		std::map<DescriptorSetType, std::vector<VkDescriptorSet>> free_descriptor_sets_;
 		std::map<VkDescriptorSet, DescriptorSetType> descriptor_set_to_type_;
+
+		std::unordered_set<VkDescriptorSet> free_sets_;
 
 		std::map<DescriptorSetType, std::vector<UniformBuffer>> uniform_buffers_;
 		std::map<DescriptorSetType, std::vector<ImageView>> image_views_;

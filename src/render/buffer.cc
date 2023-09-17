@@ -24,7 +24,7 @@ render::Buffer::Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFla
 	VkMemoryRequirements memory_requirements;
 	vkGetBufferMemoryRequirements(global.logical_device, handle_, &memory_requirements);
 
-    memory_ = std::make_unique<Memory>(global, memory_requirements.size, memory_requirements.memoryTypeBits, memory_flags);
+    memory_ = std::make_unique<Memory>(global, (uint32_t)memory_requirements.size, memory_requirements.memoryTypeBits, memory_flags);
 
     vkBindBufferMemory(global.logical_device, handle_, memory_->GetMemoryHandle(), 0);
 }

@@ -107,6 +107,7 @@ namespace render
 
 		void AddPipeline(const GraphicsPipeline& pipeline);
 		const std::vector<std::reference_wrapper<const GraphicsPipeline>>& GetPipelines() const;
+		void ClearPipelines();
 
 		const std::string& GetName() const;
 		void Build();
@@ -145,6 +146,7 @@ namespace render
 
 		RenderNode& AddNode(const std::string& name, ExtentType extent_type);
 		void Build();
+		void ClearPipelines();
 
 		const std::map<std::string, RenderNode>& GetNodes() const;
 

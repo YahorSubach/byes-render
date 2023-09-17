@@ -142,6 +142,7 @@ render::FrameHandler::~FrameHandler()
 {
 	if (handle_ != nullptr)
 	{
+		vkWaitForFences(global_.logical_device, 1, &cmd_buffer_fence_, VK_TRUE, UINT64_MAX);
 		vkDestroyFence(global_.logical_device, cmd_buffer_fence_, nullptr);
 		vkDestroySemaphore(global_.logical_device, render_finished_semaphore_, nullptr);
 	}

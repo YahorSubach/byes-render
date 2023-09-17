@@ -6,6 +6,8 @@
 
 #include "global.h"
 
+int print_sets = 0;
+
 namespace render
 {
 	//
@@ -355,6 +357,14 @@ namespace render
 		}
 	}
 
+	void RenderGraph2::ClearPipelines()
+	{
+		for (auto&& [name, node] : nodes_)
+		{
+			node.ClearPipelines();
+		}
+	}
+
 	const std::map<std::string, RenderNode>& RenderGraph2::GetNodes() const
 	{
 		return nodes_;
@@ -406,6 +416,11 @@ namespace render
 	const std::vector<std::reference_wrapper<const GraphicsPipeline>>& RenderNode::GetPipelines() const
 	{
 		return pipelines_;
+	}
+
+	void RenderNode::ClearPipelines()
+	{
+		pipelines_.clear();
 	}
 
 	const std::string& RenderNode::GetName() const
@@ -568,6 +583,7 @@ namespace render
 				}
 
 				vkUpdateDescriptorSets(global.logical_device, u32(writes.size()), writes.data(), 0, nullptr);
+
 				node_data.descriptor_sets.emplace(desc_type, vk_descriptor_set);
 			}
 		}
@@ -737,24 +753,6 @@ namespace render
 						}
 					}
 				}
-
-
-
-				//for (auto&& pipeline : render_pass_node.pipelines)
-				//{
-				//	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get().GetHandle());
-
-				//	const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets = pipeline.get().GetDescriptorSets();
-
-				//	auto&& pipeline_layout = pipeline.get().GetLayout();
-
-				//	ProcessDescriptorSets(command_buffer, pipeline_layout, pipeline_desc_sets, scene_ds);
-
-				//	for (auto&& render_model : render_models)
-				//	{
-				//		
-				//	}
-				//}
 
 				vkCmdEndRenderPass(command_buffer);
 			}
