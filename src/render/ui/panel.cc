@@ -57,7 +57,7 @@ namespace render::ui
         node_models_ids_.push_back({ node_id, model_id });
     }
 
-    void Panel::SetWidth(float width)
+    void Panel::SetWidth(int width)
     {
         width_ = width;
         for (auto&& child : children_)
@@ -66,7 +66,7 @@ namespace render::ui
         }
     }
 
-    void Panel::SetHeight(float height)
+    void Panel::SetHeight(int height)
     {
         height_ = height;
         for (auto&& child : children_)

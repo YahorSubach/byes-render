@@ -317,7 +317,7 @@ bool render::Image::InitHandle() const
 	vkGetImageMemoryRequirements(global_.logical_device, handle_, &mem_requirements);
 
 	memory_ = std::make_unique<Memory>(global_, (uint32_t)mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	vkBindImageMemory(global_.logical_device, handle_, memory_->GetMemoryHandle(), 0);
+	vkBindImageMemory(global_.logical_device, handle_, memory_->GetMemoryHandle(), memory_->GetMemoryOffset());
 
 	if (pixels_data_)
 	{

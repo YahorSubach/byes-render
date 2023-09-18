@@ -41,7 +41,7 @@ namespace render
 		Format color_format = VK_FORMAT_R8G8B8A8_SRGB;
 
 		uint32_t frame_ind;
-		mutable std::vector<std::pair<uint32_t, std::variant<VkBuffer, VkDeviceMemory, VkImageView, VkDescriptorSet>>> delete_list;
+		mutable std::vector<std::pair<uint32_t, std::variant<VkBuffer, OffsettedMemory, VkImageView, VkDescriptorSet>>> delete_list;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_GLOBAL_H_

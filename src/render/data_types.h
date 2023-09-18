@@ -124,10 +124,13 @@ namespace render
 	{
 		VertexIndex indices[3];
 	};
-	//struct UniformBufferObject {
-	//	glm::mat4 model;
-	//	glm::mat4 view;
-	//	glm::mat4 proj;
-	//};
+
+	struct OffsettedMemory
+	{
+		explicit operator VkDeviceMemory& () { return vk_memory; }
+
+		VkDeviceMemory vk_memory;
+		uint32_t offset;
+	};
 }
 #endif  // RENDER_ENGINE_RENDER_DATA_TYPES_H_

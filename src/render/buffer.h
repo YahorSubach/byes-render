@@ -20,7 +20,8 @@ namespace render
 	class Buffer : public byes::RM<Buffer>, public RenderObjBase<VkBuffer>
 	{
 	public:
-		Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indices);
+
+		Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags, const std::vector<uint32_t>& queue_famaly_indices, bool deferred_destroy = true);
 		Buffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags);
 
 		Buffer(const Buffer&) = delete;
@@ -31,7 +32,7 @@ namespace render
 
 		size_t GetSize() const;
 
-		VkDeviceMemory GetBufferMemory();
+		OffsettedMemory GetBufferMemory();
 
 		//virtual void LoadData(const void* data, size_t size) = 0;
 
@@ -63,17 +64,22 @@ namespace render
 		size_t count;
 	};
 
-	class StagingBuffer : public Buffer
+	class HostVisibleBuffer : public Buffer
+	{
+	public:
+		HostVisibleBuffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags = 0, const std::vector<uint32_t>& queue_famaly_indices = {}, bool deferred_destroy = true) :
+			Buffer(global, size, usage, memory_flags | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_famaly_indices, deferred_destroy)
+		{}
+
+		void LoadData(const void* data, size_t size);
+	};
+
+	class StagingBuffer : public HostVisibleBuffer
 	{
 	public:
 		StagingBuffer(const Global& global, VkDeviceSize size, VkBufferUsageFlags usage = 0, const std::vector<uint32_t>& queue_famaly_indices = {}) :
-			Buffer(global, size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, queue_famaly_indices) 
-		{
-			deferred_destroy_ = false;
-			memory_->deferred_free_ = false;
-		}
-
-		virtual void LoadData(const void* data, size_t size);
+			HostVisibleBuffer(global, size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 0, queue_famaly_indices, false)
+		{}
 	};
 
 	class GPULocalBuffer : public Buffer
@@ -92,16 +98,12 @@ namespace render
 			GPULocalBuffer(global, size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) {}
 	};
 
-	class UniformBuffer : public Buffer
+	class UniformBuffer : public HostVisibleBuffer
 	{
 	public:
 
 
-		UniformBuffer(const Global& global, VkDeviceSize size) :
-			Buffer(global, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, {}) {}
-
-		virtual void LoadData(const void* data, size_t size);
-
+		UniformBuffer(const Global& global, VkDeviceSize size) : HostVisibleBuffer(global, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) {}
 		UniformBuffer(const UniformBuffer&) = delete;
 		UniformBuffer(UniformBuffer&&) = default;
 

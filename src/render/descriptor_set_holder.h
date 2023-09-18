@@ -61,9 +61,9 @@ namespace render
 				if (FillData(new_data))
 				{
 					void* mapped_data;
-					vkMapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory(), 0, size, 0, &mapped_data);
+					vkMapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory().vk_memory, uniform_buffers_[frame_index].GetBufferMemory().offset, size, 0, &mapped_data);
 					memcpy(mapped_data, &new_data, size);
-					vkUnmapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory());
+					vkUnmapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory().vk_memory);
 				}
 				else
 				{
