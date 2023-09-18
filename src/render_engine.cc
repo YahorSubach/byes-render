@@ -252,6 +252,10 @@ namespace render
 
 			Image error_image(global_, Image::BuiltinImageType::kError);
 			global_.error_image = error_image;
+
+			Image default_normal(global_, Image::BuiltinImageType::kNormal);
+			global_.default_normal = default_normal;
+
 			global_.presentation_format = surface_ptr_->GetSurfaceFormat(global_.physical_device).format;
 
 			for (int i = 0; i < 16; i++)

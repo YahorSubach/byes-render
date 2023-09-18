@@ -70,7 +70,7 @@ namespace render
 			}
 			else
 			{
-				SamplerData sampler_data{ *global_.error_image, global_.mipmap_cnt_to_global_samplers[global_.error_image->GetMipMapLevelsCount()] };
+				SamplerData sampler_data{ *global_.default_normal, global_.mipmap_cnt_to_global_samplers[global_.error_image->GetMipMapLevelsCount()] };
 				data.normal_map = sampler_data;
 			}
 

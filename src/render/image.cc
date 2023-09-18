@@ -27,6 +27,7 @@ render::Image::Image(const Global& global, BuiltinImageType type) : Image(global
 
 	const unsigned char black[4] = { 0, 0, 0, 255 };
 	const unsigned char white[4] = { 255, 255, 255, 255 };
+	const unsigned char normal[4] = { 128, 128, 255, 255 };
 
 
 	auto&& error_map = { 
@@ -64,6 +65,9 @@ render::Image::Image(const Global& global, BuiltinImageType type) : Image(global
 		break;
 	case render::Image::BuiltinImageType::kWhite:
 		data = white;
+		break;
+	case render::Image::BuiltinImageType::kNormal:
+		data = normal;
 		break;
 	case render::Image::BuiltinImageType::kError:
 		image_size = 4 * 7 * 7;
@@ -316,7 +320,7 @@ bool render::Image::InitHandle() const
 	VkMemoryRequirements mem_requirements;
 	vkGetImageMemoryRequirements(global_.logical_device, handle_, &mem_requirements);
 
-	memory_ = std::make_unique<Memory>(global_, (uint32_t)mem_requirements.size, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	memory_ = std::make_unique<Memory>(global_, (uint32_t)mem_requirements.size, (uint32_t)mem_requirements.alignment, mem_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	vkBindImageMemory(global_.logical_device, handle_, memory_->GetMemoryHandle(), memory_->GetMemoryOffset());
 
 	if (pixels_data_)

@@ -34,6 +34,7 @@ namespace render
 		std::optional<Sampler> shadowmap_sampler;
 
 		util::NullableRef<Image> error_image;
+		util::NullableRef<Image> default_normal;
 
 		Format presentation_format;
 		Format depth_map_format = VK_FORMAT_D32_SFLOAT;

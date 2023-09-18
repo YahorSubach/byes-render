@@ -15,7 +15,7 @@ namespace render
 	class Memory : public RenderObjBase<OffsettedMemory>
 	{
 	public:
-		Memory(const Global& global, uint32_t size, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags, bool deferred_free = true);
+		Memory(const Global& global, uint32_t size, uint32_t align, uint32_t memory_type_bits, VkMemoryPropertyFlags memory_flags, bool deferred_free = true);
 	
 		Memory(const Memory&) = delete;
 		Memory(Memory&&) = default;

@@ -96,6 +96,7 @@ namespace render
 			kBlack,
 			kWhite,
 			kError,
+			kNormal,
 		};
 
 		Image(const Global& global, VkFormat format, Extent extent, const unsigned char* pixels);
