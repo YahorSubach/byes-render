@@ -164,7 +164,6 @@ namespace render
 		RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager);
 
 		bool FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, Scene& scene) const;
-		bool FillCommandBufferPrimitive(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const std::map<PipelineId, GraphicsPipeline>& pipelines, const Primitive& scene) const;
 
 	private:
 

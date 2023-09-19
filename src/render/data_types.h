@@ -39,23 +39,6 @@ namespace render
 
 	const int kExtentTypeCnt = static_cast<int>(ExtentType::Count);
 
-	enum class PipelineId
-	{
-		kColor,
-		kColorSkinned,
-		kDepth,
-		kDepthSkinned,
-		kUI,
-
-		kBuildGBuffers,
-		kCollectGBuffers,
-
-		kPos,
-		kDebugLines,
-		kDebugPoints,
-
-	};
-
 	enum class RenderPassId
 	{
 		kSimpleRenderToScreen,

@@ -11,7 +11,6 @@
 
 #include "vk_util.h"
 #include <render/data_types.h>
-#include <render/command_buffer_filler.h>
 
 #include "global.h"
 namespace render

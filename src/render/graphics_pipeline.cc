@@ -14,7 +14,57 @@ namespace render
 {
 
 	GraphicsPipeline::GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params) :
-		RenderObjBase(global), layout_(VK_NULL_HANDLE), required_primitive_flags_(required_primitive_flags)
+		RenderObjBase(global), layout_(VK_NULL_HANDLE), required_primitive_flags_(required_primitive_flags), vertex_bindings_count_(0)
+	{
+		InitPipeline(render_node, vertex_shader_module, {}, fragment_shader_module, extents, params);
+	}
+
+	GraphicsPipeline::GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& geometry_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params) :
+		RenderObjBase(global), layout_(VK_NULL_HANDLE), required_primitive_flags_(required_primitive_flags), vertex_bindings_count_(0)
+	{
+		InitPipeline(render_node, vertex_shader_module, geometry_shader_module, fragment_shader_module, extents, params);
+	}
+
+	const std::map<uint32_t, const DescriptorSetLayout&>& GraphicsPipeline::GetDescriptorSetLayouts() const
+	{
+		return descriptor_sets_;
+	}
+
+	const std::map<uint32_t, ShaderModule::VertexBindingDesc>& GraphicsPipeline::GetVertexBindingsDescs() const
+	{
+		return vertex_bindings_descs_;
+	}
+
+	PrimitiveFlags GraphicsPipeline::GetRequiredPrimitiveFlags() const
+	{
+		return required_primitive_flags_;
+	}
+
+	const VkPipelineLayout& GraphicsPipeline::GetLayout() const
+	{
+		return layout_;
+	}
+
+	uint32_t GraphicsPipeline::GetVertexBindingsCount() const
+	{
+		return vertex_bindings_count_;
+	}
+
+	GraphicsPipeline::~GraphicsPipeline()
+	{
+		if (handle_ != VK_NULL_HANDLE)
+		{
+			vkDestroyPipeline(global_.logical_device, handle_, nullptr);
+
+			if (layout_ != VK_NULL_HANDLE)
+			{
+				vkDestroyPipelineLayout(global_.logical_device, layout_, nullptr);
+			}
+		}
+	}
+
+	bool GraphicsPipeline::InitPipeline(const RenderNode& render_node, util::NullableRef<const ShaderModule> vertex_shader_module, util::NullableRef<const ShaderModule> geometry_shader_module, 
+		util::NullableRef<const ShaderModule> fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, Params params)
 	{
 		std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
 		std::vector<VkVertexInputBindingDescription> vertex_input_bindings_descs;
@@ -24,30 +74,26 @@ namespace render
 			VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
 			vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vert_shader_stage_info.module = vertex_shader_module.GetHandle();
+			vert_shader_stage_info.module = vertex_shader_module->GetHandle();
 			vert_shader_stage_info.pName = "main"; // entry point in shader
 
-			if (!vertex_shader_module.GetInputBindingsDescs().empty())
+			if (!vertex_shader_module->GetInputBindingsDescs().empty())
 			{
-				vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(vertex_shader_module.GetInputBindingsDescs());
-				vertex_input_attr_descs = BuildVertexAttributeDescription(vertex_shader_module.GetInputBindingsDescs());
+				vertex_input_bindings_descs = BuildVertexInputBindingDescriptions(vertex_shader_module->GetInputBindingsDescs());
+				vertex_input_attr_descs = BuildVertexAttributeDescription(vertex_shader_module->GetInputBindingsDescs());
 				vertex_bindings_count_ = u32(vertex_input_bindings_descs.size());
-			}
-			else
-			{
-				vertex_bindings_count_ = 0;
 			}
 
 			shader_stage_create_infos.push_back(vert_shader_stage_info);
 
-			vertex_bindings_descs_ = vertex_shader_module.GetInputBindingsDescs();
+			vertex_bindings_descs_ = vertex_shader_module->GetInputBindingsDescs();
 		}
 
 		{
 			VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
 			frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			frag_shader_stage_info.module = fragment_shader_module.GetHandle();
+			frag_shader_stage_info.module = fragment_shader_module->GetHandle();
 			frag_shader_stage_info.pName = "main"; // entry point in shader
 
 			shader_stage_create_infos.push_back(frag_shader_stage_info);
@@ -113,7 +159,7 @@ namespace render
 
 		for (auto&& attachment : render_node.GetAttachments())
 		{
-			if (attachment.format != global.depth_map_format)
+			if (attachment.format != global_.depth_map_format)
 				color_attachments_cnt++;
 		}
 
@@ -170,7 +216,7 @@ namespace render
 
 		std::vector<VkPushConstantRange> push_constants = { vertex_push_constant, fragment_push_constant };
 
-		for (auto&& [set_index, set_layout] : vertex_shader_module.GetDescriptorSets())
+		for (auto&& [set_index, set_layout] : vertex_shader_module->GetDescriptorSets())
 		{
 			if (auto&& existing_set = descriptor_sets_.find(set_index); existing_set != descriptor_sets_.end())
 			{
@@ -183,7 +229,7 @@ namespace render
 			descriptor_sets_.emplace(set_index, set_layout);
 		}
 
-		for (auto&& [set_index, set_layout] : fragment_shader_module.GetDescriptorSets())
+		for (auto&& [set_index, set_layout] : fragment_shader_module->GetDescriptorSets())
 		{
 			if (auto&& existing_set = descriptor_sets_.find(set_index); existing_set != descriptor_sets_.end())
 			{
@@ -251,44 +297,8 @@ namespace render
 		if (vkCreateGraphicsPipelines(global_.logical_device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &handle_) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
-	}
 
-	const std::map<uint32_t, const DescriptorSetLayout&>& GraphicsPipeline::GetDescriptorSetLayouts() const
-	{
-		return descriptor_sets_;
-	}
-
-	const std::map<uint32_t, ShaderModule::VertexBindingDesc>& GraphicsPipeline::GetVertexBindingsDescs() const
-	{
-		return vertex_bindings_descs_;
-	}
-
-	PrimitiveFlags GraphicsPipeline::GetRequiredPrimitiveFlags() const
-	{
-		return required_primitive_flags_;
-	}
-
-	const VkPipelineLayout& GraphicsPipeline::GetLayout() const
-	{
-		return layout_;
-	}
-
-	uint32_t GraphicsPipeline::GetVertexBindingsCount() const
-	{
-		return vertex_bindings_count_;
-	}
-
-	GraphicsPipeline::~GraphicsPipeline()
-	{
-		if (handle_ != VK_NULL_HANDLE)
-		{
-			vkDestroyPipeline(global_.logical_device, handle_, nullptr);
-
-			if (layout_ != VK_NULL_HANDLE)
-			{
-				vkDestroyPipelineLayout(global_.logical_device, layout_, nullptr);
-			}
-		}
+		return true;
 	}
 
 	std::vector<VkVertexInputBindingDescription> GraphicsPipeline::BuildVertexInputBindingDescriptions(const std::map<uint32_t, ShaderModule::VertexBindingDesc>& vertex_bindings_descs)

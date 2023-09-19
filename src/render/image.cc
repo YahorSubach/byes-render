@@ -9,7 +9,7 @@
 #include "stb/stb_image.h"
 #pragma warning(pop)
 
-render::Image::Image(const Global& global, VkFormat format, Extent extent) : LazyRenderObj(global), format_(format), extent_(extent), holds_external_handle_(false), usage_(0), mipmap_levels_count_(1)
+render::Image::Image(const Global& global, VkFormat format, Extent extent, uint32_t layer_cnt) : LazyRenderObj(global), format_(format), extent_(extent), holds_external_handle_(false), usage_(0), layer_cnt_(layer_cnt), mipmap_levels_count_(1)
 {
 	//mipmap_levels_count_ = image_properties_.Check(ImageProperty::kMipMap) ? static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1) : 1;
 
@@ -147,7 +147,7 @@ void render::Image::TransitionImageLayout(const CommandPool& command_pool, Trans
 	barrier.subresourceRange.baseMipLevel = 0;
 	barrier.subresourceRange.levelCount = mipmap_levels_count_;
 	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.layerCount = layer_cnt_;
 	barrier.srcAccessMask = 0; // TODO
 	barrier.dstAccessMask = 0; // TODO
 
@@ -212,7 +212,7 @@ void render::Image::CopyBuffer(const CommandPool& command_pool, const Buffer& bu
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.imageSubresource.mipLevel = 0;
 	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
+	region.imageSubresource.layerCount = layer_cnt_;
 
 	region.imageOffset = { 0, 0, 0 };
 	region.imageExtent = {
@@ -350,7 +350,7 @@ void render::Image::GenerateMipMaps() const
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.layerCount = layer_cnt_;
 	barrier.subresourceRange.levelCount = 1;
 
 
@@ -385,7 +385,7 @@ void render::Image::GenerateMipMaps() const
 				blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				blit.dstSubresource.mipLevel = i;
 				blit.dstSubresource.baseArrayLayer = 0;
-				blit.dstSubresource.layerCount = 1;
+				blit.dstSubresource.layerCount = layer_cnt_;
 
 				vkCmdBlitImage(buffer,
 					handle_, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,

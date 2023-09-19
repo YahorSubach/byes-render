@@ -47,6 +47,9 @@ namespace render
 		GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module,
 			const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params = {});
 
+		GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& geomery_shader_module, const ShaderModule& fragment_shader_module,
+			const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params = {});
+
 		GraphicsPipeline(const GraphicsPipeline&) = delete;
 		GraphicsPipeline(GraphicsPipeline&&) = default;
 
@@ -64,6 +67,9 @@ namespace render
 
 		virtual ~GraphicsPipeline() override;
 	private:
+
+		bool InitPipeline(const RenderNode& render_node, util::NullableRef<const ShaderModule> vertex_shader_module, util::NullableRef<const ShaderModule> geometry_shader_module,
+			util::NullableRef<const ShaderModule> fragmnt_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, Params params);
 
 		std::vector<VkVertexInputBindingDescription> BuildVertexInputBindingDescriptions(const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);
 		std::vector<VkVertexInputAttributeDescription> BuildVertexAttributeDescription(const std::map<uint32_t, render::ShaderModule::VertexBindingDesc>& vertex_bindings_descs);

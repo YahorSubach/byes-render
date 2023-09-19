@@ -100,7 +100,7 @@ namespace render
 		};
 
 		Image(const Global& global, VkFormat format, Extent extent, const unsigned char* pixels);
-		Image(const Global& global, VkFormat format, Extent extent);
+		Image(const Global& global, VkFormat format, Extent extent, uint32_t layer_cnt = 1);
 		Image(const Global& global, VkFormat format, VkImage image_handle);
 		Image(const Global& global, BuiltinImageType type);
 
@@ -137,6 +137,7 @@ namespace render
 
 		VkFormat format_;
 
+		uint32_t layer_cnt_;
 		uint32_t mipmap_levels_count_;
 		mutable uint32_t usage_;
 

@@ -326,8 +326,8 @@ namespace render
 
 				if (screen_panel)
 				{
-					screen_panel->SetWidth((float)swapchain_extent.width);
-					screen_panel->SetHeight((float)swapchain_extent.height);
+					screen_panel->SetWidth(swapchain_extent.width);
+					screen_panel->SetHeight(swapchain_extent.height);
 				}
 
 				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
