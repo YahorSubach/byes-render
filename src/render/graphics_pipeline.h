@@ -47,7 +47,7 @@ namespace render
 		GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& fragment_shader_module,
 			const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params = {});
 
-		GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& geomery_shader_module, const ShaderModule& fragment_shader_module,
+		GraphicsPipeline(const Global& global, const RenderNode& render_node, util::NullableRef<const ShaderModule> vertex_shader_module, util::NullableRef<const ShaderModule> geomery_shader_module, util::NullableRef<const ShaderModule> fragment_shader_module,
 			const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params = {});
 
 		GraphicsPipeline(const GraphicsPipeline&) = delete;

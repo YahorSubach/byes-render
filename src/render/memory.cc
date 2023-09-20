@@ -17,8 +17,6 @@ namespace render
 
 	struct MemoryPool
 	{
-
-
 		uint32_t index;
 		uint32_t item_size;
 		uint32_t items_per_chunk;

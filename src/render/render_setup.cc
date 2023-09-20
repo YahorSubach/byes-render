@@ -99,9 +99,9 @@ namespace render
 		{
 			ShaderModule vert_shader_module(global_, "cube_depth.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule geom_shader_module(global_, "cube_depth.geom", descriptor_set_manager.GetLayouts());
-			ShaderModule frag_shader_module(global_, "cube_depth.frag", descriptor_set_manager.GetLayouts());
+			//ShaderModule frag_shader_module(global_, "cube_depth.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.push_back(GraphicsPipeline(global_, *ui_node, vert_shader_module, geom_shader_module, frag_shader_module, extents, PrimitiveProps::kDebugPoints, { GraphicsPipeline::EParams::kPointTopology, GraphicsPipeline::EParams::kDisableDepthTest }));
+			pipelines_.push_back(GraphicsPipeline(global_, *ui_node, vert_shader_module, geom_shader_module, util::NullableRef<const ShaderModule>(), extents, PrimitiveProps::kDebugPoints, {GraphicsPipeline::EParams::kPointTopology, GraphicsPipeline::EParams::kDisableDepthTest}));
 			//ui_node->AddPipeline(pipelines_.back());
 		}
 	}

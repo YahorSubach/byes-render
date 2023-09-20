@@ -19,7 +19,7 @@ namespace render
 		InitPipeline(render_node, vertex_shader_module, {}, fragment_shader_module, extents, params);
 	}
 
-	GraphicsPipeline::GraphicsPipeline(const Global& global, const RenderNode& render_node, const ShaderModule& vertex_shader_module, const ShaderModule& geometry_shader_module, const ShaderModule& fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params) :
+	GraphicsPipeline::GraphicsPipeline(const Global& global, const RenderNode& render_node, util::NullableRef<const ShaderModule> vertex_shader_module, util::NullableRef<const ShaderModule> geometry_shader_module, util::NullableRef<const ShaderModule> fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, PrimitiveFlags required_primitive_flags, Params params) :
 		RenderObjBase(global), layout_(VK_NULL_HANDLE), required_primitive_flags_(required_primitive_flags), vertex_bindings_count_(0)
 	{
 		InitPipeline(render_node, vertex_shader_module, geometry_shader_module, fragment_shader_module, extents, params);
@@ -89,6 +89,18 @@ namespace render
 			vertex_bindings_descs_ = vertex_shader_module->GetInputBindingsDescs();
 		}
 
+		if(geometry_shader_module)
+		{
+			VkPipelineShaderStageCreateInfo shader_stage_info{};
+			shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shader_stage_info.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+			shader_stage_info.module = geometry_shader_module->GetHandle();
+			shader_stage_info.pName = "main"; // entry point in shader
+
+			shader_stage_create_infos.push_back(shader_stage_info);
+		}
+
+		if(fragment_shader_module)
 		{
 			VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
 			frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -133,7 +145,7 @@ namespace render
 		VkPipelineRasterizationStateCreateInfo rasterizer{};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
-		rasterizer.rasterizerDiscardEnable = VK_FALSE; //then geometry never passes through the rasterizer stage. This basically disables any output to the framebuffer.
+		rasterizer.rasterizerDiscardEnable = !fragment_shader_module; //then geometry never passes through the rasterizer stage. This basically disables any output to the framebuffer.
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = params.Check(EParams::kPointTopology) ? 10.0f : 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -229,35 +241,59 @@ namespace render
 			descriptor_sets_.emplace(set_index, set_layout);
 		}
 
-		for (auto&& [set_index, set_layout] : fragment_shader_module->GetDescriptorSets())
+		if (geometry_shader_module)
 		{
-			if (auto&& existing_set = descriptor_sets_.find(set_index); existing_set != descriptor_sets_.end())
+			for (auto&& [set_index, set_layout] : geometry_shader_module->GetDescriptorSets())
 			{
-				if (existing_set->second.GetType() != set_layout.GetType())
+				if (auto&& existing_set = descriptor_sets_.find(set_index); existing_set != descriptor_sets_.end())
 				{
-					throw std::runtime_error("invalid descripton set combination");
+					if (existing_set->second.GetType() != set_layout.GetType())
+					{
+						throw std::runtime_error("invalid descripton set combination");
+					}
 				}
-			}
 
-			descriptor_sets_.emplace(set_index, set_layout);
+				descriptor_sets_.emplace(set_index, set_layout);
+			}
+		}
+
+		if (fragment_shader_module)
+		{
+			for (auto&& [set_index, set_layout] : fragment_shader_module->GetDescriptorSets())
+			{
+				if (auto&& existing_set = descriptor_sets_.find(set_index); existing_set != descriptor_sets_.end())
+				{
+					if (existing_set->second.GetType() != set_layout.GetType())
+					{
+						throw std::runtime_error("invalid descripton set combination");
+					}
+				}
+
+				descriptor_sets_.emplace(set_index, set_layout);
+			}
 		}
 
 		std::vector<VkDescriptorSetLayout> descriptor_sets_layouts;
 
-		int processed_desc_layouts = 0;
-
-		for (int i = 0; processed_desc_layouts < descriptor_sets_.size(); i++)
+		for (auto&& [set_index, set_layout] : descriptor_sets_)
 		{
-			if (descriptor_sets_.find(i) != descriptor_sets_.end())
-			{
-				descriptor_sets_layouts.push_back(descriptor_sets_.at(i).GetHandle());
-				processed_desc_layouts++;
-			}
-			else
-			{
-				//descriptor_sets_layouts.push_back(VK_NULL_HANDLE);
-			}
+			descriptor_sets_layouts.push_back(set_layout.GetHandle());
 		}
+
+		//int processed_desc_layouts = 0;
+
+		//for (int i = 0; processed_desc_layouts < descriptor_sets_.size(); i++)
+		//{
+		//	if (descriptor_sets_.find(i) != descriptor_sets_.end())
+		//	{
+		//		descriptor_sets_layouts.push_back(descriptor_sets_.at(i).GetHandle());
+		//		processed_desc_layouts++;
+		//	}
+		//	else
+		//	{
+		//		//descriptor_sets_layouts.push_back(VK_NULL_HANDLE);
+		//	}
+		//}
 
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

@@ -68,6 +68,7 @@ namespace render
 	enum class ShaderType
 	{
 		Vertex,
+		Geometry,
 		Fragment,
 
 		Invalid = -1

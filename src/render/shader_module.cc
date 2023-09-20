@@ -36,6 +36,10 @@ render::ShaderModule::ShaderModule(const Global& global, const std::string& shad
 	{
 		shader_type_ = ShaderType::Vertex;
 	}
+	else if (shader_path.find("geom") != std::string::npos)
+	{
+		shader_type_ = ShaderType::Geometry;
+	}
 	else if (shader_path.find("frag") != std::string::npos)
 	{
 		shader_type_ = ShaderType::Fragment;
@@ -178,73 +182,77 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 				}
 			}
 
+			int set_index = 0;
+
 			if (token == "set" && !processed_text.eof())
 			{
 				processed_text >> token;
 
-				int set_index = std::stoi(token);
+				set_index = std::stoi(token);
+
+				if (!processed_text.eof())
+				{
+					processed_text >> token;
+				}
+			}
+
+
+			if (token == "binding" && !processed_text.eof())
+			{
+				processed_text >> token;
+
+				int binding_index = std::stoi(token);
 
 				if (!processed_text.eof())
 				{
 					processed_text >> token;
 
-					if (token == "binding" && !processed_text.eof())
+					if (token == "uniform" && !processed_text.eof())
 					{
 						processed_text >> token;
 
-						int binding_index = std::stoi(token);
-
-						if (!processed_text.eof())
+						if (token == "sampler2D" && !processed_text.eof())
 						{
 							processed_text >> token;
+						}
 
-							if (token == "uniform" && !processed_text.eof())
+						if (token != "sampler2D")
+						{
+							DescriptorSetType desc_set_type;
+							if (auto desc_type_it = name_to_desc_type.find(token); desc_type_it != name_to_desc_type.end())
 							{
-								processed_text >> token;
+								desc_set_type = desc_type_it->second;
+							}
+							else
+							{
+								throw std::runtime_error("invalid descriptor type name prefix in shader code");
+							}
 
-								if (token == "sampler2D" && !processed_text.eof())
+							if (auto shader_desc_it = parsed_sets.find(set_index); shader_desc_it != parsed_sets.end())
+							{
+								if (shader_desc_it->second != desc_set_type)
 								{
-									processed_text >> token;
+									throw std::runtime_error("different descriptor types tries to use the same set index in shader code. Check descriptor sets name prefixes");
+								}
+							}
+							else
+							{
+								parsed_sets.emplace(set_index, desc_set_type);
+								descriptor_sets_.emplace(set_index, descriptor_sets_layouts[static_cast<int>(desc_set_type)]);
+
+								if (binding_index >= type_to_desc_info.at(desc_set_type).bindings.size())
+								{
+									throw std::runtime_error("Out of bindings range");
 								}
 
-								if (token != "sampler2D")
-								{
-									DescriptorSetType desc_set_type;
-									if (auto desc_type_it = name_to_desc_type.find(token); desc_type_it != name_to_desc_type.end())
-									{
-										desc_set_type = desc_type_it->second;
-									}
-									else
-									{
-										throw std::runtime_error("invalid descriptor type name prefix in shader code");
-									}
+								assert(binding_index < type_to_desc_info.at(desc_set_type).bindings.size());
 
-									if (auto shader_desc_it = parsed_sets.find(set_index); shader_desc_it != parsed_sets.end())
-									{
-										if (shader_desc_it->second != desc_set_type)
-										{
-											throw std::runtime_error("different descriptor types tries to use the same set index in shader code. Check descriptor sets name prefixes");
-										}
-									}
-									else
-									{
-										parsed_sets.emplace(set_index, desc_set_type);
-										descriptor_sets_.emplace(set_index, descriptor_sets_layouts[static_cast<int>(desc_set_type)]);
-
-										if (binding_index >= type_to_desc_info.at(desc_set_type).bindings.size())
-										{
-											throw std::runtime_error("Out of bindings range");
-										}
-
-										assert(binding_index < type_to_desc_info.at(desc_set_type).bindings.size());
-
-									}
-								}
 							}
 						}
 					}
 				}
 			}
+
 		}
 
 	}
