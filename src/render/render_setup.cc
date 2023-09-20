@@ -81,6 +81,14 @@ namespace render
 		}
 
 		{
+			ShaderModule vert_shader_module(global_, "dbg_color_uni.vert", descriptor_set_manager.GetLayouts());
+			ShaderModule frag_shader_module(global_, "dbg_color_uni.frag", descriptor_set_manager.GetLayouts());
+
+			pipelines_.push_back(GraphicsPipeline(global_, *ui_node, vert_shader_module, frag_shader_module, extents, PrimitiveProps::kDebugPoints, { GraphicsPipeline::EParams::kPointTopology, GraphicsPipeline::EParams::kDisableDepthTest }));
+			ui_node->AddPipeline(pipelines_.back());
+		}
+
+		{
 			ShaderModule vert_shader_module(global_, "pos_color.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule frag_shader_module(global_, "pos_color.frag", descriptor_set_manager.GetLayouts());
 

@@ -286,7 +286,7 @@ namespace render::platform
 
 	const std::vector<const char*>& GetRequiredInstanceExtensions()
 	{
-		static const std::vector<const char*> extensions{ "VK_KHR_surface", "VK_KHR_win32_surface", "VK_KHR_get_physical_device_properties2"};
+		static const std::vector<const char*> extensions{ "VK_KHR_surface", "VK_KHR_win32_surface", "VK_KHR_get_physical_device_properties2", "VK_EXT_debug_utils"};
 		return extensions;
 	}
 

@@ -577,14 +577,19 @@ namespace render
 
 		const std::vector<const char*>& GetRequiredDeviceExtensions()
 		{
-			static const std::vector<const char*> extensions{ "VK_KHR_swapchain", "VK_KHR_synchronization2"};
+#ifndef NDEBUG1
+			static const std::vector<const char*> extensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_EXTENSION_NAME};
+#else
+			static const std::vector<const char*> extensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME};
+#endif // !NDEBUG
+
 			return extensions;
 		}
 
 		const std::vector<const char*>& GetValidationLayers()
 		{
 #ifndef NDEBUG1
-			static const std::vector<const char*> layers{ "VK_LAYER_KHRONOS_validation" };
+			static const std::vector<const char*> layers{ "VK_LAYER_KHRONOS_validation"/*, "VK_LAYER_RENDERDOC_Capture"*/};
 			return layers;
 #else
 			static const std::vector<const char*> layers{};
@@ -848,12 +853,26 @@ namespace render
 		{
 			VkDeviceCreateInfo logical_device_create_info{};
 
-			if (util::All(GetRequiredDeviceExtensions(), vk_physical_devices_extensions_[physical_device], [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
+			std::vector<const char*> device_extensions;
+
+			for (auto&& req : GetRequiredDeviceExtensions())
 			{
-				logical_device_create_info.enabledExtensionCount = static_cast<uint32_t>(GetRequiredDeviceExtensions().size());
-				logical_device_create_info.ppEnabledExtensionNames = GetRequiredDeviceExtensions().data();
+				auto find_it = std::find_if(vk_physical_devices_extensions_[physical_device].begin(), vk_physical_devices_extensions_[physical_device].end(), [&](auto&& ext) { return std::strcmp(req, ext.extensionName) == 0; });
+				if (find_it != vk_physical_devices_extensions_[physical_device].end())
+				{
+					device_extensions.push_back(req);
+				}
 			}
-			else return false;
+
+			logical_device_create_info.enabledExtensionCount = static_cast<uint32_t>(device_extensions.size());
+			logical_device_create_info.ppEnabledExtensionNames = device_extensions.data();
+
+			//if (util::All(GetRequiredDeviceExtensions(), vk_physical_devices_extensions_[physical_device], [](auto&& ext_name, auto&& ext) { return std::strcmp(ext_name, ext.extensionName) == 0; }))
+			//{
+			//	logical_device_create_info.enabledExtensionCount = static_cast<uint32_t>(GetRequiredDeviceExtensions().size());
+			//	logical_device_create_info.ppEnabledExtensionNames = GetRequiredDeviceExtensions().data();
+			//}
+			//else return false;
 
 			//VkPhysicalDeviceImagelessFramebufferFeatures imageless_features;
 			//imageless_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;

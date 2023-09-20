@@ -157,7 +157,7 @@ namespace render
 
 	class Scene;
 
-	class RenderGraphHandler: RenderObjBase<int*>
+	class RenderGraphHandler : RenderObjBase<int*>
 	{
 	public:
 
@@ -166,6 +166,24 @@ namespace render
 		bool FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, Scene& scene) const;
 
 	private:
+
+#ifndef NDEBUG1
+		class Marker
+		{
+			VkCommandBuffer command_buffer_;
+		public:
+			Marker(VkCommandBuffer command_buffer, const std::string& name);
+			~Marker();
+		};
+
+		class MarkerObject
+		{
+			VkCommandBuffer command_buffer_;
+		public:
+			MarkerObject(VkCommandBuffer command_buffer, const std::string& name);
+			~MarkerObject();
+		};
+#endif
 
 		void ProcessDescriptorSets(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout, const std::map<uint32_t, const DescriptorSetLayout&>& pipeline_desc_sets, const std::map<DescriptorSetType, VkDescriptorSet>& holder_desc_sets) const;
 

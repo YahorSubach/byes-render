@@ -8,10 +8,15 @@
 
 int print_sets = 0;
 
+PFN_vkCmdDebugMarkerBeginEXT pfnCmdDebugMarkerBegin;
+PFN_vkCmdDebugMarkerEndEXT pfnCmdDebugMarkerEnd; 
+
 namespace render
 {
 	RenderGraph2::RenderGraph2(const Global& global) : RenderObjBase(global)
 	{
+		pfnCmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(global.logical_device, "vkCmdDebugMarkerBeginEXT");
+		pfnCmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(global.logical_device, "vkCmdDebugMarkerEndEXT");
 	}
 
 	RenderNode& RenderGraph2::AddNode(const std::string& name, ExtentType extent_type)
@@ -287,6 +292,8 @@ namespace render
 				if (render_node.order != order)
 					continue;
 
+				Marker node_marker(command_buffer, node_name);
+
 				stop = false;
 
 				util::NullableRef<const Framebuffer> framebuffer = frame_info.swapchain_framebuffer;
@@ -354,6 +361,8 @@ namespace render
 
 								if (!primitive_pipeline.GetRequiredPrimitiveFlags().Check(flags))
 									continue;
+
+								Marker node_marker(command_buffer, mesh.name);
 
 								if (current_pipeline != &primitive_pipeline)
 								{
@@ -532,4 +541,46 @@ namespace render
 			desc_sets_to_bind.clear();
 		}
 	}
+
+#ifndef NDEBUG1
+
+
+
+	RenderGraphHandler::Marker::Marker(VkCommandBuffer command_buffer, const std::string& name): command_buffer_(command_buffer)
+	{
+		if (pfnCmdDebugMarkerBegin)
+		{
+
+			VkDebugMarkerMarkerInfoEXT info{};
+
+			info.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+			info.pMarkerName = name.c_str();
+			info.color[0] = 0.0f;
+			info.color[1] = 1.0f;
+			info.color[2] = 1.0f;
+			info.color[3] = 1.0f;
+
+
+			pfnCmdDebugMarkerBegin(command_buffer_, &info);
+		}
+	}
+
+	RenderGraphHandler::Marker::~Marker()
+	{
+		if (pfnCmdDebugMarkerEnd)
+		{
+			pfnCmdDebugMarkerEnd(command_buffer_);
+		}
+	}
+
+	RenderGraphHandler::MarkerObject::MarkerObject(VkCommandBuffer command_buffer, const std::string& name): command_buffer_(command_buffer)
+	{
+		//vkCmdDe
+	}
+	RenderGraphHandler::MarkerObject::~MarkerObject()
+	{
+	}
+
+#endif
+
 }
