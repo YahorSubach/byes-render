@@ -2,11 +2,11 @@
 
 #include "global.h"
 
-render::ImageView::ImageView(const Global& global) :RenderObjBase(global), format_(VK_FORMAT_UNDEFINED)
+render::ImageView::ImageView(const Global& global) :RenderObjBase(global), format_(VK_FORMAT_UNDEFINED), layer_cnt_(0)
 {
 }
 
-render::ImageView::ImageView(const Global& global, const Image& image): RenderObjBase(global), format_(VK_FORMAT_UNDEFINED)
+render::ImageView::ImageView(const Global& global, const Image& image): RenderObjBase(global), format_(VK_FORMAT_UNDEFINED), layer_cnt_(0)
 {
 	Assign(image);
 }
@@ -21,13 +21,15 @@ void render::ImageView::Assign(const Image& image)
 		throw std::runtime_error("Image already assigned");
 	}
 
+	layer_cnt_ = image.GetLayerCount();
+
 //	std::optional<std::reference_wrapper<ReferencedType>>
 
 	VkImageViewCreateInfo view_info{};
 
 	view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	view_info.image = image.GetHandle();
-	view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	view_info.viewType = layer_cnt_ == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 	view_info.format = image.GetFormat();
 
 	format_ = image.GetFormat();
@@ -49,7 +51,7 @@ void render::ImageView::Assign(const Image& image)
 	view_info.subresourceRange.baseMipLevel = 0;
 	view_info.subresourceRange.levelCount = image.GetMipMapLevelsCount();
 	view_info.subresourceRange.baseArrayLayer = 0;
-	view_info.subresourceRange.layerCount = 1;
+	view_info.subresourceRange.layerCount = layer_cnt_;
 
 	if (vkCreateImageView(global_.logical_device, &view_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture image view!");
@@ -88,6 +90,11 @@ void render::ImageView::Assign(const Image& image)
 VkFormat render::ImageView::GetFormat() const
 {
 	return format_;
+}
+
+uint32_t render::ImageView::GetLayerCount() const
+{
+	return layer_cnt_;
 }
 
 render::ImageView::~ImageView()

@@ -85,6 +85,8 @@ namespace render
 
 			RenderNode& node;
 
+			uint32_t layers_cnt = 1;
+
 			util::NullableRef<Dependency> depends_on;
 
 			DescriptorSetForwarder operator>>(DescriptorSetType desc_type);
@@ -99,7 +101,7 @@ namespace render
 
 		RenderNode(const RenderGraph2& render_graph, const std::string& name, const ExtentType& extent);
 
-		Attachment& Attach(const std::string& name, Format format);
+		Attachment& Attach(const std::string& name, Format format, uint32_t layers_cnt = 1);
 		Attachment& AttachSwapchain();
 		Attachment& GetAttachment(const std::string& name);
 

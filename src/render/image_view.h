@@ -28,24 +28,18 @@ namespace render
 
 		void Assign(const Image& image);
 		
-		//uint32_t AddUsageFlag(uint32_t flag) const;
-		//uint32_t CheckUsageFlag(uint32_t flag) const;
-
 		VkFormat GetFormat() const;
+		uint32_t GetLayerCount() const;
 
 		virtual ~ImageView() override;
-
-		//util::NullableRef<const Image> GetImage() const;
 
 		bool deferred_delete_ = true;
 
 	protected:
 		
 		VkFormat format_;
+		uint32_t layer_cnt_;
 
-		//virtual bool InitHandle() const override;
-
-		//util::NullableRef<const Image> image_;
 	};
 }
 #endif  // RENDER_ENGINE_RENDER_IMAGE_VIEW_H_

@@ -17,6 +17,10 @@ namespace render
 		pipelines_.reserve(32);
 
 		g_build_node = render_graph_.AddNode("g_build", ExtentType::kPresentation);
+		cube_shadow_map_node = render_graph_.AddNode("cube_shadow_map", ExtentType::kShadowMap);
+
+
+
 		g_collect_node = render_graph_.AddNode("g_collect", ExtentType::kPresentation);
 		ui_node = render_graph_.AddNode("ui", ExtentType::kPresentation);
 
@@ -28,6 +32,8 @@ namespace render
 		g_build_node->Attach("g_normal", global.high_range_color_format) >> DescriptorSetType::kGBuffers >> 2 >> *g_collect_node;
 		g_build_node->Attach("g_metal_rough", global.high_range_color_format) >> DescriptorSetType::kGBuffers >> 3 >> *g_collect_node;
 		g_build_node->Attach("g_depth", global.depth_map_format);
+
+		cube_shadow_map_node->Attach("cube_depth", global.depth_map_format, 6);
 
 		auto&& swapchain_attachment = g_collect_node->AttachSwapchain() >> *ui_node;
 
@@ -109,8 +115,8 @@ namespace render
 			ShaderModule geom_shader_module(global_, "cube_depth.geom", descriptor_set_manager.GetLayouts());
 			//ShaderModule frag_shader_module(global_, "cube_depth.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.push_back(GraphicsPipeline(global_, *ui_node, vert_shader_module, geom_shader_module, util::NullableRef<const ShaderModule>(), extents, PrimitiveProps::kDebugPoints, {GraphicsPipeline::EParams::kPointTopology, GraphicsPipeline::EParams::kDisableDepthTest}));
-			//ui_node->AddPipeline(pipelines_.back());
+			pipelines_.push_back(GraphicsPipeline(global_, *cube_shadow_map_node, vert_shader_module, geom_shader_module, util::NullableRef<const ShaderModule>(), extents, PrimitiveProps::kOpaque));
+			cube_shadow_map_node->AddPipeline(pipelines_.back());
 		}
 	}
 }

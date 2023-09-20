@@ -113,6 +113,8 @@ namespace render
 		Image& operator=(Image&&) = default;
 
 		VkFormat GetFormat() const;
+		uint32_t GetLayerCount() const;
+
 
 		void TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type) const;
 		void CopyBuffer(const CommandPool& command_pool, const Buffer& buffer) const;
@@ -137,7 +139,7 @@ namespace render
 
 		VkFormat format_;
 
-		uint32_t layer_cnt_;
+		uint32_t layer_cnt_ = 1;
 		uint32_t mipmap_levels_count_;
 		mutable uint32_t usage_;
 

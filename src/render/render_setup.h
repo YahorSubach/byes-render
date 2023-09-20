@@ -38,6 +38,7 @@ namespace render
 		std::vector<GraphicsPipeline> pipelines_;
 
 		util::NullableRef<render::RenderNode> g_build_node;
+		util::NullableRef<render::RenderNode> cube_shadow_map_node;
 		util::NullableRef<render::RenderNode> g_collect_node;
 		util::NullableRef<render::RenderNode> ui_node;
 

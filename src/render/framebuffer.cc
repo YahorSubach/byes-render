@@ -10,10 +10,13 @@ render::Framebuffer::Framebuffer(const Global& global, const ConstructParams& pa
 {
 	std::vector<VkImageView> vk_attachments;
 
+	uint32_t layer_cnt = 0;
+
 	for (auto&& image_view : params.attachments)
 	{
 		vk_attachments.push_back(image_view.get().GetHandle());
 		formats_.push_back(image_view.get().GetFormat());
+		layer_cnt = std::max(layer_cnt, image_view.get().GetLayerCount());
 	}
 
 	//int attachments_cnt = render_pass_.GetAttachmentsCnt();
@@ -30,7 +33,7 @@ render::Framebuffer::Framebuffer(const Global& global, const ConstructParams& pa
 	framebuffer_info.pAttachments = vk_attachments.data();
 	framebuffer_info.width = extent_.width;
 	framebuffer_info.height = extent_.height;
-	framebuffer_info.layers = 1;
+	framebuffer_info.layers = layer_cnt;
 
 	framebuffer_info.flags = 0;
 

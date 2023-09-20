@@ -53,9 +53,9 @@ namespace render
 		attachments_.reserve(16);
 	}
 
-	RenderNode::Attachment& RenderNode::Attach(const std::string& name, Format format)
+	RenderNode::Attachment& RenderNode::Attach(const std::string& name, Format format, uint32_t layers_cnt)
 	{
-		attachments_.push_back({ name, format, false, *this });
+		attachments_.push_back({ name, format, false, *this, layers_cnt });
 		//assert(success);
 		return attachments_.back();
 	}
@@ -188,7 +188,7 @@ namespace render
 					continue;
 				}
 
-				Image image(global, attachment.format, extents[u32(RenderNode.GetExtentType())]);
+				Image image(global, attachment.format, extents[u32(RenderNode.GetExtentType())], attachment.layers_cnt);
 
 				if (attachment.format == global.depth_map_format)
 				{

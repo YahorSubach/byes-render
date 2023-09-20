@@ -131,6 +131,11 @@ VkFormat render::Image::GetFormat() const
 	return format_;
 }
 
+uint32_t render::Image::GetLayerCount() const
+{
+	return layer_cnt_;
+}
+
 void render::Image::TransitionImageLayout(const CommandPool& command_pool, TransitionType transfer_type) const
 {
 
@@ -274,7 +279,7 @@ bool render::Image::InitHandle() const
 	image_info.extent.height = static_cast<uint32_t>(extent_.height);
 	image_info.extent.depth = 1;
 	image_info.mipLevels = mipmap_levels_count_;
-	image_info.arrayLayers = 1;
+	image_info.arrayLayers = layer_cnt_;
 	image_info.format = format_;
 	image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -311,7 +316,7 @@ bool render::Image::InitHandle() const
 	image_info.pQueueFamilyIndices = sharing_queues_indices.data();
 
 	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-	image_info.flags = 0; // Optional
+	image_info.flags = layer_cnt_ == 6 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0; // Optional
 
 	if (vkCreateImage(global_.logical_device, &image_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create image!");
