@@ -305,6 +305,23 @@ namespace render
 		};
 	};
 
+	template<>
+	struct DescriptorSetBindings<DescriptorSetType::kCubeMap>
+	{
+		template<int i>
+		struct Binding { using NotBinded = void; };
+
+		template<>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Geometry>
+		{
+			struct Data
+			{
+				glm::mat4 cube_views[6];
+				glm::mat4 cube_proj;
+			};
+		};
+	};
+
 
 	template<DescriptorSetType Type>
 	struct DescriptorSet : DescriptorSetBindings<Type>

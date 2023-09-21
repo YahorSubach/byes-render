@@ -13,3 +13,5 @@ ENUM_OP(BitmapAtlas)
 ENUM_OP(GBuffers)
 
 ENUM_OP(Color)
+
+ENUM_OP(CubeMap)

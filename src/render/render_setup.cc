@@ -113,9 +113,9 @@ namespace render
 		{
 			ShaderModule vert_shader_module(global_, "cube_depth.vert", descriptor_set_manager.GetLayouts());
 			ShaderModule geom_shader_module(global_, "cube_depth.geom", descriptor_set_manager.GetLayouts());
-			//ShaderModule frag_shader_module(global_, "cube_depth.frag", descriptor_set_manager.GetLayouts());
+			ShaderModule frag_shader_module(global_, "cube_depth.frag", descriptor_set_manager.GetLayouts());
 
-			pipelines_.push_back(GraphicsPipeline(global_, *cube_shadow_map_node, vert_shader_module, geom_shader_module, util::NullableRef<const ShaderModule>(), extents, PrimitiveProps::kOpaque));
+			pipelines_.push_back(GraphicsPipeline(global_, *cube_shadow_map_node, vert_shader_module, geom_shader_module, frag_shader_module, extents, PrimitiveProps::kOpaque));
 			cube_shadow_map_node->AddPipeline(pipelines_.back());
 		}
 	}

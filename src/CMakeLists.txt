@@ -3,6 +3,7 @@ file(GLOB_RECURSE render_engine_SRC
      "*.h"
      "*.cpp"
      "*.cc"
+     "*.inl"
 )
 
 target_sources(render_engine 

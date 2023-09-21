@@ -27,6 +27,7 @@ render::DescriptorSetLayout::DescriptorSetLayout(const Global& global, Descripto
 
 			bindings[i].stageFlags =
 			((info.bindings[i].shaders_flags & ShaderTypeFlags::Vertex) != ShaderTypeFlags::Empty ? VK_SHADER_STAGE_VERTEX_BIT : 0) |
+			((info.bindings[i].shaders_flags & ShaderTypeFlags::Geometry) != ShaderTypeFlags::Empty ? VK_SHADER_STAGE_GEOMETRY_BIT : 0) |
 			((info.bindings[i].shaders_flags & ShaderTypeFlags::Fragment) != ShaderTypeFlags::Empty ? VK_SHADER_STAGE_FRAGMENT_BIT : 0);
 
 		bindings[i].pImmutableSamplers = nullptr;

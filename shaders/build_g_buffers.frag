@@ -10,13 +10,13 @@ layout(set = 2, binding = 2) uniform sampler2D Material_metallic_roughness;
 layout(set = 2, binding = 3) uniform sampler2D Material_normal_map;
 
 
-layout(set = 3, binding = 0) uniform LightPositionAndViewProjMat_0 {
-	vec4 position;
-	mat4 view_mat;
-	mat4 proj_mat;
-	float near;
-	float far;
-} shadow_light;
+//layout(set = 3, binding = 0) uniform LightPositionAndViewProjMat_0 {
+//	vec4 position;
+//	mat4 view_mat;
+//	mat4 proj_mat;
+//	float near;
+//	float far;
+//} shadow_light;
 
 layout(set = 4, binding = 0) uniform sampler2D Environement_envSampler;
 //layout(set = 4, binding = 1) uniform sampler2D Environement_shadowSampler;
@@ -121,9 +121,9 @@ void main() {
 
 
 
-	vec3 shadow_map_coord = GetShadowMapCoords(fragPosition);
+	//vec3 shadow_map_coord = GetShadowMapCoords(fragPosition);
 	
-	vec4 light_space_frag_pos = shadow_light.view_mat * vec4(fragPosition, 1);
+	//vec4 light_space_frag_pos = shadow_light.view_mat * vec4(fragPosition, 1);
 
 	//float shadow_map_value = GetShadowMapValue(vec2(shadow_map_coord.x/2+0.5,shadow_map_coord.y/2+0.5));
 	//shadow_map_value = LinearizeShadow(shadow_light.near, shadow_light.far, shadow_map_value);

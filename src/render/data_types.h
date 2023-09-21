@@ -79,6 +79,7 @@ namespace render
 		Empty = 0,
 
 		Vertex = 1 << static_cast<int>(ShaderType::Vertex),
+		Geometry = 1 << static_cast<int>(ShaderType::Geometry),
 		Fragment = 1 << static_cast<int>(ShaderType::Fragment),
 	};
 

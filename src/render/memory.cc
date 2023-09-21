@@ -12,6 +12,9 @@ using IndSizeAlign = std::tuple<uint32_t, uint32_t, uint32_t>;
 
 std::unordered_map<VkDeviceMemory, IndSizeAlign> memory_to_ind_size_align;
 
+std::vector<std::pair<int, int>> alocs_and_sizes(16);
+
+
 namespace render
 {
 
@@ -49,6 +52,9 @@ namespace render
 					allocInfo.allocationSize = chunk_size;
 					allocInfo.memoryTypeIndex = index;
 
+					alocs_and_sizes[index].first++;
+					alocs_and_sizes[index].second += chunk_size;
+
 					if (auto res = vkAllocateMemory(logical_device, &allocInfo, nullptr, &vk_memory); res != VK_SUCCESS) {
 						throw std::runtime_error("failed to allocate image memory!");
 					}
@@ -84,6 +90,8 @@ namespace render
 
 		if (size > 1024)
 		{
+			alocs_and_sizes[index].first--;
+			alocs_and_sizes[index].second-= size;
 			vkFreeMemory(logical_device, memory.vk_memory, nullptr);
 		}
 		else
@@ -109,6 +117,9 @@ namespace render
 			allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			allocInfo.allocationSize = size;
 			allocInfo.memoryTypeIndex = index;
+
+			alocs_and_sizes[index].first++;
+			alocs_and_sizes[index].second += size;
 
 			if (auto res = vkAllocateMemory(global.logical_device, &allocInfo, nullptr, &handle_.vk_memory); res != VK_SUCCESS) {
 				throw std::runtime_error("failed to allocate image memory!");
@@ -138,6 +149,7 @@ namespace render
 			if ((acceptable_memory_types_bits & (1 << i)) &&
 				(memory_properties.memoryTypes[i].propertyFlags & memory_flags) == memory_flags) {
 				memory_type_index = i;
+				break;
 			}
 		}
 
