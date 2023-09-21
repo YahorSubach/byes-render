@@ -82,7 +82,7 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Vertex | ShaderTypeFlags::Fragment>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Vertex | ShaderTypeFlags::Geometry | ShaderTypeFlags::Fragment>
 		{
 			struct Data
 			{
