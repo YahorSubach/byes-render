@@ -316,7 +316,16 @@ bool render::Image::InitHandle() const
 	image_info.pQueueFamilyIndices = sharing_queues_indices.data();
 
 	image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-	image_info.flags = layer_cnt_ == 6 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0; // Optional
+
+	if (layer_cnt_ % 6 == 0)
+	{
+		image_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+	}
+	else
+	{
+		image_info.flags = 0;
+	}
+
 
 	if (vkCreateImage(global_.logical_device, &image_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create image!");

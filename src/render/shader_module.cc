@@ -98,7 +98,7 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 	while (!file.eof())
 	{
 		character = file.get();
-		if (character == '=' || character == ';' || character == '(' || character == ')' || character == ';' || character == '_' || character == ',' || character == '/' || character == '*')
+		if (character == '=' /*|| character == ';'*/ || character == '(' || character == ')' || character == ';' || character == '_' || character == ',' || character == '/' || character == '*')
 			character = ' ';
 
 		processed_text << character;
@@ -211,7 +211,7 @@ void render::ShaderModule::FillInputDescsAndDescSets(const std::string& shader_p
 					{
 						processed_text >> token;
 
-						if (token == "sampler2D" && !processed_text.eof())
+						if (token.find("sampler") == 0 && !processed_text.eof())
 						{
 							processed_text >> token;
 						}

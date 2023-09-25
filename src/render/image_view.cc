@@ -29,7 +29,20 @@ void render::ImageView::Assign(const Image& image)
 
 	view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	view_info.image = image.GetHandle();
-	view_info.viewType = layer_cnt_ == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
+
+	if (layer_cnt_ == 6)
+	{
+		view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+	}
+	else if (layer_cnt_ % 6 == 0)
+	{
+		view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+	}
+	else
+	{
+		view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	}
+
 	view_info.format = image.GetFormat();
 
 	format_ = image.GetFormat();

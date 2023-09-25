@@ -106,7 +106,16 @@ namespace render
 		struct Binding {using NotBinded = void;};
 
 		template<>
-		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Vertex | ShaderTypeFlags::Fragment>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
+		{
+			struct Data
+			{
+				std::optional<SamplerData> cubemaps;
+			};
+		};
+
+		template<>
+		struct Binding<1> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Fragment>
 		{
 			struct Data
 			{
@@ -306,7 +315,7 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSetBindings<DescriptorSetType::kCubeMap>
+	struct DescriptorSetBindings<DescriptorSetType::kShadowCubeMapParams>
 	{
 		template<int i>
 		struct Binding { using NotBinded = void; };
@@ -322,6 +331,22 @@ namespace render
 		};
 	};
 
+
+	template<>
+	struct DescriptorSetBindings<DescriptorSetType::kShadowCubeMaps>
+	{
+		template<int i>
+		struct Binding { using NotBinded = void; };
+
+		template<>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kSampler, ShaderTypeFlags::Fragment>
+		{
+			struct Data
+			{
+				std::optional<SamplerData> cubemaps;
+			};
+		};
+	};
 
 	template<DescriptorSetType Type>
 	struct DescriptorSet : DescriptorSetBindings<Type>

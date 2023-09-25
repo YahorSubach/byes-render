@@ -412,7 +412,7 @@ namespace render
 		return true;
 	}
 
-	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kCubeMap>::Binding<0>::Data& data)
+	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kShadowCubeMapParams>::Binding<0>::Data& data)
 	{
 		//data.near_plane = 0.1f;
 		//data.far_plane = 100.f;
