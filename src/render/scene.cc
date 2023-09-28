@@ -426,16 +426,22 @@ namespace render
 
 
 
-		data.cube_views[0] = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)); // +X
-		data.cube_views[1] = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)); // -X
-		data.cube_views[2] = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // +Y
-		data.cube_views[3] = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)); // -Y
-		data.cube_views[4] = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)); // +Z
-		data.cube_views[5] = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f) + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)); // -Z
-
+		data.cube_views[0] = glm::lookAt(glm::vec3(0.0f), glm::vec3(1.0f, 0.0f, 0.0f),	glm::vec3(0.0f, 0.0f, -1.0f)); // +X
+		data.cube_views[1] = glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f, 0.0f, 0.0f),	glm::vec3(0.0f, 0.0f, -1.0f)); // -X
+		data.cube_views[2] = glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f),	glm::vec3(0.0f, 1.0f, 0.0f)); // +Y
+		data.cube_views[3] = glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, -1.0f),	glm::vec3(0.0f, -1.0f, 0.0f)); // -Y
+		data.cube_views[4] = glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f),	glm::vec3(0.0f, 0.0f, -1.0f)); // +Z
+		data.cube_views[5] = glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f),	glm::vec3(0.0f, 0.0f, -1.0f)); // -Z
 
 		data.cube_proj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 200.f);
 		data.cube_proj[1][1] *= -1;
+
+		data.positions[0] = glm::vec4(0.f, 0.f, 1.f, 1.f);
+		data.positions[1] = glm::vec4(0.f, -1.f, 2.f, 1.f);
+
+		data.mask = 0;
+		data.mask |= 0x1;
+		data.mask |= 0x2;
 
 		return true;
 	}

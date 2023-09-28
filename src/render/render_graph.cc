@@ -475,7 +475,7 @@ namespace render
 				barrier.subresourceRange.baseMipLevel = 0;
 				barrier.subresourceRange.levelCount = 1;
 				barrier.subresourceRange.baseArrayLayer = 0;
-				barrier.subresourceRange.layerCount = 1;
+				barrier.subresourceRange.layerCount = barrier_image->GetLayerCount();
 
 				vk_barriers.push_back(barrier);
 			}

@@ -33,7 +33,7 @@ namespace render
 		g_build_node->Attach("g_metal_rough", global.high_range_color_format) >> DescriptorSetType::kGBuffers >> 3 >> *g_collect_node;
 		g_build_node->Attach("g_depth", global.depth_map_format);
 
-		cube_shadow_map_node->Attach("cube_depth", global.depth_map_format, 6 * 16) >> DescriptorSetType::kShadowCubeMaps >> 0 >> *g_collect_node;
+		cube_shadow_map_node->Attach("cube_depth", global.depth_map_format, 6 * 10) >> DescriptorSetType::kShadowCubeMaps >> 0 >> *g_collect_node;
 
 		auto&& swapchain_attachment = g_collect_node->AttachSwapchain() >> *ui_node;
 

@@ -327,6 +327,8 @@ namespace render
 			{
 				glm::mat4 cube_views[6];
 				glm::mat4 cube_proj;
+				glm::vec4 positions[10];
+				uint32_t mask;
 			};
 		};
 	};
