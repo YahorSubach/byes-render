@@ -63,7 +63,7 @@ namespace render
 		}
 	}
 
-	bool GraphicsPipeline::InitPipeline(const RenderNode& render_node, util::NullableRef<const ShaderModule> vertex_shader_module, util::NullableRef<const ShaderModule> geometry_shader_module, 
+	bool GraphicsPipeline::InitPipeline(const RenderNode& render_node, util::NullableRef<const ShaderModule> vertex_shader_module, util::NullableRef<const ShaderModule> geometry_shader_module,
 		util::NullableRef<const ShaderModule> fragment_shader_module, const std::array<Extent, kExtentTypeCnt>& extents, Params params)
 	{
 		std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos;
@@ -89,7 +89,7 @@ namespace render
 			vertex_bindings_descs_ = vertex_shader_module->GetInputBindingsDescs();
 		}
 
-		if(geometry_shader_module)
+		if (geometry_shader_module)
 		{
 			VkPipelineShaderStageCreateInfo shader_stage_info{};
 			shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -100,7 +100,7 @@ namespace render
 			shader_stage_create_infos.push_back(shader_stage_info);
 		}
 
-		if(fragment_shader_module)
+		if (fragment_shader_module)
 		{
 			VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
 			frag_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -148,12 +148,26 @@ namespace render
 		rasterizer.rasterizerDiscardEnable = !fragment_shader_module; //then geometry never passes through the rasterizer stage. This basically disables any output to the framebuffer.
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = params.Check(EParams::kPointTopology) ? 10.0f : 1.0f;
-		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizer.cullMode = params.Check(EParams::kDepthBias) ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_BACK_BIT;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		rasterizer.depthBiasEnable = VK_FALSE;
-		rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-		rasterizer.depthBiasClamp = 0.0f; // Optional
-		rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+
+		if (params.Check(EParams::kDepthBias))
+		{
+			rasterizer.depthBiasEnable = VK_TRUE;
+			rasterizer.depthBiasConstantFactor = 10.0; // Optional
+			rasterizer.depthBiasClamp = 0.0f; // Optional
+			rasterizer.depthBiasSlopeFactor = 1.0f; // Optional
+
+		}
+		else
+		{
+			rasterizer.depthBiasEnable = VK_FALSE;
+			rasterizer.depthBiasConstantFactor = 0.0f; // Optional
+			rasterizer.depthBiasClamp = 0.0f; // Optional
+			rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+
+		}
+
 
 
 		VkPipelineMultisampleStateCreateInfo multisampling{};

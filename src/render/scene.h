@@ -60,7 +60,7 @@ namespace render
 		RenderModel model;
 	};
 
-	using SceneDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kShadowCubeMapParams, DescriptorSetType::kEnvironement>;
+	using SceneDescriptorSetHolder = descriptor_sets_holder::Holder<DescriptorSetType::kCameraPositionAndViewProjMat, DescriptorSetType::kShadowCubeViewProj, DescriptorSetType::kEnvironement>;
 
 	class /*Scene::*/Scene : public SceneDescriptorSetHolder
 	{
@@ -70,7 +70,7 @@ namespace render
 		void Update(int frame_index);
 
 		bool FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data) override;
-		bool FillData(render::DescriptorSet<render::DescriptorSetType::kShadowCubeMapParams>::Binding<0>::Data& data) override;
+		bool FillData(render::DescriptorSet<render::DescriptorSetType::kShadowCubeViewProj>::Binding<0>::Data& data) override;
 		bool FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data) override;
 
 		NodeId AddNode();

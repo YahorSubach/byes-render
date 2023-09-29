@@ -39,7 +39,8 @@ namespace render
 		{
 			kDisableDepthTest,
 			kLineTopology,
-			kPointTopology
+			kPointTopology,
+			kDepthBias
 		};
 
 		using Params = util::enums::Flags<EParams>;

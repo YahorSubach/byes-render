@@ -315,13 +315,13 @@ namespace render
 	};
 
 	template<>
-	struct DescriptorSetBindings<DescriptorSetType::kShadowCubeMapParams>
+	struct DescriptorSetBindings<DescriptorSetType::kShadowCubeViewProj>
 	{
 		template<int i>
 		struct Binding { using NotBinded = void; };
 
 		template<>
-		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Geometry>
+		struct Binding<0> : BindingBase<DescriptorBindingType::kUniform, ShaderTypeFlags::Geometry | ShaderTypeFlags::Fragment>
 		{
 			struct Data
 			{

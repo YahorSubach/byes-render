@@ -412,7 +412,7 @@ namespace render
 		return true;
 	}
 
-	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kShadowCubeMapParams>::Binding<0>::Data& data)
+	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kShadowCubeViewProj>::Binding<0>::Data& data)
 	{
 		//data.near_plane = 0.1f;
 		//data.far_plane = 100.f;
@@ -444,6 +444,16 @@ namespace render
 		data.mask = 0;
 		data.mask |= 0x1;
 		data.mask |= 0x2;
+
+		if (camera_node_id_)
+		{
+			auto&& camera_node = nodes_.Get(camera_node_id_);
+
+			data.mask |= 0x4;
+			data.positions[2] = camera_node.local_transform[3];
+			data.positions[2].w = 0.5f;
+			data.positions[2].z = 1.0f;
+		}
 
 		return true;
 	}

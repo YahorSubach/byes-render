@@ -14,5 +14,5 @@ ENUM_OP(GBuffers)
 
 ENUM_OP(Color)
 
-ENUM_OP(ShadowCubeMapParams)
+ENUM_OP(ShadowCubeViewProj)
 ENUM_OP(ShadowCubeMaps)
