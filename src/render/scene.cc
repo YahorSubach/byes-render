@@ -433,7 +433,7 @@ namespace render
 		data.cube_views[4] = glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f),	glm::vec3(0.0f, 0.0f, 1.0f)); // +Z
 		data.cube_views[5] = glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f),	glm::vec3(0.0f, 0.0f, 1.0f)); // -Z
 
-		data.cube_proj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 200.f);
+		data.cube_proj = glm::perspective(glm::radians(90.0f), 1.0f, 0.01f, 200.f);
 		data.cube_proj[1][1] *= -1;
 		//data.cube_proj[0][0] *= -1;
 
@@ -452,7 +452,7 @@ namespace render
 			data.mask |= 0x4;
 			data.positions[2] = camera_node.local_transform[3];
 			data.positions[2].w = 0.5f;
-			data.positions[2].z = 1.0f;
+			data.positions[2].z -= 0.5f;
 		}
 
 		return true;

@@ -578,7 +578,7 @@ namespace render
 		const std::vector<const char*>& GetRequiredDeviceExtensions()
 		{
 #ifndef NDEBUG1
-			static const std::vector<const char*> extensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_EXTENSION_NAME};
+			static const std::vector<const char*> extensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_EXTENSION_NAME };
 #else
 			static const std::vector<const char*> extensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME};
 #endif // !NDEBUG
@@ -861,6 +861,12 @@ namespace render
 				if (find_it != vk_physical_devices_extensions_[physical_device].end())
 				{
 					device_extensions.push_back(req);
+				}
+				else
+				{
+					using namespace std::chrono_literals;
+					std::cout << "Missing extension: " << req << std::endl;
+					//std::this_thread::sleep_for(5000ms);
 				}
 			}
 

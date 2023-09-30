@@ -148,13 +148,13 @@ namespace render
 		rasterizer.rasterizerDiscardEnable = !fragment_shader_module; //then geometry never passes through the rasterizer stage. This basically disables any output to the framebuffer.
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = params.Check(EParams::kPointTopology) ? 10.0f : 1.0f;
-		rasterizer.cullMode = params.Check(EParams::kDepthBias) ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_BACK_BIT;
+		rasterizer.cullMode = params.Check(EParams::kDepthBias) ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_BACK_BIT;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 		if (params.Check(EParams::kDepthBias))
 		{
 			rasterizer.depthBiasEnable = VK_TRUE;
-			rasterizer.depthBiasConstantFactor = 10.0; // Optional
+			rasterizer.depthBiasConstantFactor = 10.0f; // Optional
 			rasterizer.depthBiasClamp = 0.0f; // Optional
 			rasterizer.depthBiasSlopeFactor = 1.0f; // Optional
 
