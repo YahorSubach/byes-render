@@ -196,8 +196,6 @@ namespace render
 							glm::vec2 duv1 = tri_uvs[ind_1] - tri_uvs[ind_0];
 							glm::vec2 duv2 = tri_uvs[ind_2] - tri_uvs[ind_0];
 
-							duv2 *= -1;
-
 							glm::vec3 dpos1 = tri_verts[ind_1] - tri_verts[ind_0];
 							glm::vec3 dpos2 = tri_verts[ind_2] - tri_verts[ind_0];
 

@@ -405,6 +405,9 @@ namespace render
 											break;
 										}
 
+										//TODO: handle size of vertex attribute on shader parsing
+										assert(vertex_binding.stride == primitive_vertex_buffers[u32(attr.type)]->stride);
+
 										vertex_buffers[vertex_binding_index] = primitive_vertex_buffers[u32(attr.type)]->buffer->GetHandle();
 										vertex_buffer_offsets[vertex_binding_index] = primitive_vertex_buffers[u32(attr.type)]->offset;
 										vertex_buffers_cnt = std::max(vertex_buffers_cnt, vertex_binding_index + 1);
