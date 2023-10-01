@@ -200,6 +200,7 @@ namespace render::util
 	struct UniId
 	{
 		uint32_t value = -1;
+		bool Valid() { return value != -1; }
 	};
 
 	namespace container
@@ -228,10 +229,6 @@ namespace render::util
 					value = id.value;
 				}
 
-				operator bool()
-				{
-					return value != -1;
-				}
 			};
 
 			template<class T>

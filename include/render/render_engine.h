@@ -88,6 +88,15 @@ namespace render
 	};
 
 	template<>
+	struct ObjectDescription<ObjectType::Bitmap>
+	{
+		std::string image_path;
+
+		std::string name;
+	};
+
+
+	template<>
 	struct ObjectDescription<ObjectType::DbgPoints>
 	{
 		std::vector<glm::vec3> points;

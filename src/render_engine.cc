@@ -392,8 +392,6 @@ namespace render
 
 					while (command_count_to_execute-- > 0)
 					{
-
-
 						auto&& command = external_command_queue_.Pop();
 
 						if (std::holds_alternative<command::Load>(command))
@@ -426,13 +424,7 @@ namespace render
 							auto node_id = scenes_[0].AddNode();
 							auto&& node = scenes_[0].GetNode(node_id);
 
-							while (object_id_to_scene_object_id_.size() <= specified_command.object_id)
-							{
-								object_id_to_scene_object_id_.resize(object_id_to_scene_object_id_.size() * 3 / 2 + 1, ObjectInfo{ {}, (uint32_t)-1});
-							}
-
-							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
-							object_id_to_scene_object_id_[specified_command.object_id].id = node_id;
+							RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
 
 							scenes_[0].AddModel(node, *pack_model.mesh);
 						}
@@ -444,13 +436,8 @@ namespace render
 							auto node_id = scenes_[0].AddNode();
 							auto&& node = scenes_[0].GetNode(node_id);
 
-							while (object_id_to_scene_object_id_.size() <= specified_command.object_id)
-							{
-								object_id_to_scene_object_id_.resize(object_id_to_scene_object_id_.size() * 3 / 2 + 1, ObjectInfo{ {}, (uint32_t)-1 });
-							}
+							RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
 
-							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
-							object_id_to_scene_object_id_[specified_command.object_id].id = node_id;
 						}
 
 
@@ -464,13 +451,7 @@ namespace render
 							auto node_id = scenes_[0].AddNode();
 							auto&& node = scenes_[0].GetNode(node_id);
 
-							while (object_id_to_scene_object_id_.size() <= specified_command.object_id)
-							{
-								object_id_to_scene_object_id_.resize(object_id_to_scene_object_id_.size() * 3 / 2 + 1, ObjectInfo{ {}, (uint32_t)-1 });
-							}
-
-							object_id_to_scene_object_id_[specified_command.object_id].type = ObjectType::Node;
-							object_id_to_scene_object_id_[specified_command.object_id].id = node_id;
+							RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
 
 							scenes_[0].AddModel(node, model_packs[0].meshes.back());
 						}
@@ -527,6 +508,21 @@ namespace render
 
 			platform::JoinWindowThread(surface_ptr_->GetWindow());
 		}
+
+
+		void RegisterObject(ObjectType type, uint32_t external_id, util::UniId internal_id)
+		{
+
+			if (external_id >= object_id_to_scene_object_id_.size())
+			{
+				object_id_to_scene_object_id_.resize(1.3 * external_id + 1);
+			}
+
+			object_id_to_scene_object_id_[external_id].type = type;
+			object_id_to_scene_object_id_[external_id].id = internal_id;
+
+		}
+
 
 		void SetDebugLines(const std::vector<std::pair<DebugPoint, DebugPoint>> lines)
 		{

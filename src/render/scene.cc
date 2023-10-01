@@ -382,7 +382,7 @@ namespace render
 
 	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kCameraPositionAndViewProjMat>::Binding<0>::Data& data)
 	{
-		if (camera_node_id_)
+		if (camera_node_id_.Valid())
 		{
 			auto&& camera_node = nodes_.Get(camera_node_id_);
 
@@ -412,19 +412,8 @@ namespace render
 		return true;
 	}
 
-	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kShadowCubeViewProj>::Binding<0>::Data& data)
+	bool Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kShadowCubeViewProj>::Binding<0>::Data& data)
 	{
-		//data.near_plane = 0.1f;
-		//data.far_plane = 100.f;
-
-
-		//data.position = glm::vec4(2.0f, 1.0f, 4.0f, 1.0f);
-		//data.proj_mat = glm::perspective(glm::radians(60.0f), 1.f, data.near_plane, data.far_plane);
-		//data.proj_mat[1][1] *= -1;
-
-		//data.view_mat = glm::lookAt(glm::vec3(2.0f, 1.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-
 
 		data.cube_views[0] = glm::lookAt(glm::vec3(0.0f), glm::vec3(1.0f, 0.0f, 0.0f),	glm::vec3(0.0f, 0.0f, 1.0f)); // +X
 		data.cube_views[1] = glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f, 0.0f, 0.0f),	glm::vec3(0.0f, 0.0f, 1.0f)); // -X
@@ -445,7 +434,7 @@ namespace render
 		data.mask |= 0x1;
 		data.mask |= 0x2;
 
-		if (camera_node_id_)
+		if (camera_node_id_.Valid())
 		{
 			auto&& camera_node = nodes_.Get(camera_node_id_);
 
@@ -458,7 +447,7 @@ namespace render
 		return true;
 	}
 
-	bool /*Scene::*/Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
+	bool Scene::FillData(render::DescriptorSet<render::DescriptorSetType::kEnvironement>::Binding<0>::Data& data)
 	{
 		SamplerData sampler_data{ env_image_ , global_.mipmap_cnt_to_global_samplers[env_image_.GetMipMapLevelsCount()] };
 		data.environement = sampler_data;
