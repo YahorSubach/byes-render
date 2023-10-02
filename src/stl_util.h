@@ -10,6 +10,28 @@
 
 namespace render::util
 {
+	template<class T>
+	class DeleterWrapper
+	{
+		using DeleterType = decltype([](T& value) {});
+		T value_;
+		DeleterType deleter_;
+	public:
+		DeleterWrapper(const T& value, const DeleterType& deleter) : value_(value), deleter_(deleter) {}
+		
+		operator T& () { return value_; }
+		operator const T& () const { return value_; }
+
+		T* operator&() { return &value_; }
+		const T* operator&() const { return &value_; }
+		
+		~DeleterWrapper()
+		{
+			deleter_(value_);
+		}
+	};
+
+
 	struct ContainerCheckResult
 	{
 		std::any result_data;

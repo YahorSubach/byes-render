@@ -6,6 +6,7 @@
 #include <array>
 #include <variant>
 #include <vector>
+#include <string>
 #include <cmath>
 #include <memory>
 #include <windows.h>
@@ -116,6 +117,12 @@ namespace render
 			std::shared_ptr<tinygltf::Model> model;
 		};
 
+		struct Image
+		{
+			std::string name;
+			std::string path;
+		};
+
 		struct SetActiveCameraNode
 		{
 			ObjectId<ObjectType::Node> node_id;
@@ -183,7 +190,7 @@ namespace render
 	class RenderEngine
 	{
 	public:
-		RenderEngine(InitParam param);
+		RenderEngine(InitParam param, const std::string& app_name);
 
 		//void CreateGraphicsPipeline();
 		void StartRender();

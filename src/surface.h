@@ -10,10 +10,29 @@
 
 namespace render
 {
+
+	class RenderApiInstance : public RenderObjBase<VkInstance>
+	{
+	public:
+		RenderApiInstance(const Global& global, const std::string& app_name);
+
+		~RenderApiInstance();
+
+	private:
+		const std::vector<const char*>& GetValidationLayers();
+		bool InitInstanceExtensions();
+		bool InitInstanceLayers();
+		
+		bool valid_;
+
+		std::vector<VkLayerProperties > vk_instance_layers_;
+		std::vector<VkExtensionProperties> vk_instance_extensions_;
+	};
+
 	class Surface: public RenderObjBase<VkSurfaceKHR>
 	{
 	public:
-		Surface(platform::Window window_handle, const VkInstance& instance, const Global& global);
+		Surface(platform::Window window_handle, const RenderApiInstance& instance, const Global& global);
 
 		Surface(const Surface&) = delete;
 		Surface(Surface&&) = default;
