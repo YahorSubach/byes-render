@@ -6,17 +6,15 @@
 
 #include "global.h"
 
-int print_sets = 0;
 
-PFN_vkCmdDebugMarkerBeginEXT pfnCmdDebugMarkerBegin;
-PFN_vkCmdDebugMarkerEndEXT pfnCmdDebugMarkerEnd; 
+extern PFN_vkCmdDebugMarkerBeginEXT pfnCmdDebugMarkerBegin;
+extern PFN_vkCmdDebugMarkerEndEXT pfnCmdDebugMarkerEnd; 
 
 namespace render
 {
 	RenderGraph2::RenderGraph2(const Global& global) : RenderObjBase(global)
 	{
-		pfnCmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(global.logical_device, "vkCmdDebugMarkerBeginEXT");
-		pfnCmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(global.logical_device, "vkCmdDebugMarkerEndEXT");
+
 	}
 
 	RenderNode& RenderGraph2::AddNode(const std::string& name, ExtentType extent_type)
@@ -266,7 +264,7 @@ namespace render
 		}
 	}
 
-	bool RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, /*Scene::*/Scene& scene) const
+	bool RenderGraphHandler::FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const Scene& scene) const
 	{
 		VkCommandBufferBeginInfo begin_info{};
 		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

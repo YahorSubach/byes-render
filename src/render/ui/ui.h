@@ -34,7 +34,7 @@ namespace render::ui
 	class UI: public RenderObjBase<void*>
 	{
 	public:
-		UI(Global& global);
+		UI(const Global& global);
 
 
 		const std::vector<BufferAccessor>& GetVertexBuffers() const;

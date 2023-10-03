@@ -16,8 +16,7 @@
 namespace render
 {
 	FrameHandler::FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup,
-		const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager,
-		const ui::UI& ui, const Scene& scene) :
+		const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager) :
 		RenderObjBase(global), swapchain_(swapchain.GetHandle()), graphics_queue_(global.graphics_queue),
 		command_buffer_(global.graphics_cmd_pool->GetCommandBuffer()),
 		image_available_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
@@ -25,7 +24,6 @@ namespace render
 		cmd_buffer_fence_(vk_util::CreateFence(global.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
 		render_setup_(render_setup),
 		render_graph_handler_(global, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
-		ui_(ui),
 		descriptor_set_manager_(descriptor_set_manager)
 	{
 		handle_ = (void*)(1);
@@ -33,7 +31,7 @@ namespace render
 
 	extern void FreeMemory(VkDevice logical_device, OffsettedMemory memory);
 
-	bool FrameHandler::Draw(const FrameInfo& frame_info, /*Scene::*/Scene& scene)
+	bool FrameHandler::Draw(const FrameInfo& frame_info, const Scene& scene)
 	{
 		submit_info_.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -106,19 +104,6 @@ namespace render
 
 		}
 
-
-		scene.Update(frame_info.frame_index);
-		int i = 0;
-		for (auto&& model : scene.models_)
-		{
-			model.UpdateAndTryFillWrites(frame_info.frame_index);
-			i++;
-			for (auto&& primitive : model.mesh->primitives)
-			{
-				std::visit([&frame_info](auto&& primitive) {primitive.UpdateAndTryFillWrites(frame_info.frame_index); }, primitive);
-				int a = 1;
-			}
-		}
 
 		render_graph_handler_.FillCommandBuffer(command_buffer_, frame_info, scene);
 

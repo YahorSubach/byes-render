@@ -20,7 +20,7 @@ namespace render
 	public:
 
 		FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup,
-			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager, const ui::UI& ui, const Scene& scene);
+			const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager);
 		
 		FrameHandler(const FrameHandler&) = delete;
 		FrameHandler(FrameHandler&&) = default;
@@ -32,7 +32,7 @@ namespace render
 
 
 
-		bool Draw(const FrameInfo& frame_info, /*Scene::*/Scene& scene);
+		bool Draw(const FrameInfo& frame_info, const Scene& scene);
 
 		VkSemaphore GetImageAvailableSemaphore() const;
 
@@ -55,7 +55,6 @@ namespace render
 
 		VkQueue graphics_queue_;
 
-		const ui::UI& ui_;
 		DescriptorSetsManager& descriptor_set_manager_;
 
 		const RenderSetup& render_setup_;

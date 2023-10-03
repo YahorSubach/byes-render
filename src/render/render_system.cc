@@ -2,10 +2,15 @@
 
 #include "platform.h"
 
+PFN_vkCmdDebugMarkerBeginEXT pfnCmdDebugMarkerBegin;
+PFN_vkCmdDebugMarkerEndEXT pfnCmdDebugMarkerEnd;
+
+
 namespace render
 {
 	
-	RenderSystem::RenderSystem(platform::Window window, const std::string& app_name): api_instance_(global_, app_name), surface_(window, api_instance_, global_)
+	RenderSystem::RenderSystem(platform::Window window, const std::string& app_name): 
+		api_instance_(global_, app_name), surface_(window, api_instance_, global_)
 	{
 		if (!InitPhysicalDevices())
 		{
@@ -14,15 +19,15 @@ namespace render
 		}
 
 
-		uint32_t selected_device_index = DetermineDeviceForUse();
+		selected_device_index_ = DetermineDeviceForUse();
 
-		if (selected_device_index == -1)
+		if (selected_device_index_ == -1)
 		{
 			LOG(err, "Could not determine valid device");
 			return;
 		}
 
-		auto physical_device = vk_physical_devices_[selected_device_index];
+		auto physical_device = vk_physical_devices_[selected_device_index_];
 
 
 		selected_graphics_queue_index_ = FindDeviceQueueFamalyWithFlag(physical_device, VK_QUEUE_GRAPHICS_BIT);
@@ -45,10 +50,20 @@ namespace render
 			return;
 		}
 
-		graphics_command_pool_ptr_ = std::make_unique<CommandPool>(global_, CommandPool::PoolType::kGraphics);
-		transfer_command_pool_ptr_ = std::make_unique<CommandPool>(global_, CommandPool::PoolType::kTransfer);
-
 		FillGlobal();
+
+		
+
+
+		pfnCmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(global_.logical_device, "vkCmdDebugMarkerBeginEXT");
+		pfnCmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(global_.logical_device, "vkCmdDebugMarkerEndEXT");
+
+		descriptor_set_manager_.emplace(global_);
+
+		render_setup_.emplace(global_);
+		render_setup_.value().Build();
+
+
 	}
 
 	void RenderSystem::FillGlobal()
@@ -58,7 +73,7 @@ namespace render
 
 		global_.graphics_queue_index = selected_graphics_queue_index_;
 		global_.transfer_queue_index = selected_transfer_queue_index_;
-		global_.logical_device = vk_logical_devices_[0];
+		global_.logical_device = vk_logical_devices_[selected_device_index_];
 
 		//TODO: ugly motherfucker. Do smthing with this queue init..
 
@@ -72,14 +87,14 @@ namespace render
 			global_.transfer_queue = global_.graphics_queue;
 		}
 
+		graphics_command_pool_ptr_ = std::make_unique<CommandPool>(global_, CommandPool::PoolType::kGraphics);
+		transfer_command_pool_ptr_ = std::make_unique<CommandPool>(global_, CommandPool::PoolType::kTransfer);
+
 		global_.graphics_cmd_pool = graphics_command_pool_ptr_.get();
 		global_.transfer_cmd_pool = transfer_command_pool_ptr_.get();
 	
-		Image error_image(global_, Image::BuiltinImageType::kError);
-		global_.error_image = error_image;
-
-		Image default_normal(global_, Image::BuiltinImageType::kNormal);
-		global_.default_normal = default_normal;
+		global_.error_image.emplace(global_, Image::BuiltinImageType::kError);
+		global_.default_normal.emplace(global_, Image::BuiltinImageType::kNormal);
 
 		global_.presentation_format = surface_.GetSurfaceFormat(global_.physical_device).format;
 
@@ -93,9 +108,93 @@ namespace render
 		DescriptorSetsManager descriptor_set_manager(global_);
 	}
 
-	void RenderSystem::Render()
+	void RenderSystem::Render(uint32_t frame_index, const Scene& scene)
 	{
+		if (!swapchain_)
+		{
+			global_.graphics_cmd_pool->ClearCommandBuffers();
+			global_.graphics_cmd_pool->CreateCommandBuffers(kFramesCount);
+
+			swapchain_.emplace(global_, surface_);
+
+			auto&& swapchain = swapchain_.value();
+
+			auto swapchain_extent = swapchain.GetExtent();
+			extents_[int(ExtentType::kPresentation)] = swapchain_extent;
+			extents_[int(ExtentType::kViewport)] = swapchain_extent;
+			extents_[int(ExtentType::kShadowMap)] = {512, 512};
+
+			render_setup_.value().InitPipelines(descriptor_set_manager_.value(), extents_);
+
+			for (int i = 0; i < swapchain.GetImagesCount(); i++)
+			{
+				Framebuffer::ConstructParams params
+				{
+					render_setup_.value().GetSwapchainRenderPass(),
+					swapchain_extent
+				};
+
+				params.attachments.push_back(swapchain.GetImageView(i));
+
+				swapchain_framebuffers_[i].emplace(global_, params);
+			}
+
+			for (int i = 0; i < kFramesCount; i++)
+			{
+				frames_[i].emplace(global_, swapchain, render_setup_.value(), extents_, descriptor_set_manager_.value());
+			}
+		}
+
+		auto&& swapchain = swapchain_.value();
+
+
+		global_.frame_ind = frame_index;
+
+		uint32_t swapchain_image_index;
+
+		auto&& frame = frames_[frame_index].value();
+
+		VkResult result = vkAcquireNextImageKHR(global_.logical_device, swapchain.GetHandle(), UINT64_MAX,
+			frame.GetImageAvailableSemaphore(), VK_NULL_HANDLE, &swapchain_image_index);
+
+		if (result != VK_SUCCESS)
+		{
+			if (result == VK_ERROR_OUT_OF_DATE_KHR)
+			{
+				swapchain_.reset();
+				vkDeviceWaitIdle(global_.logical_device);
+				return;
+			}
+			
+			DebugBreak();
+		}
+
+		FrameInfo frame_info
+		{
+			swapchain_framebuffers_[swapchain_image_index].value(),
+			swapchain.GetImage(swapchain_image_index),
+			swapchain_image_index,
+			frame_index
+		};
+
+		if (!frame.Draw(frame_info, scene))
+		{
+			swapchain_.reset();
+			vkDeviceWaitIdle(global_.logical_device);
+			return;
+		}
 	}
+
+	const Global& RenderSystem::GetGlobal() const
+	{
+		return global_;
+	}
+
+	DescriptorSetsManager& RenderSystem::GetDescriptorSetsManager()
+	{
+		return descriptor_set_manager_.value();
+	}
+
 	bool RenderSystem::InitPhysicalDevices()
 	{
 		uint32_t physical_devices_count;
@@ -357,11 +456,16 @@ namespace render
 		logical_device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
 		logical_device_create_info.pQueueCreateInfos = queue_create_infos.data();
 
-		vk_logical_devices_.emplace_back();
+		vk_logical_devices_.emplace_back(VK_NULL_HANDLE, [](const VkDevice& device) {vkDestroyDevice(device, nullptr); });
 
 		if (vkCreateDevice(physical_device, &logical_device_create_info, nullptr, &vk_logical_devices_[vk_logical_devices_.size() - 1]) != VK_SUCCESS)
 			return false;
 		return true;
+	}
+
+	bool RenderSystem::ShouldRender() const
+	{
+		return !surface_.Closed();
 	}
 
 	uint32_t RenderSystem::FindDeviceQueueFamalyWithFlag(const VkPhysicalDevice& physical_deivce, VkQueueFlags enabled_flags, VkQueueFlags disabled_flags)

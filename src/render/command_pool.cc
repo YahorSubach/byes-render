@@ -19,8 +19,6 @@ render::CommandPool::CommandPool(const Global& global, PoolType pool_type): Rend
 		pool_queue_ = global.transfer_queue;
 	}
 
-
-
 	if (vkCreateCommandPool(global_.logical_device, &pool_info, nullptr, &handle_) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
 	}

@@ -23,6 +23,8 @@ namespace render
 
 		RenderSetup(const Global& global);
 
+		void Build();
+
 		void InitPipelines(const DescriptorSetsManager& descriptor_set_manager, const std::array<Extent, kExtentTypeCnt>& extents);
 
 		const RenderGraph2& GetRenderGraph() const;

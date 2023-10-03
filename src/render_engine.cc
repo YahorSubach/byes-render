@@ -119,262 +119,170 @@ namespace render
 			static auto start_time_fps = std::chrono::high_resolution_clock::now();
 
 
-			platform::ShowWindow(surface_ptr_->GetWindow());
 
-			bool should_refresh_swapchain = true;
+			model_packs.push_back(ModelPack(render_system_.GetGlobal(), render_system_.GetDescriptorSetsManager()));
 
-			std::vector<FrameHandler> frames;
+			DebugGeometry dg(render_system_.GetGlobal(), render_system_.GetDescriptorSetsManager());
 
-			glm::vec3 position(2, 2, 1.7);
-
-			uint32_t current_frame_index = -1;
-
-
-
-
-
-			DescriptorSetsManager descriptor_set_manager(global_);
-			RenderSetup render_setup(global_);
-
-			model_packs.push_back(ModelPack(global_, descriptor_set_manager));
-
-			DebugGeometry dg(global_, descriptor_set_manager);
-
-			scenes_.emplace_back(global_, descriptor_set_manager, dg); // TODO fix scene impl move
+			scenes_.emplace_back(render_system_.GetGlobal(), render_system_.GetDescriptorSetsManager(), dg); // TODO fix scene impl move
 
 			ready = true;
 			uint32_t frame_cnt = 0;
 
-			ui::UI ui(global_);
+			ui::UI ui(render_system_.GetGlobal());
 			std::shared_ptr<ui::Panel> screen_panel;
 			std::shared_ptr<ui::TextBlock> block;
-			while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && should_refresh_swapchain)
+
+			if (screen_panel)
 			{
-				//descriptor_set_manager.FreeAll();
-
-				graphics_command_pool_ptr_->ClearCommandBuffers();
-				graphics_command_pool_ptr_->CreateCommandBuffers(kFramesCount);
-
-				should_refresh_swapchain = false;
-
-				Swapchain swapchain(global_, *surface_ptr_);
-
-				auto swapchain_extent = swapchain.GetExtent();
-
-				std::array<Extent, kExtentTypeCnt> extents
-				{
-					swapchain_extent,
-						swapchain_extent,
-					{ 512,512 }
-				};
-
-				scenes_[0].aspect = 1.0f * swapchain_extent.width / swapchain_extent.height;
-
-				render_setup.InitPipelines(descriptor_set_manager, extents);
-
-
-
-				std::vector<Framebuffer> swapchain_framebuffers;
-
-				for (int i = 0; i < swapchain.GetImagesCount(); i++)
-				{
-					Framebuffer::ConstructParams params
-					{
-						render_setup.GetSwapchainRenderPass(),
-							swapchain.GetExtent()
-					};
-
-					params.attachments.push_back(swapchain.GetImageView(i));
-
-					swapchain_framebuffers.push_back(Framebuffer(global_, params));
-				}
-
-				frames.clear();
-				frames.reserve(kFramesCount);
-
-				if (screen_panel)
-				{
-					screen_panel->SetWidth(swapchain_extent.width);
-					screen_panel->SetHeight(swapchain_extent.height);
-				}
-
-				for (size_t frame_ind = 0; frame_ind < kFramesCount; frame_ind++)
-				{
-					frames.push_back(FrameHandler(global_, swapchain, render_setup, extents, descriptor_set_manager, ui, scenes_[0]));
-				}
-
-
-
-				while (!platform::IsWindowClosed(surface_ptr_->GetWindow()) && !should_refresh_swapchain)
-				{
-
-					frame_cnt++;
-
-					current_frame_index = (current_frame_index + 1) % kFramesCount;
-					global_.frame_ind = current_frame_index;
-
-					uint32_t image_index;
-
-					VkResult result = vkAcquireNextImageKHR(global_.logical_device, swapchain.GetHandle(), UINT64_MAX,
-						frames[current_frame_index].GetImageAvailableSemaphore(), VK_NULL_HANDLE, &image_index);
-
-
-					if (result != VK_SUCCESS)
-					{
-						if (result == VK_ERROR_OUT_OF_DATE_KHR)
-						{
-							should_refresh_swapchain = true;
-						}
-						continue;
-					}
-
-					FrameInfo frame_info
-					{
-						swapchain_framebuffers[image_index],
-						swapchain.GetImage(image_index),
-						image_index,
-						current_frame_index
-					};
-
-					should_refresh_swapchain = !frames[current_frame_index].Draw(frame_info, scenes_[0]);
-
-					int command_count_to_execute = external_command_queue_.Size();
-
-
-
-					if (block)
-					{
-						std::chrono::duration<float> dur = std::chrono::high_resolution_clock::now() - start_time_fps;
-
-						std::string s = std::to_string(1.0f * frame_cnt / dur.count());
-						std::basic_string<char32_t> us(s.data(), s.data() + s.length());
-
-						if (dur.count() > 3)
-						{
-							start_time_fps = std::chrono::high_resolution_clock::now();
-							frame_cnt = 0;
-						}
-
-						block->SetText(us, 30);
-					}
-
-					while (command_count_to_execute-- > 0)
-					{
-						auto&& command = external_command_queue_.Pop();
-
-						if (std::holds_alternative<command::Load>(command))
-						{
-							model_packs.push_back(ModelPack(global_, descriptor_set_manager));
-
-							auto&& specified_command = std::get<command::Load>(command);
-							model_packs.back().AddGLTF(*specified_command.model);
-							model_packs_name_to_index.emplace(specified_command.pack_name, (uint32_t)(model_packs.size() - 1));
-						}
-
-						if (std::holds_alternative<command::Geometry>(command))
-						{
-							auto&& specified_command = std::get<command::Geometry>(command);
-
-							model_packs[0].AddSimpleMesh(specified_command.faces, PrimitiveProps::kDebugPos);
-
-							auto node_id = scenes_[0].AddNode();
-							auto&& scene_node = scenes_[0].GetNode(node_id);
-							scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
-						}
-
-						if (std::holds_alternative<command::AddObject<ObjectType::StaticModel>>(command))
-						{
-							auto&& specified_command = std::get<command::AddObject<ObjectType::StaticModel>>(command);
-
-							auto&& pack = model_packs[model_packs_name_to_index.at(specified_command.desc.pack_name)];
-							auto&& pack_model = pack.models[specified_command.desc.model_name];
-
-							auto node_id = scenes_[0].AddNode();
-							auto&& node = scenes_[0].GetNode(node_id);
-
-							RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
-
-							scenes_[0].AddModel(node, *pack_model.mesh);
-						}
-
-						if (std::holds_alternative<command::AddObject<ObjectType::Node>>(command))
-						{
-							auto&& specified_command = std::get<command::AddObject<ObjectType::Node>>(command);
-
-							auto node_id = scenes_[0].AddNode();
-							auto&& node = scenes_[0].GetNode(node_id);
-
-							RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
-
-						}
-
-
-						if (std::holds_alternative<command::AddObject<ObjectType::DbgPoints>>(command))
-						{
-							auto&& specified_command = std::get<command::AddObject<ObjectType::DbgPoints>>(command);
-
-							model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
-							std::get<primitive::Geometry>(model_packs[0].meshes.back().primitives.back()).material.color = specified_command.desc.color;
-
-							auto node_id = scenes_[0].AddNode();
-							auto&& node = scenes_[0].GetNode(node_id);
-
-							RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
-
-							scenes_[0].AddModel(node, model_packs[0].meshes.back());
-						}
-
-						if (std::holds_alternative<command::AddObject<ObjectType::Camera>>(command))
-						{
-							auto&& specified_command = std::get<command::AddObject<ObjectType::Camera>>(command);
-						}
-
-						if (std::holds_alternative<command::SetActiveCameraNode>(command))
-						{
-							auto&& specified_command = std::get<command::SetActiveCameraNode>(command);
-
-							auto&& info = object_id_to_scene_object_id_[specified_command.node_id.value];
-							scenes_[0].camera_node_id_ = { info.id };
-
-							screen_panel = std::make_shared<ui::Panel>(scenes_[0], 0, 0, extents[u32(ExtentType::kPresentation)].width, extents[u32(ExtentType::kPresentation)].height);
-							block = std::make_shared<ui::TextBlock>(ui, scenes_[0], descriptor_set_manager, 30, 30);
-							block->SetText(U"Жопич", 30);
-							screen_panel->AddChild(block);
-						}
-
-						if (std::holds_alternative<command::ObjectsUpdate>(command))
-						{
-							auto&& specified_command = std::get<command::ObjectsUpdate>(command);
-
-							for (auto&& [id, transform] : specified_command.updates)
-							{
-								if (object_id_to_scene_object_id_.size() > id)
-								{
-									if (object_id_to_scene_object_id_[id].type == ObjectType::Node)
-									{
-										NodeId node_id = object_id_to_scene_object_id_[id].id;
-										auto&& node = scenes_[0].GetNode({ node_id });
-										node.local_transform = transform;
-									}
-								}
-							}
-
-							//model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
-							//model_packs[0].meshes.back().primitives.back().material.color = specified_command.desc.color;
-
-							//Node node{};
-							//node.local_transform = glm::identity<glm::mat4>();
-							//auto&& scene_node = scenes_[0].AddNode(node);
-							//scenes_[0].AddModel(scene_node, model_packs[0].meshes.back());
-						}
-
-					}
-				}
-
-				vkDeviceWaitIdle(global_.logical_device);
+				screen_panel->SetWidth(512);
+				screen_panel->SetHeight(512);
 			}
 
-			platform::JoinWindowThread(surface_ptr_->GetWindow());
+			int current_frame_index = -1;
+
+			while (render_system_.ShouldRender())
+			{
+				current_frame_index = (current_frame_index + 1) % kFramesCount;
+				frame_cnt++;
+
+				scenes_[0].Update(current_frame_index);
+				int i = 0;
+				for (auto&& model : scenes_[0].models_)
+				{
+					model.UpdateAndTryFillWrites(current_frame_index);
+					i++;
+					for (auto&& primitive : model.mesh->primitives)
+					{
+						std::visit([&current_frame_index](auto&& primitive) {primitive.UpdateAndTryFillWrites(current_frame_index); }, primitive);
+					}
+				}
+
+				render_system_.Render(current_frame_index, scenes_[0]);
+
+
+				
+				int command_count_to_execute = external_command_queue_.Size();
+
+				if (block)
+				{
+					std::chrono::duration<float> dur = std::chrono::high_resolution_clock::now() - start_time_fps;
+
+					std::string s = std::to_string(1.0f * frame_cnt / dur.count());
+					std::basic_string<char32_t> us(s.data(), s.data() + s.length());
+
+					if (dur.count() > 3)
+					{
+						start_time_fps = std::chrono::high_resolution_clock::now();
+						frame_cnt = 0;
+					}
+
+					block->SetText(us, 30);
+				}
+
+				while (command_count_to_execute-- > 0)
+				{
+					auto&& command = external_command_queue_.Pop();
+
+					if (std::holds_alternative<command::Load>(command))
+					{
+						model_packs.push_back(ModelPack(render_system_.GetGlobal(), render_system_.GetDescriptorSetsManager()));
+
+						auto&& specified_command = std::get<command::Load>(command);
+						model_packs.back().AddGLTF(*specified_command.model);
+						model_packs_name_to_index.emplace(specified_command.pack_name, (uint32_t)(model_packs.size() - 1));
+					}
+
+					if (std::holds_alternative<command::Geometry>(command))
+					{
+						auto&& specified_command = std::get<command::Geometry>(command);
+
+						model_packs[0].AddSimpleMesh(specified_command.faces, PrimitiveProps::kDebugPos);
+
+						auto node_id = scenes_[0].AddNode();
+						auto&& scene_node = scenes_[0].GetNode(node_id);
+						scenes_[0].AddModel(scene_node, model_packs[0].meshes[0]);
+					}
+
+					if (std::holds_alternative<command::AddObject<ObjectType::StaticModel>>(command))
+					{
+						auto&& specified_command = std::get<command::AddObject<ObjectType::StaticModel>>(command);
+
+						auto&& pack = model_packs[model_packs_name_to_index.at(specified_command.desc.pack_name)];
+						auto&& pack_model = pack.models[specified_command.desc.model_name];
+
+						auto node_id = scenes_[0].AddNode();
+						auto&& node = scenes_[0].GetNode(node_id);
+
+						RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
+
+						scenes_[0].AddModel(node, *pack_model.mesh);
+					}
+
+					if (std::holds_alternative<command::AddObject<ObjectType::Node>>(command))
+					{
+						auto&& specified_command = std::get<command::AddObject<ObjectType::Node>>(command);
+
+						auto node_id = scenes_[0].AddNode();
+						auto&& node = scenes_[0].GetNode(node_id);
+
+						RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
+
+					}
+
+
+					if (std::holds_alternative<command::AddObject<ObjectType::DbgPoints>>(command))
+					{
+						auto&& specified_command = std::get<command::AddObject<ObjectType::DbgPoints>>(command);
+
+						model_packs[0].AddSimpleMesh(specified_command.desc.points, PrimitiveProps::kDebugPoints);
+						std::get<primitive::Geometry>(model_packs[0].meshes.back().primitives.back()).material.color = specified_command.desc.color;
+
+						auto node_id = scenes_[0].AddNode();
+						auto&& node = scenes_[0].GetNode(node_id);
+
+						RegisterObject(ObjectType::Node, specified_command.object_id, node_id);
+
+						scenes_[0].AddModel(node, model_packs[0].meshes.back());
+					}
+
+					if (std::holds_alternative<command::AddObject<ObjectType::Camera>>(command))
+					{
+						auto&& specified_command = std::get<command::AddObject<ObjectType::Camera>>(command);
+					}
+
+					if (std::holds_alternative<command::SetActiveCameraNode>(command))
+					{
+						auto&& specified_command = std::get<command::SetActiveCameraNode>(command);
+
+						auto&& info = object_id_to_scene_object_id_[specified_command.node_id.value];
+						scenes_[0].camera_node_id_ = { info.id };
+
+						screen_panel = std::make_shared<ui::Panel>(scenes_[0], 0, 0, 512, 512);
+						block = std::make_shared<ui::TextBlock>(ui, scenes_[0], render_system_.GetDescriptorSetsManager(), 30, 30);
+						block->SetText(U"Жопич", 30);
+						screen_panel->AddChild(block);
+					}
+
+					if (std::holds_alternative<command::ObjectsUpdate>(command))
+					{
+						auto&& specified_command = std::get<command::ObjectsUpdate>(command);
+
+						for (auto&& [id, transform] : specified_command.updates)
+						{
+							if (object_id_to_scene_object_id_.size() > id)
+							{
+								if (object_id_to_scene_object_id_[id].type == ObjectType::Node)
+								{
+									NodeId node_id = object_id_to_scene_object_id_[id].id;
+									auto&& node = scenes_[0].GetNode({ node_id });
+									node.local_transform = transform;
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 
 
@@ -450,9 +358,6 @@ namespace render
 		std::vector<VkDeviceWrapper> vk_logical_devices_;
 
 
-
-		std::unique_ptr<Surface> surface_ptr_;
-
 		std::unique_ptr<DescriptorPool> descriptor_pool_ptr_;
 
 
@@ -498,7 +403,7 @@ namespace render
 
 	bool RenderEngine::VKInitSuccess()
 	{
-		return impl_->VKInitSuccess();
+		return true;
 	}
 
 	void RenderEngine::StartRender()

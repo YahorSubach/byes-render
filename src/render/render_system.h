@@ -12,6 +12,8 @@
 #include "render\global.h"
 #include "surface.h"
 #include "render\command_pool.h"
+#include "render\descriptor_sets_manager.h"
+#include "render\frame_handler.h"
 
 
 namespace render
@@ -23,7 +25,12 @@ namespace render
 	public:
 		RenderSystem(platform::Window window, const std::string& app_name);
 		
-		void Render();
+		bool ShouldRender() const;
+		void Render(uint32_t frame_index, const Scene& scene);
+
+		const Global& GetGlobal() const;
+		DescriptorSetsManager& GetDescriptorSetsManager();
+
 	private:
 		
 		bool InitPhysicalDevices();
@@ -39,6 +46,8 @@ namespace render
 		uint32_t DetermineDeviceForUse();
 
 		bool InitLogicalDevice(const VkPhysicalDevice& physical_device, const std::vector<uint32_t> queue_famaly_indices);
+
+
 
 		void FillGlobal();
 
@@ -70,8 +79,18 @@ namespace render
 		std::unique_ptr<CommandPool> graphics_command_pool_ptr_;
 		std::unique_ptr<CommandPool> transfer_command_pool_ptr_;
 
-		DescriptorSetsManager descriptor_set_manager_;
+		std::optional<DescriptorSetsManager> descriptor_set_manager_;
 
+		std::optional<Swapchain> swapchain_;
+
+		std::array<std::optional<FrameHandler>, kFramesCount> frames_;
+		std::array<std::optional<Framebuffer>, kFramesCount> swapchain_framebuffers_;
+
+		std::array<Extent, kExtentTypeCnt> extents_;
+
+		//TODO remove optional
+
+		std::optional<RenderSetup> render_setup_;
 	};
 
 }

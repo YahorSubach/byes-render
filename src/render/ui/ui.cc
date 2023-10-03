@@ -9,7 +9,7 @@ struct Glyph
 
 
 
-render::ui::UI::UI(Global& global): RenderObjBase(global),
+render::ui::UI::UI(const Global& global): RenderObjBase(global),
     polygon_vert_pos_(global, 4 * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { global.graphics_queue_index, global.transfer_queue_index }),
     polygon_vert_tex_(global, 4 * sizeof(glm::vec2), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, { global.graphics_queue_index, global.transfer_queue_index }),
     polygon_vert_ind_(global, 6 * sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, { global.graphics_queue_index, global.transfer_queue_index }),

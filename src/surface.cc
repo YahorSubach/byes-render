@@ -121,16 +121,22 @@ namespace render
 		}
 	}
 
-	platform::Window Surface::GetWindow()
-	{
-		return window_hande_;
-	}
+	//platform::Window Surface::GetWindow()
+	//{
+	//	return window_hande_;
+	//}
 
 	Surface::~Surface()
 	{
+		platform::JoinWindowThread(window_hande_);
 		if (handle_ != VK_NULL_HANDLE)
 		{
 		}
+	}
+
+	bool Surface::Closed() const
+	{
+		return platform::IsWindowClosed(window_hande_);
 	}
 
 	VkSurfaceFormatKHR Surface::GetSurfaceFormat(const VkPhysicalDevice& physical_device) const

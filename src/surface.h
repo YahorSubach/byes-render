@@ -40,7 +40,9 @@ namespace render
 		Surface& operator=(const Surface&) = delete;
 		Surface& operator=(Surface&&) = default;
 
-		platform::Window GetWindow();
+		//platform::Window GetWindow();
+
+		bool Closed() const;
 
 		VkSurfaceFormatKHR GetSurfaceFormat(const VkPhysicalDevice& physical_device) const;
 		VkPresentModeKHR GetSurfacePresentMode(const VkPhysicalDevice& physical_device) const;

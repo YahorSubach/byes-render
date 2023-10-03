@@ -37,6 +37,10 @@ namespace render
 
 		auto&& swapchain_attachment = g_collect_node->AttachSwapchain() >> *ui_node;
 
+	}
+
+	void RenderSetup::Build()
+	{
 		render_graph_.Build();
 
 		swapchain_render_pass_ = g_collect_node->GetRenderPass();

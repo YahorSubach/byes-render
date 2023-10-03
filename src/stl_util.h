@@ -13,11 +13,11 @@ namespace render::util
 	template<class T>
 	class DeleterWrapper
 	{
-		using DeleterType = decltype([](T& value) {});
+		using DeleterType = std::function<void(const T&)>;
 		T value_;
 		DeleterType deleter_;
 	public:
-		DeleterWrapper(const T& value, const DeleterType& deleter) : value_(value), deleter_(deleter) {}
+		DeleterWrapper(const T& value, DeleterType deleter) : value_(value), deleter_(deleter) {}
 		
 		operator T& () { return value_; }
 		operator const T& () const { return value_; }
@@ -313,20 +313,19 @@ namespace render::util
 				return data_.begin();
 			}
 
-			auto cbegin()
+			auto begin() const
+			{
+				return data_.begin();
+			}
+
+			auto cbegin() const
 			{
 				return data_.cbegin();
 			}
 
-			auto end()
-			{
-				return data_.end();
-			}
+			auto end() const { return data_.end(); }
 
-			auto cend()
-			{
-				return data_.cend();
-			}
+			auto cend() const { return data_.cend(); }
 
 		};
 	}
