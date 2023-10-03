@@ -157,7 +157,8 @@ namespace render
 						std::visit([&current_frame_index](auto&& primitive) {primitive.UpdateAndTryFillWrites(current_frame_index); }, primitive);
 					}
 				}
-
+				//TODO fix aspect
+				scenes_[0].aspect = 1.2;
 				render_system_.Render(current_frame_index, scenes_[0]);
 
 
