@@ -130,16 +130,15 @@ namespace render
 			uint32_t frame_cnt = 0;
 
 			ui::UI ui(render_system_.GetGlobal());
-			std::shared_ptr<ui::Panel> screen_panel;
+			ui::Panel screen_panel(scenes_[0], 0, 0, 512, 512);
 			std::shared_ptr<ui::TextBlock> block;
 
-			if (screen_panel)
-			{
-				screen_panel->SetWidth(512);
-				screen_panel->SetHeight(512);
-			}
-
 			int current_frame_index = -1;
+
+			render_system_.AddOnSwapchainUpdateCallback([&](const Swapchain& swapchain)
+				{
+					screen_panel.SetExtent(swapchain.GetExtent());
+					scenes_[0].aspect = 1.0f * swapchain.GetExtent().width / swapchain.GetExtent().height; });
 
 			while (render_system_.ShouldRender())
 			{
@@ -157,8 +156,7 @@ namespace render
 						std::visit([&current_frame_index](auto&& primitive) {primitive.UpdateAndTryFillWrites(current_frame_index); }, primitive);
 					}
 				}
-				//TODO fix aspect
-				scenes_[0].aspect = 1.2;
+				
 				render_system_.Render(current_frame_index, scenes_[0]);
 
 
@@ -258,11 +256,9 @@ namespace render
 
 						auto&& info = object_id_to_scene_object_id_[specified_command.node_id.value];
 						scenes_[0].camera_node_id_ = { info.id };
-
-						screen_panel = std::make_shared<ui::Panel>(scenes_[0], 0, 0, 512, 512);
 						block = std::make_shared<ui::TextBlock>(ui, scenes_[0], render_system_.GetDescriptorSetsManager(), 30, 30);
 						block->SetText(U"Жопич", 30);
-						screen_panel->AddChild(block);
+						screen_panel.AddChild(block);
 					}
 
 					if (std::holds_alternative<command::ObjectsUpdate>(command))

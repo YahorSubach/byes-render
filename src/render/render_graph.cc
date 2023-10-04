@@ -12,10 +12,8 @@ extern PFN_vkCmdDebugMarkerEndEXT pfnCmdDebugMarkerEnd;
 
 namespace render
 {
-	RenderGraph2::RenderGraph2(const Global& global) : RenderObjBase(global)
-	{
-
-	}
+	RenderGraph2::RenderGraph2()
+	{}
 
 	RenderNode& RenderGraph2::AddNode(const std::string& name, ExtentType extent_type)
 	{
@@ -24,11 +22,11 @@ namespace render
 		return it->second;
 	}
 
-	void RenderGraph2::Build()
+	void RenderGraph2::BuildRenderPasses(const Global& global, const Formats& formats)
 	{
 		for (auto&& [name, node] : nodes_)
 		{
-			node.Build();
+			node.BuildRenderPass(global, formats);
 		}
 	}
 
@@ -51,16 +49,16 @@ namespace render
 		attachments_.reserve(16);
 	}
 
-	RenderNode::Attachment& RenderNode::Attach(const std::string& name, Format format, uint32_t layers_cnt)
+	RenderNode::Attachment& RenderNode::Attach(const std::string& name, FormatType format_type, uint32_t layers_cnt)
 	{
-		attachments_.push_back({ name, format, false, *this, layers_cnt });
+		attachments_.push_back({ name, format_type, false, *this, layers_cnt });
 		//assert(success);
 		return attachments_.back();
 	}
 
 	RenderNode::Attachment& RenderNode::AttachSwapchain()
 	{
-		attachments_.push_back({ kSwapchainAttachmentName, render_graph_.GetDeviceCfg().presentation_format, true, *this });
+		attachments_.push_back({ kSwapchainAttachmentName, FormatType::kSwapchain, true, *this });
 		//assert(success);
 		return attachments_.back();
 	}
@@ -103,9 +101,9 @@ namespace render
 		return name_;
 	}
 
-	void RenderNode::Build()
+	void RenderNode::BuildRenderPass(const Global& global, const Formats& formats)
 	{
-		render_pass_.emplace(RenderPass(render_graph_.GetDeviceCfg(), *this));
+		render_pass_.emplace(RenderPass(global, *this, formats));
 	}
 	const RenderPass& RenderNode::GetRenderPass() const
 	{
@@ -138,7 +136,7 @@ namespace render
 		//RenderNode.AddDependency({ *this, to_node, true });
 		to_dependencies.push_back({ *this, to_node, DescriptorSetType::None });
 
-		auto&& new_attachment = to_node.Attach(name, format);
+		auto&& new_attachment = to_node.Attach(name, format_type);
 		new_attachment.is_swapchain_image = is_swapchain_image;
 		new_attachment.depends_on = to_dependencies.back();
 		to_node.order = std::max(to_node.order, node.order + 1);
@@ -167,7 +165,7 @@ namespace render
 		return attachment.ForwardAsSampled(node_to_forward, type, descriptor_set_binding_index);
 	}
 
-	RenderGraphHandler::RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager) :
+	RenderGraphHandler::RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const Extents& extents, const Formats& formats, DescriptorSetsManager& desc_set_manager) :
 		RenderObjBase(global), render_graph_(render_graph), nearest_sampler_(global, 0, Sampler::AddressMode::kRepeat, true)
 	{
 		std::map<std::string, std::map<DescriptorSetType, std::map<int, const AttachmentImage&>>> desc_set_images;
@@ -186,9 +184,9 @@ namespace render
 					continue;
 				}
 
-				Image image(global, attachment.format, extents[u32(RenderNode.GetExtentType())], attachment.layers_cnt);
+				Image image(global, formats[int(attachment.format_type)], extents[u32(RenderNode.GetExtentType())], attachment.layers_cnt);
 
-				if (attachment.format == global.depth_map_format)
+				if (attachment.format_type == FormatType::kDepth)
 				{
 					image.AddUsageFlag(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 				}
@@ -207,7 +205,7 @@ namespace render
 
 				ImageView image_view(global, image);
 
-				auto res = attachment_images_.insert({ attachment.name, AttachmentImage{attachment.format, std::move(image), std::move(image_view)} });
+				auto res = attachment_images_.insert({ attachment.name, AttachmentImage{attachment.format_type, std::move(image), std::move(image_view)} });
 				framebuffer_params.attachments.push_back(res.first->second.image_view);
 
 				for (auto&& dependency : attachment.to_dependencies)
@@ -242,7 +240,7 @@ namespace render
 				for (auto&& [binding_index, binding_att_image] : desc_images)
 				{
 					image_infos[binding_index].sampler = nearest_sampler_.GetHandle();
-					image_infos[binding_index].imageLayout = binding_att_image.format == global.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					image_infos[binding_index].imageLayout = binding_att_image.format_type == FormatType::kDepth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 					image_infos[binding_index].imageView = binding_att_image.image_view.GetHandle();
 
 					writes[binding_index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

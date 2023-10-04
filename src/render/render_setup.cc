@@ -11,8 +11,7 @@
 namespace render
 {
 	RenderSetup::RenderSetup(const Global& global) :
-		RenderObjBase(global),
-		render_graph_(global)
+		RenderObjBase(global)
 	{
 		pipelines_.reserve(32);
 
@@ -27,21 +26,21 @@ namespace render
 		g_collect_node->use_swapchain_framebuffer = true;
 		ui_node->use_swapchain_framebuffer = true;
 
-		g_build_node->Attach("g_albedo", global.high_range_color_format) >> DescriptorSetType::kGBuffers >> 0 >> *g_collect_node;
-		g_build_node->Attach("g_position", global.high_range_color_format) >> DescriptorSetType::kGBuffers >> 1 >> *g_collect_node;
-		g_build_node->Attach("g_normal", global.high_range_color_format) >> DescriptorSetType::kGBuffers >> 2 >> *g_collect_node;
-		g_build_node->Attach("g_metal_rough", global.high_range_color_format) >> DescriptorSetType::kGBuffers >> 3 >> *g_collect_node;
-		g_build_node->Attach("g_depth", global.depth_map_format);
+		g_build_node->Attach("g_albedo", FormatType::kHighRangeColor) >> DescriptorSetType::kGBuffers >> 0 >> *g_collect_node;
+		g_build_node->Attach("g_position", FormatType::kHighRangeColor) >> DescriptorSetType::kGBuffers >> 1 >> *g_collect_node;
+		g_build_node->Attach("g_normal", FormatType::kHighRangeColor) >> DescriptorSetType::kGBuffers >> 2 >> *g_collect_node;
+		g_build_node->Attach("g_metal_rough", FormatType::kHighRangeColor) >> DescriptorSetType::kGBuffers >> 3 >> *g_collect_node;
+		g_build_node->Attach("g_depth", FormatType::kDepth);
 
-		cube_shadow_map_node->Attach("cube_depth", global.depth_map_format, 6 * 10) >> DescriptorSetType::kShadowCubeMaps >> 0 >> *g_collect_node;
+		cube_shadow_map_node->Attach("cube_depth", FormatType::kDepth, 6 * 10) >> DescriptorSetType::kShadowCubeMaps >> 0 >> *g_collect_node;
 
 		auto&& swapchain_attachment = g_collect_node->AttachSwapchain() >> *ui_node;
 
 	}
 
-	void RenderSetup::Build()
+	void RenderSetup::BuildRenderPasses(const Formats& formats)
 	{
-		render_graph_.Build();
+		render_graph_.BuildRenderPasses(global_, formats);
 
 		swapchain_render_pass_ = g_collect_node->GetRenderPass();
 	}

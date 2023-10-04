@@ -33,6 +33,7 @@ namespace render::ui
 
 		void SetWidth(int width);
 		void SetHeight(int height);
+		void SetExtent(Extent extent);
 
 		void ClearModels();
 

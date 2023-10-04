@@ -34,7 +34,7 @@ namespace render
 		};
 
 
-		RenderPass(const Global& global, const RenderNode& render_node/*, SwapchainInteractionFlags interaction = {}*/);
+		RenderPass(const Global& global, const RenderNode& render_node, const Formats& formats);
 
 		//int AddColorAttachment(const std::string_view& name, bool high_range = true);
 		//int AddDepthAttachment(const std::string_view& name);

@@ -79,7 +79,7 @@ namespace render
 		public:
 
 			std::string name;
-			Format format;
+			FormatType format_type;
 			//const Extent& extent;
 			bool is_swapchain_image;
 
@@ -101,7 +101,7 @@ namespace render
 
 		RenderNode(const RenderGraph2& render_graph, const std::string& name, const ExtentType& extent);
 
-		Attachment& Attach(const std::string& name, Format format, uint32_t layers_cnt = 1);
+		Attachment& Attach(const std::string& name, FormatType format_type, uint32_t layers_cnt = 1);
 		Attachment& AttachSwapchain();
 		Attachment& GetAttachment(const std::string& name);
 
@@ -112,7 +112,7 @@ namespace render
 		void ClearPipelines();
 
 		const std::string& GetName() const;
-		void Build();
+		void BuildRenderPass(const Global& global, const Formats& formats);
 		/*void AddDependency(Dependency dependency);*/
 
 		const RenderPass& GetRenderPass() const;
@@ -138,18 +138,15 @@ namespace render
 		//std::vector<Dependency> from_dependencies_;
 	};
 
-	class RenderGraph2 : public RenderObjBase<int*>
+	class RenderGraph2
 	{
 	public:
-
-
-
-		RenderGraph2(const Global& global);
+		RenderGraph2();
 
 		//TODO 
 
 		RenderNode& AddNode(const std::string& name, ExtentType extent_type);
-		void Build();
+		void BuildRenderPasses(const Global& global, const Formats& formats);
 		void ClearPipelines();
 
 		const std::map<std::string, RenderNode>& GetNodes() const;
@@ -165,7 +162,7 @@ namespace render
 	{
 	public:
 
-		RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& desc_set_manager);
+		RenderGraphHandler(const Global& global, const RenderGraph2& render_graph, const Extents& extents, const Formats& formats, DescriptorSetsManager& desc_set_manager);
 
 		bool FillCommandBuffer(VkCommandBuffer command_buffer, const FrameInfo& frame_info, const Scene& scene) const;
 
@@ -193,7 +190,7 @@ namespace render
 
 		struct AttachmentImage
 		{
-			VkFormat format;
+			FormatType format_type;
 			Image image;
 			ImageView image_view;
 		};

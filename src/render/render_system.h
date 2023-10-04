@@ -11,14 +11,15 @@
 #include "stl_util.h"
 #include "render\global.h"
 #include "surface.h"
-#include "render\command_pool.h"
-#include "render\descriptor_sets_manager.h"
-#include "render\frame_handler.h"
+#include "command_pool.h"
+#include "descriptor_sets_manager.h"
+#include "frame_handler.h"
+#include "render_api.h"
 
 
 namespace render
 {
-
+	
 
 	class RenderSystem
 	{
@@ -31,53 +32,15 @@ namespace render
 		const Global& GetGlobal() const;
 		DescriptorSetsManager& GetDescriptorSetsManager();
 
+		void AddOnSwapchainUpdateCallback(std::function<void(const Swapchain&)> callback);
+
 	private:
 		
-		bool InitPhysicalDevices();
-
-		void InitPhysicalDeviceProperties(VkPhysicalDevice physical_device);
-		void InitPhysicalDeviceMemoryProperties(VkPhysicalDevice physical_device);
-		void InitPhysicalDeviceQueueFamiliesProperties(VkPhysicalDevice physical_device);
-		void InitPhysicalDeviceFeatures(const VkPhysicalDevice& physical_device);
-		bool InitPhysicalDeviceLayers(const VkPhysicalDevice& physical_device);
-		bool InitPhysicalDeviceExtensions(const VkPhysicalDevice& physical_device);
-
-
-		uint32_t DetermineDeviceForUse();
-
-		bool InitLogicalDevice(const VkPhysicalDevice& physical_device, const std::vector<uint32_t> queue_famaly_indices);
-
-
-
-		void FillGlobal();
-
-		uint32_t FindDeviceQueueFamalyWithFlag(const VkPhysicalDevice& physical_deivce, VkQueueFlags enabled_flags, VkQueueFlags disabled_flags = 0);
-
-		const std::vector<const char*>& GetRequiredDeviceExtensions();
+		std::vector<std::function<void(const Swapchain&)>> on_swapchain_update_callbacks;
 
 		Global global_;
-		RenderApiInstance api_instance_;
+		RenderApi render_api_;
 		Surface surface_;
-
-		uint32_t selected_device_index_;
-		uint32_t selected_graphics_queue_index_;
-		uint32_t selected_transfer_queue_index_;
-
-
-		std::vector<VkPhysicalDevice> vk_physical_devices_;
-		std::vector<util::DeleterWrapper<VkDevice>> vk_logical_devices_;
-
-		std::map<VkPhysicalDevice, VkPhysicalDeviceMemoryProperties> vk_physical_devices_memory_propeties_;
-		std::map<VkPhysicalDevice, VkPhysicalDeviceProperties> vk_physical_devices_propeties_;
-		std::map<VkPhysicalDevice, std::vector<VkQueueFamilyProperties>> vk_physical_devices_to_queues_;
-		std::map<VkPhysicalDevice, VkPhysicalDeviceFeatures> vk_physical_devices_features_;
-
-		std::map<VkPhysicalDevice, std::vector<VkLayerProperties>> vk_physical_devices_layers_;
-
-		std::map<VkPhysicalDevice, std::vector<VkExtensionProperties>> vk_physical_devices_extensions_;
-
-		std::unique_ptr<CommandPool> graphics_command_pool_ptr_;
-		std::unique_ptr<CommandPool> transfer_command_pool_ptr_;
 
 		std::optional<DescriptorSetsManager> descriptor_set_manager_;
 
@@ -86,11 +49,10 @@ namespace render
 		std::array<std::optional<FrameHandler>, kFramesCount> frames_;
 		std::array<std::optional<Framebuffer>, kFramesCount> swapchain_framebuffers_;
 
-		std::array<Extent, kExtentTypeCnt> extents_;
+		Extents extents_;
+		Formats formats_;
 
-		//TODO remove optional
-
-		std::optional<RenderSetup> render_setup_;
+		RenderSetup render_setup_;
 	};
 
 }

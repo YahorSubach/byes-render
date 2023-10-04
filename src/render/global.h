@@ -36,9 +36,7 @@ namespace render
 		std::optional<Image> error_image;
 		std::optional<Image> default_normal;
 
-		Format presentation_format;
 		Format depth_map_format = VK_FORMAT_D32_SFLOAT;
-		Format high_range_color_format = VK_FORMAT_R32G32B32A32_SFLOAT;
 		Format color_format = VK_FORMAT_R8G8B8A8_SRGB;
 
 		uint32_t frame_ind;

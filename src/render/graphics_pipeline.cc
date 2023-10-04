@@ -185,7 +185,7 @@ namespace render
 
 		for (auto&& attachment : render_node.GetAttachments())
 		{
-			if (attachment.format != global_.depth_map_format)
+			if (attachment.format_type != FormatType::kDepth)
 				color_attachments_cnt++;
 		}
 

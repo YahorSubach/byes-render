@@ -10,7 +10,7 @@
 
 #include "global.h"
 
-render::RenderPass::RenderPass(const Global& global, const RenderNode& render_node): RenderObjBase(global), contains_depth_attachment_(false)
+render::RenderPass::RenderPass(const Global& global, const RenderNode& render_node, const Formats& formats): RenderObjBase(global), contains_depth_attachment_(false)
 {
 	
 	std::vector<VkAttachmentDescription> vk_attachments;
@@ -21,11 +21,13 @@ render::RenderPass::RenderPass(const Global& global, const RenderNode& render_no
 	{
 		VkAttachmentDescription attachment_description = {};
 
-		attachment_description.format = node_attachment.format;
-		attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-		attachment_description.loadOp = node_attachment.depends_on ? VK_ATTACHMENT_LOAD_OP_LOAD : node_attachment.format == global.depth_map_format ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		bool is_depth_attachment = node_attachment.format_type == FormatType::kDepth;
 
-		if(node_attachment.format == global.presentation_format || !node_attachment.to_dependencies.empty())
+		attachment_description.format = formats[int(node_attachment.format_type)];
+		attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
+		attachment_description.loadOp = node_attachment.depends_on ? VK_ATTACHMENT_LOAD_OP_LOAD : is_depth_attachment ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+
+		if(node_attachment.format_type == FormatType::kSwapchain || !node_attachment.to_dependencies.empty())
 			attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		else attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		
@@ -38,7 +40,7 @@ render::RenderPass::RenderPass(const Global& global, const RenderNode& render_no
 		}
 		else
 		{
-			attachment_description.initialLayout = node_attachment.format == global.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachment_description.initialLayout = is_depth_attachment ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 
 		if (node_attachment.is_swapchain_image && node_attachment.to_dependencies.empty())
@@ -47,7 +49,7 @@ render::RenderPass::RenderPass(const Global& global, const RenderNode& render_no
 		}
 		else
 		{
-			attachment_description.finalLayout = node_attachment.format == global.depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachment_description.finalLayout = is_depth_attachment ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 
 		vk_attachments.push_back(attachment_description);
@@ -74,7 +76,9 @@ render::RenderPass::RenderPass(const Global& global, const RenderNode& render_no
 		int attachment_index = 0;
 		for (auto&& node_attachment : render_node.GetAttachments())
 		{
-			if (node_attachment.format == global.depth_map_format)
+			bool is_depth_attachment = node_attachment.format_type == FormatType::kDepth;
+
+			if (is_depth_attachment)
 			{
 				subpasses_depth_refs[subpass_ind].attachment = attachment_index;
 				subpasses_depth_refs[subpass_ind].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;

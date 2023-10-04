@@ -5,30 +5,12 @@
 #include "vulkan/vulkan.h"
 
 #include "platform.h"
-#include "render/object_base.h"
-#include "render/data_types.h"
+#include "render\object_base.h"
+#include "render\data_types.h"
+#include "render\render_api.h"
 
 namespace render
 {
-
-	class RenderApiInstance : public RenderObjBase<VkInstance>
-	{
-	public:
-		RenderApiInstance(const Global& global, const std::string& app_name);
-
-		~RenderApiInstance();
-
-	private:
-		const std::vector<const char*>& GetValidationLayers();
-		bool InitInstanceExtensions();
-		bool InitInstanceLayers();
-		
-		bool valid_;
-
-		std::vector<VkLayerProperties > vk_instance_layers_;
-		std::vector<VkExtensionProperties> vk_instance_extensions_;
-	};
-
 	class Surface: public RenderObjBase<VkSurfaceKHR>
 	{
 	public:

@@ -16,14 +16,14 @@
 namespace render
 {
 	FrameHandler::FrameHandler(const Global& global, const Swapchain& swapchain, const RenderSetup& render_setup,
-		const std::array<Extent, kExtentTypeCnt>& extents, DescriptorSetsManager& descriptor_set_manager) :
+		const Extents& extents, const Formats& formats, DescriptorSetsManager& descriptor_set_manager) :
 		RenderObjBase(global), swapchain_(swapchain.GetHandle()), graphics_queue_(global.graphics_queue),
 		command_buffer_(global.graphics_cmd_pool->GetCommandBuffer()),
 		image_available_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
 		render_finished_semaphore_(vk_util::CreateSemaphore(global.logical_device)),
 		cmd_buffer_fence_(vk_util::CreateFence(global.logical_device)), present_info_{}, submit_info_{}, wait_stages_(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
 		render_setup_(render_setup),
-		render_graph_handler_(global, render_setup.GetRenderGraph(), extents, descriptor_set_manager),
+		render_graph_handler_(global, render_setup.GetRenderGraph(), extents, formats, descriptor_set_manager),
 		descriptor_set_manager_(descriptor_set_manager)
 	{
 		handle_ = (void*)(1);

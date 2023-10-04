@@ -75,6 +75,16 @@ namespace render::ui
         }
     }
 
+    void Panel::SetExtent(Extent extent)
+    {
+        width_ = extent.width;
+        height_= extent.height;
+        for (auto&& child : children_)
+        {
+            child->SetParent(*this);
+        }
+    }
+
     void Panel::ClearModels()
     {
         for (auto&& [node_id, model_id] : node_models_ids_)

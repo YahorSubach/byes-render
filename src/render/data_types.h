@@ -37,17 +37,18 @@ namespace render
 		Count
 	};
 
-	const int kExtentTypeCnt = static_cast<int>(ExtentType::Count);
-
-	enum class RenderPassId
+	enum class FormatType
 	{
-		kSimpleRenderToScreen,
-		kBuildDepthmap,
-		kBuildGBuffers,
-		kCollectGBuffers,
+		kSwapchain,
+		kHighRangeColor,
+		kColor,
+		kDepth,
 
-		kUI,
+		Count
 	};
+
+	const int kExtentTypeCnt = static_cast<int>(ExtentType::Count);
+	const int kFormatTypeCnt = static_cast<int>(FormatType::Count);
 
 	struct Extent
 	{
@@ -62,6 +63,8 @@ namespace render
 		operator VkExtent2D() const { return VkExtent2D{ width , height }; }
 	};
 
+	using Extents = std::array<Extent, kExtentTypeCnt>;
+	using Formats = std::array<VkFormat, kFormatTypeCnt>;
 
 	using Format = VkFormat;
 
