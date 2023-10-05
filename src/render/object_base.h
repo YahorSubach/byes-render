@@ -38,7 +38,7 @@ namespace render
 
 		virtual HandleType GetHandle() const { return handle_; }
 
-		const Global& GetDeviceCfg() const { return global_; };
+		const Global& GetGlobal() const { return global_; };
 		//virtual ~RenderObjBase() override
 		//{
 		//	int a = 1;

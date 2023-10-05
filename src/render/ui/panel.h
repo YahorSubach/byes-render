@@ -17,7 +17,7 @@ namespace render::ui
 	class Panel
 	{
 	public:
-		Panel(render::Scene& scene, int x, int y, int width, int height);
+		Panel(render::Scene& scene, int x, int y, int width, int height, float anchor_x = 0.0f, float anchor_y = 0.0f);
 		//Panel(const Panel& panel);
 		
 		util::NullableRef<const Panel> parent_;
@@ -44,6 +44,8 @@ namespace render::ui
 
 		std::vector<std::pair<NodeId, RenderModelId>> node_models_ids_;
 
+		float anchor_x_ = 0;
+		float anchor_y_ = 0;
 		int x_ = 0;
 		int y_ = 0;
 		int width_ = 0;
@@ -62,6 +64,15 @@ namespace render::ui
 	//protected:
 	//	Panel character_panel_;
 	//};
+
+	class Image : public Panel
+	{
+	public:
+		Image(const UI& ui, render::Scene& scene, render::DescriptorSetsManager& desc_manager, const render::Image& image, int x, int y, float anchor_x, float anchor_y);
+		Image(const Image&) = delete;
+	protected:
+		Mesh mesh_;
+	};
 
 	class TextBlock : public Panel
 	{

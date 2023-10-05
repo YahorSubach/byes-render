@@ -250,6 +250,7 @@ namespace render
 				glm::vec2 atlas_position;
 				glm::vec2 width_heigth;
 				glm::vec4 color;
+				int flags;
 			};
 		};
 	};

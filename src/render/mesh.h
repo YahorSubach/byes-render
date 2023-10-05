@@ -75,6 +75,7 @@ namespace render
 		{
 			Bitmap(const Global& global, DescriptorSetsManager& manager, const ui::UI& ui, glm::vec2 atlas_position, glm::vec2 atlas_width_height);
 			Bitmap(const Global& global, DescriptorSetsManager& manager, const render::ui::UI& ui, const ui::Glyph glyph);
+			Bitmap(const Global& global, DescriptorSetsManager& manager, const render::ui::UI& ui, const Image& image);
 			const Image& atlas;
 
 			glm::vec2 atlas_position; 
@@ -119,6 +120,7 @@ namespace render
 	struct Mesh: byes::RM<Mesh>
 	{
 		Mesh() = default;
+		Mesh(const std::string name, Primitive&& primitive);
 		Mesh(const std::string& name) : name(name) {};
 		Mesh(const Mesh&) = delete;
 		Mesh(Mesh&&) = default;

@@ -5,7 +5,7 @@
 
 namespace render::ui
 {
-    Panel::Panel(Scene& scene, int x, int y, int width, int height) : scene_(scene), x_(x), y_(y), width_(width), height_(height)
+    Panel::Panel(Scene& scene, int x, int y, int width, int height, float anchor_x, float anchor_y) : scene_(scene), x_(x), y_(y), width_(width), height_(height), anchor_x_(anchor_x), anchor_y_(anchor_y)
     {
         node_id_ = scene_.AddNode();
         //local_transform = glm::identity<glm::mat4>();
@@ -103,7 +103,7 @@ namespace render::ui
 
         node.parent = scene_.GetNode(parent.node_id_);
 
-        node.local_transform = glm::translate(glm::identity<glm::mat4>(), glm::vec3(1.0f * x_ / parent_->width_, 1.0f * y_ / parent_->height_, 1.0f));
+        node.local_transform = glm::translate(glm::identity<glm::mat4>(), glm::vec3(anchor_x_ + 1.0f * x_ / parent_->width_, anchor_y_ + 1.0f * y_ / parent_->height_, 1.0f));
         node.local_transform = glm::scale(node.local_transform, glm::vec3(1.0f * width_ / parent_->width_, 1.0f * height_ / parent_->height_, 1.0f));
     }
 
@@ -143,7 +143,7 @@ namespace render::ui
             if (glyph.bitmap)
             {
                 meshes_.push_back(Mesh());
-                meshes_.back().primitives.push_back(primitive::Bitmap(scene_.GetDeviceCfg(), desc_manager_, ui_, glyph));
+                meshes_.back().primitives.push_back(primitive::Bitmap(scene_.GetGlobal(), desc_manager_, ui_, glyph));
 
                 AddModel(x_pos, glyph.bitmap_y, glyph.bitmap_width, glyph.bitmap_heigth, meshes_.back());
             }
@@ -155,5 +155,12 @@ namespace render::ui
         {
             SetParent(*parent_);
         }
+    }
+
+    Image::Image(const UI& ui, render::Scene& scene, render::DescriptorSetsManager& desc_manager, const render::Image& image, int x, int y, float anchor_x, float anchor_y):
+        Panel(scene, x, y, image.GetExtent().width, image.GetExtent().height,anchor_x, anchor_y),
+        mesh_("image", primitive::Bitmap(image.GetGlobal(), desc_manager, ui, image))
+    {
+        AddModel(0, 0, image.GetExtent().width, image.GetExtent().height, mesh_);
     }
 }

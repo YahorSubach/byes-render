@@ -61,9 +61,9 @@ namespace render
 				if (FillData(new_data))
 				{
 					void* mapped_data;
-					vkMapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory().vk_memory, uniform_buffers_[frame_index].GetBufferMemory().offset, size, 0, &mapped_data);
+					vkMapMemory(uniform_buffers_[frame_index].GetGlobal().logical_device, uniform_buffers_[frame_index].GetBufferMemory().vk_memory, uniform_buffers_[frame_index].GetBufferMemory().offset, size, 0, &mapped_data);
 					memcpy(mapped_data, &new_data, size);
-					vkUnmapMemory(uniform_buffers_[frame_index].GetDeviceCfg().logical_device, uniform_buffers_[frame_index].GetBufferMemory().vk_memory);
+					vkUnmapMemory(uniform_buffers_[frame_index].GetGlobal().logical_device, uniform_buffers_[frame_index].GetBufferMemory().vk_memory);
 				}
 				else
 				{
@@ -118,7 +118,7 @@ namespace render
 
 			void FillWriteDescriptorSet(int frame_index, VkWriteDescriptorSet& write_desc_set, SamplerData& sampler_data)
 			{
-				vk_image_info_.imageLayout = image_views_[frame_index]->GetFormat() == image_views_[frame_index]->GetDeviceCfg().depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				vk_image_info_.imageLayout = image_views_[frame_index]->GetFormat() == image_views_[frame_index]->GetGlobal().depth_map_format ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 				vk_image_info_.imageView = image_views_[frame_index]->GetHandle();
 				vk_image_info_.sampler = sampler_data.sampler.get().GetHandle();

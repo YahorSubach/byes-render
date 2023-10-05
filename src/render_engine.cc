@@ -113,6 +113,7 @@ namespace render
 		{
 
 			std::vector<ModelPack> model_packs;
+			std::map<std::string, Image> images;
 			std::unordered_map<std::string, uint32_t> model_packs_name_to_index;
 
 			static auto start_time = std::chrono::high_resolution_clock::now();
@@ -190,6 +191,19 @@ namespace render
 						auto&& specified_command = std::get<command::Load>(command);
 						model_packs.back().AddGLTF(*specified_command.model);
 						model_packs_name_to_index.emplace(specified_command.pack_name, (uint32_t)(model_packs.size() - 1));
+					}
+
+					if (std::holds_alternative<command::Image>(command))
+					{
+						command::Image& specified_command = std::get<command::Image>(command);
+						images.emplace(specified_command.name, Image::FromFile(render_system_.GetGlobal(), specified_command.path));
+
+						auto&& hand_image = images.at("hand");
+
+						auto image = std::make_shared<ui::Image>(ui, scenes_[0], render_system_.GetDescriptorSetsManager(), hand_image, 
+							-(int)hand_image.GetExtent().width / 2, -(int)hand_image.GetExtent().height / 2, 0.5f, 0.5f);
+
+						screen_panel.AddChild(image);
 					}
 
 					if (std::holds_alternative<command::Geometry>(command))

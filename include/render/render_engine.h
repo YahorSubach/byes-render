@@ -176,7 +176,7 @@ namespace render
 #define RENDER_ENGINE_OBJECT(x) AddObject<ObjectType::x>,
 		using Command = std::variant<
 #include "render_engine_objects.inl"
-			Load, Geometry, ObjectsUpdate, SetActiveCameraNode
+			Load, Image, Geometry, ObjectsUpdate, SetActiveCameraNode
 		>;
 	}
 	

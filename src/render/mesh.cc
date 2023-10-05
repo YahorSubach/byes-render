@@ -101,11 +101,21 @@ namespace render
 			vertex_buffers[u32(VertexBufferType::kTEXCOORD)].emplace(ui.GetVertexBuffers()[1]);
 		}
 
+		Bitmap::Bitmap(const Global& global, DescriptorSetsManager& manager, const render::ui::UI& ui, const Image& image) :
+			Base(PrimitiveProps::kUIShape), BitmapDescriptorSetHolder(global, manager),
+			atlas_position(0,0), atlas_width_height(1,1), atlas(image)
+		{
+			indices.emplace(ui.GetIndexBuffer());
+			vertex_buffers[u32(VertexBufferType::kPOSITION)].emplace(ui.GetVertexBuffers()[0]);
+			vertex_buffers[u32(VertexBufferType::kTEXCOORD)].emplace(ui.GetVertexBuffers()[1]);
+		}
+
 		bool Bitmap::FillData(render::DescriptorSet<render::DescriptorSetType::kBitmapAtlas>::Binding<0>::Data& data)
 		{
 			data.atlas_position = atlas_position;
 			data.width_heigth = atlas_width_height;
-			data.color = glm::vec4(0.5, 1, 0.5, 1);
+			data.color = glm::vec4(1, 1, 1, 1);
+			data.flags = atlas.GetFormat() != VK_FORMAT_R8_SRGB;
 			return true;
 		}
 
@@ -136,5 +146,10 @@ namespace render
 		else data.model_mat = glm::identity<glm::mat4>();
 
 		return true;
+	}
+
+	Mesh::Mesh(const std::string name, Primitive&& primitive): name(name)
+	{
+		primitives.push_back(std::move(primitive));
 	}
 }
